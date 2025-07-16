@@ -20,3 +20,10 @@ do postgres
 psql -U postgres
 CREATE DATABASE inz_project;
 pg admin działa też.
+
+
+dockerstuff
+docker-compose up
+docker-compose up --build
+docker-compose down -v
+docker-compose exec backend python manage.py migrate

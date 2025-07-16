@@ -24,3 +24,6 @@ Thumbs.db
 
 # dotenv
 *.env
+
+# notes
+dockercheatsheet.txt
