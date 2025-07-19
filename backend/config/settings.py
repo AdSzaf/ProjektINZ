@@ -33,6 +33,8 @@ CORS_ALLOW_ALL_ORIGINS = True
 
 load_dotenv()
 
+AUTH_USER_MODEL = 'myapp.User'
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -44,6 +46,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'corsheaders',
+    'myapp',  # Your custom app 
 ]
 
 MIDDLEWARE = [
