@@ -1,12 +1,13 @@
 <script setup>
-import HelloWorld from './components/HelloWorld.vue'
 import { ref } from 'vue';
-import Login from './components/Login.vue';
-import Registration from './components/Registration.vue';
+import LoginView from './components/LoginView.vue';
+import RegistrationView from './components/RegistrationView.vue';
+import MainView from './components/MainView.vue';
+import { useRoute } from 'vue-router';
 </script>
 
 <template>
-  <Registration />
+  <MainView />
 </template>
 
 <style scoped>

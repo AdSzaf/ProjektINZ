@@ -1,0 +1,732 @@
+<script setup>
+import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
+
+// User and project data
+const currentUser = ref({
+  name: 'John Doe',
+  email: 'john.doe@company.com',
+  avatar: 'JD',
+  role: 'Developer'
+})
+
+const projects = ref([
+  { id: 1, name: 'AgilePro', key: 'AP' },
+  { id: 2, name: 'WebApp 2.0', key: 'WA' },
+  { id: 3, name: 'Mobile Project', key: 'MP' }
+])
+
+const selectedProject = ref(projects.value[0])
+
+// UI state
+const showUserDropdown = ref(false)
+const showProjectDropdown = ref(false)
+const showCreateDropdown = ref(false)
+const searchQuery = ref('')
+const notifications = ref(3)
+
+// Dashboard data
+const dashboardData = ref({
+  activeSprintName: 'Sprint 23',
+  sprintProgress: 65,
+  openIssues: 24,
+  inProgress: 8,
+  completed: 42,
+  velocity: 32,
+  recentActivity: [
+    { user: 'Alice Johnson', action: 'completed', item: 'AP-145: Login validation', time: '2 hours ago' },
+    { user: 'Bob Smith', action: 'created', item: 'AP-146: Dashboard refactor', time: '4 hours ago' },
+    { user: 'Charlie Brown', action: 'commented on', item: 'AP-143: User management', time: '6 hours ago' }
+  ]
+})
+
+// Menu items
+const menuItems = ref([
+  { name: 'Dashboard', icon: '📊', route: '/dashboard', active: true },
+  { name: 'Backlog', icon: '📋', route: '/backlog' },
+  { name: 'Active Sprint', icon: '🏃', route: '/sprint' },
+  { name: 'Epics', icon: '📚', route: '/epics' },
+  { name: 'Sprints', icon: '🔄', route: '/sprints' },
+  { name: 'Issues', icon: '🎯', route: '/issues' },
+  { name: 'Reports', icon: '📈', route: '/reports' },
+  { name: 'Team Members', icon: '👥', route: '/members' },
+  { name: 'Settings', icon: '⚙️', route: '/settings' }
+])
+
+// Methods
+const selectProject = (project) => {
+  selectedProject.value = project
+  showProjectDropdown.value = false
+}
+
+const toggleDropdown = (dropdown) => {
+  showUserDropdown.value = dropdown === 'user' ? !showUserDropdown.value : false
+  showProjectDropdown.value = dropdown === 'project' ? !showProjectDropdown.value : false
+  showCreateDropdown.value = dropdown === 'create' ? !showCreateDropdown.value : false
+}
+
+const navigateToMenu = (item) => {
+  menuItems.value.forEach(menuItem => menuItem.active = false)
+  item.active = true
+  router.push(item.route)
+}
+
+const createNew = (type) => {
+  console.log('Creating new:', type)
+  showCreateDropdown.value = false
+  // Handle creation logic here
+}
+
+const logout = () => {
+  router.push('/login')
+}
+
+const searchIssues = () => {
+  if (searchQuery.value.trim()) {
+    console.log('Searching for:', searchQuery.value)
+    // Handle search logic
+  }
+}
+
+// Close dropdowns when clicking outside
+const closeDropdowns = () => {
+  showUserDropdown.value = false
+  showProjectDropdown.value = false
+  showCreateDropdown.value = false
+}
+
+onMounted(() => {
+  document.addEventListener('click', closeDropdowns)
+})
+</script>
+
+<template>
+  <div class="dashboard-layout" @click="closeDropdowns">
+    <!-- Top Navigation Bar -->
+    <header class="top-nav">
+      <div class="nav-left">
+        <!-- Logo -->
+        <div class="logo">
+          <span class="logo-icon">🎯</span>
+          <span class="logo-text">TaskFlow</span>
+        </div>
+
+        <!-- Project Selector -->
+        <div class="project-selector" @click.stop>
+          <button 
+            class="project-btn" 
+            @click="toggleDropdown('project')"
+            :class="{ active: showProjectDropdown }"
+          >
+            <span class="project-key">{{ selectedProject.key }}</span>
+            <span class="project-name">{{ selectedProject.name }}</span>
+            <span class="dropdown-arrow">▼</span>
+          </button>
+          
+          <div v-if="showProjectDropdown" class="dropdown project-dropdown">
+            <div 
+              v-for="project in projects" 
+              :key="project.id"
+              class="dropdown-item"
+              @click="selectProject(project)"
+            >
+              <span class="project-key">{{ project.key }}</span>
+              <span class="project-name">{{ project.name }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Create Button -->
+        <div class="quick-create" @click.stop>
+          <button 
+            class="create-btn"
+            @click="toggleDropdown('create')"
+            :class="{ active: showCreateDropdown }"
+          >
+            + Create
+          </button>
+          
+          <div v-if="showCreateDropdown" class="dropdown create-dropdown">
+            <div class="dropdown-item" @click="createNew('issue')">
+              🎯 Issue
+            </div>
+            <div class="dropdown-item" @click="createNew('epic')">
+              📚 Epic
+            </div>
+            <div class="dropdown-item" @click="createNew('sprint')">
+              🏃 Sprint
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="nav-center">
+        <!-- Search Bar -->
+        <div class="search-bar">
+          <input 
+            type="text" 
+            v-model="searchQuery"
+            placeholder="Search issues, epics, users..."
+            @keyup.enter="searchIssues"
+          />
+          <button class="search-btn" @click="searchIssues">🔍</button>
+        </div>
+      </div>
+
+      <div class="nav-right">
+        <!-- Notifications -->
+        <button class="notification-btn">
+          🔔
+          <span v-if="notifications > 0" class="notification-badge">{{ notifications }}</span>
+        </button>
+
+        <!-- User Menu -->
+        <div class="user-menu" @click.stop>
+          <button 
+            class="user-btn"
+            @click="toggleDropdown('user')"
+            :class="{ active: showUserDropdown }"
+          >
+            <div class="user-avatar">{{ currentUser.avatar }}</div>
+            <span class="dropdown-arrow">▼</span>
+          </button>
+          
+          <div v-if="showUserDropdown" class="dropdown user-dropdown">
+            <div class="user-info">
+              <div class="user-name">{{ currentUser.name }}</div>
+              <div class="user-email">{{ currentUser.email }}</div>
+            </div>
+            <hr>
+            <div class="dropdown-item">👤 Profile</div>
+            <div class="dropdown-item">⚙️ Settings</div>
+            <hr>
+            <div class="dropdown-item" @click="logout">🚪 Logout</div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="main-layout">
+      <!-- Sidebar -->
+      <nav class="sidebar">
+        <div 
+          v-for="item in menuItems" 
+          :key="item.name"
+          class="menu-item"
+          :class="{ active: item.active }"
+          @click="navigateToMenu(item)"
+        >
+          <span class="menu-icon">{{ item.icon }}</span>
+          <span class="menu-text">{{ item.name }}</span>
+        </div>
+      </nav>
+
+      <!-- Main Content -->
+      <main class="main-content">
+        <div class="dashboard-header">
+          <h1>Project Dashboard</h1>
+          <p class="project-description">{{ selectedProject.name }} - Overview and current sprint status</p>
+        </div>
+
+        <!-- Dashboard Cards -->
+        <div class="dashboard-grid">
+          <!-- Sprint Progress Card -->
+          <div class="dashboard-card">
+            <h3>{{ dashboardData.activeSprintName }} Progress</h3>
+            <div class="progress-container">
+              <div class="progress-bar">
+                <div 
+                  class="progress-fill" 
+                  :style="{ width: dashboardData.sprintProgress + '%' }"
+                ></div>
+              </div>
+              <span class="progress-text">{{ dashboardData.sprintProgress }}% Complete</span>
+            </div>
+          </div>
+
+          <!-- Quick Stats -->
+          <div class="dashboard-card stats-card">
+            <h3>Quick Stats</h3>
+            <div class="stats-grid">
+              <div class="stat-item">
+                <div class="stat-number">{{ dashboardData.openIssues }}</div>
+                <div class="stat-label">Open Issues</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-number">{{ dashboardData.inProgress }}</div>
+                <div class="stat-label">In Progress</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-number">{{ dashboardData.completed }}</div>
+                <div class="stat-label">Completed</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-number">{{ dashboardData.velocity }}</div>
+                <div class="stat-label">Velocity</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Recent Activity -->
+          <div class="dashboard-card activity-card">
+            <h3>Recent Activity</h3>
+            <div class="activity-list">
+              <div 
+                v-for="activity in dashboardData.recentActivity" 
+                :key="activity.time"
+                class="activity-item"
+              >
+                <div class="activity-content">
+                  <span class="activity-user">{{ activity.user }}</span>
+                  <span class="activity-action">{{ activity.action }}</span>
+                  <span class="activity-item-name">{{ activity.item }}</span>
+                </div>
+                <div class="activity-time">{{ activity.time }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+</template>
+
+<style scoped>
+.dashboard-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  background-color: #f8f9fa;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Top Navigation */
+.top-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: white;
+  border-bottom: 1px solid #e1e5e9;
+  padding: 0 1rem;
+  height: 60px;
+  position: relative;
+  z-index: 100;
+  flex-shrink: 0;
+  width: 100%;
+}
+
+.nav-left, .nav-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.nav-center {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  max-width: 400px;
+  margin: 0 2rem;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: bold;
+  color: #0066cc;
+}
+
+.logo-icon {
+  font-size: 1.5rem;
+}
+
+.project-selector {
+  position: relative;
+}
+
+.project-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #f8f9fa;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.project-btn:hover, .project-btn.active {
+  background: #e9ecef;
+  border-color: #0066cc;
+}
+
+.project-key {
+  background: #0066cc;
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 3px;
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+
+.create-btn {
+  background: #0066cc;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.create-btn:hover, .create-btn.active {
+  background: #0056b3;
+}
+
+.search-bar {
+  display: flex;
+  width: 100%;
+  max-width: 400px;
+}
+
+.search-bar input {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #ddd;
+  border-right: none;
+  border-radius: 4px 0 0 4px;
+  outline: none;
+}
+
+.search-bar input:focus {
+  border-color: #0066cc;
+}
+
+.search-btn {
+  background: #f8f9fa;
+  border: 1px solid #ddd;
+  border-left: none;
+  border-radius: 0 4px 4px 0;
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+}
+
+.notification-btn {
+  position: relative;
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+}
+
+.notification-btn:hover {
+  background: #f8f9fa;
+}
+
+.notification-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: #e74c3c;
+  color: white;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  font-size: 0.7rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.user-menu {
+  position: relative;
+}
+
+.user-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.user-btn:hover, .user-btn.active {
+  background: #f8f9fa;
+}
+
+.user-avatar {
+  width: 32px;
+  height: 32px;
+  background: #0066cc;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+
+/* Dropdowns */
+.dropdown {
+  position: absolute;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  min-width: 200px;
+}
+
+.project-dropdown, .create-dropdown {
+  top: 100%;
+  left: 0;
+  margin-top: 0.25rem;
+}
+
+.user-dropdown {
+  top: 100%;
+  right: 0;
+  margin-top: 0.25rem;
+}
+
+.dropdown-item {
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.dropdown-item:hover {
+  background: #f8f9fa;
+}
+
+.user-info {
+  padding: 0.75rem 1rem;
+}
+
+.user-name {
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+
+.user-email {
+  font-size: 0.9rem;
+  color: #666;
+}
+
+/* Main Layout */
+.main-layout {
+  display: flex;
+  flex: 1 1 0;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 250px;
+  background: white;
+  border-right: 1px solid #e1e5e9;
+  padding: 1rem 0;
+  overflow-y: auto;
+  flex-shrink: 0;
+  height: 100%;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin: 0 0.5rem;
+  border-radius: 4px;
+}
+
+.menu-item:hover {
+  background: #f8f9fa;
+}
+
+.menu-item.active {
+  background: #e3f2fd;
+  color: #0066cc;
+  font-weight: 500;
+}
+
+.menu-icon {
+  font-size: 1.1rem;
+}
+
+/* Main Content */
+.main-content {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+  padding: 2rem;
+  overflow-y: auto;
+  height: 100%;
+}
+
+.dashboard-header {
+  margin-bottom: 2rem;
+}
+
+.dashboard-header h1 {
+  margin: 0 0 0.5rem 0;
+  color: #333;
+}
+
+.project-description {
+  color: #666;
+  margin: 0;
+}
+
+/* Dashboard Grid */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.dashboard-card {
+  background: white;
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.dashboard-card h3 {
+  margin: 0 0 1rem 0;
+  color: #333;
+}
+
+/* Progress Bar */
+.progress-container {
+  margin-top: 1rem;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background: #e9ecef;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.progress-fill {
+  height: 100%;
+  background: #28a745;
+  transition: width 0.3s ease;
+}
+
+.progress-text {
+  font-size: 0.9rem;
+  color: #666;
+}
+
+/* Stats Grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.stat-item {
+  text-align: center;
+}
+
+.stat-number {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #0066cc;
+}
+
+.stat-label {
+  font-size: 0.9rem;
+  color: #666;
+}
+
+/* Activity Card */
+.activity-card {
+  grid-column: span 2;
+}
+
+.activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.activity-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 0.75rem;
+  background: #f8f9fa;
+  border-radius: 4px;
+}
+
+.activity-content {
+  flex: 1;
+}
+
+.activity-user {
+  font-weight: 500;
+  color: #0066cc;
+}
+
+.activity-action {
+  margin: 0 0.25rem;
+  color: #666;
+}
+
+.activity-item-name {
+  font-weight: 500;
+}
+
+.activity-time {
+  font-size: 0.9rem;
+  color: #999;
+  white-space: nowrap;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .nav-center {
+    display: none;
+  }
+  
+  .sidebar {
+    width: 200px;
+  }
+  
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .activity-card {
+    grid-column: span 1;
+  }
+}
+</style>
