@@ -3,11 +3,13 @@ import { ref } from 'vue';
 import LoginView from './components/LoginView.vue';
 import RegistrationView from './components/RegistrationView.vue';
 import MainView from './components/MainView.vue';
+import DashboardView from './components/DashboardView.vue';
+import HomeView from './components/HomeView.vue';
 import { useRoute } from 'vue-router';
 </script>
 
 <template>
-  <MainView />
+  <router-view />
 </template>
 
 <style scoped>

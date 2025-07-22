@@ -44,6 +44,7 @@ const dashboardData = ref({
 
 // Menu items
 const menuItems = ref([
+  { name: 'Home', icon: '🏠', route: '/home', active: false },
   { name: 'Dashboard', icon: '📊', route: '/dashboard', active: true },
   { name: 'Backlog', icon: '📋', route: '/backlog' },
   { name: 'Active Sprint', icon: '🏃', route: '/sprint' },
@@ -65,12 +66,6 @@ const toggleDropdown = (dropdown) => {
   showUserDropdown.value = dropdown === 'user' ? !showUserDropdown.value : false
   showProjectDropdown.value = dropdown === 'project' ? !showProjectDropdown.value : false
   showCreateDropdown.value = dropdown === 'create' ? !showCreateDropdown.value : false
-}
-
-const navigateToMenu = (item) => {
-  menuItems.value.forEach(menuItem => menuItem.active = false)
-  item.active = true
-  router.push(item.route)
 }
 
 const createNew = (type) => {
@@ -211,83 +206,21 @@ onMounted(() => {
     <div class="main-layout">
       <!-- Sidebar -->
       <nav class="sidebar">
-        <div 
+        <router-link 
           v-for="item in menuItems" 
           :key="item.name"
+          :to="item.route"
           class="menu-item"
-          :class="{ active: item.active }"
-          @click="navigateToMenu(item)"
+          :class="{ active: $route.path === item.route }"
         >
           <span class="menu-icon">{{ item.icon }}</span>
           <span class="menu-text">{{ item.name }}</span>
-        </div>
+        </router-link>
       </nav>
 
       <!-- Main Content -->
       <main class="main-content">
-        <div class="dashboard-header">
-          <h1>Project Dashboard</h1>
-          <p class="project-description">{{ selectedProject.name }} - Overview and current sprint status</p>
-        </div>
-
-        <!-- Dashboard Cards -->
-        <div class="dashboard-grid">
-          <!-- Sprint Progress Card -->
-          <div class="dashboard-card">
-            <h3>{{ dashboardData.activeSprintName }} Progress</h3>
-            <div class="progress-container">
-              <div class="progress-bar">
-                <div 
-                  class="progress-fill" 
-                  :style="{ width: dashboardData.sprintProgress + '%' }"
-                ></div>
-              </div>
-              <span class="progress-text">{{ dashboardData.sprintProgress }}% Complete</span>
-            </div>
-          </div>
-
-          <!-- Quick Stats -->
-          <div class="dashboard-card stats-card">
-            <h3>Quick Stats</h3>
-            <div class="stats-grid">
-              <div class="stat-item">
-                <div class="stat-number">{{ dashboardData.openIssues }}</div>
-                <div class="stat-label">Open Issues</div>
-              </div>
-              <div class="stat-item">
-                <div class="stat-number">{{ dashboardData.inProgress }}</div>
-                <div class="stat-label">In Progress</div>
-              </div>
-              <div class="stat-item">
-                <div class="stat-number">{{ dashboardData.completed }}</div>
-                <div class="stat-label">Completed</div>
-              </div>
-              <div class="stat-item">
-                <div class="stat-number">{{ dashboardData.velocity }}</div>
-                <div class="stat-label">Velocity</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Recent Activity -->
-          <div class="dashboard-card activity-card">
-            <h3>Recent Activity</h3>
-            <div class="activity-list">
-              <div 
-                v-for="activity in dashboardData.recentActivity" 
-                :key="activity.time"
-                class="activity-item"
-              >
-                <div class="activity-content">
-                  <span class="activity-user">{{ activity.user }}</span>
-                  <span class="activity-action">{{ activity.action }}</span>
-                  <span class="activity-item-name">{{ activity.item }}</span>
-                </div>
-                <div class="activity-time">{{ activity.time }}</div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <router-view />
       </main>
     </div>
   </div>

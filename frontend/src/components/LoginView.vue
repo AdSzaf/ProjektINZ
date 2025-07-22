@@ -37,7 +37,7 @@ const handleLogin = async () => {
     await new Promise(resolve => setTimeout(resolve, 1000))
     
     alert('Login successful!')
-    router.push('/dashboard') // or wherever you want to redirect after login
+    router.push('/home') // or wherever you want to redirect after login
   } catch (error) {
     console.error('Login error:', error)
     alert('Login failed. Please check your credentials and try again.')
