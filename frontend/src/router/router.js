@@ -4,6 +4,9 @@ import DashboardView from '../components/DashboardView.vue'
 import HomeView from '../components/HomeView.vue'
 import LoginView from '../components/LoginView.vue'
 import RegistrationView from '../components/RegistrationView.vue'
+import BoardView from '../components/BoardView.vue'
+import BacklogView from '../components/BacklogView.vue'
+import IssueView from '../components/IssuesView.vue'
 // import other views as needed
 
 const routes = [
@@ -14,6 +17,9 @@ const routes = [
       { path: '', redirect: '/dashboard' },
       { path: 'dashboard', component: DashboardView },
       { path: 'home', component: HomeView },
+      { path: 'board', component: BoardView },
+      { path: 'backlog', component: BacklogView },
+      { path: 'issues', component: IssueView },
       // Add more child routes for other sidebar options
       // { path: 'backlog', component: BacklogView },
       // { path: 'sprint', component: SprintView },
