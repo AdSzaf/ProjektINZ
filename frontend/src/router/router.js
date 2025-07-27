@@ -7,6 +7,9 @@ import RegistrationView from '../components/RegistrationView.vue'
 import BoardView from '../components/BoardView.vue'
 import BacklogView from '../components/BacklogView.vue'
 import IssueView from '../components/IssuesView.vue'
+import ReportsView from '../components/ReportsView.vue'
+import MembersView from '../components/MembersView.vue'
+import SettingsView from '../components/SettingsView.vue'
 // import other views as needed
 
 const routes = [
@@ -20,6 +23,9 @@ const routes = [
       { path: 'board', component: BoardView },
       { path: 'backlog', component: BacklogView },
       { path: 'issues', component: IssueView },
+      { path: 'reports', component: ReportsView },
+      { path: 'members', component: MembersView },
+      { path: 'settings', component: SettingsView },
       // Add more child routes for other sidebar options
       // { path: 'backlog', component: BacklogView },
       // { path: 'sprint', component: SprintView },
