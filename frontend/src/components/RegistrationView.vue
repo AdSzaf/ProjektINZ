@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import axios from 'axios'
 
 const router = useRouter()
 
@@ -81,23 +82,20 @@ const handleRegister = async () => {
   if (!canSubmit.value) return
 
   const userData = {
-    firstName: firstName.value.trim(),
-    lastName: lastName.value.trim(),
+    first_name: firstName.value.trim(),
+    last_name: lastName.value.trim(),
     email: email.value.trim(),
     role: role.value,
-    password: password.value
+    password: password.value,
+    // Optionally: organization_name: orgName.value
   }
 
   try {
-    // Here you would make your API call
-    // const response = await axios.post('/api/register', userData)
-    
-    console.log('Registration data:', userData)
+    await axios.post('/api/register/', userData)
     alert('Registration successful!')
     router.push('/login')
   } catch (error) {
-    console.error('Registration error:', error)
-    alert('Registration failed. Please try again.')
+    alert('Registration failed: ' + (error.response?.data?.detail || error.message))
   }
 }
 

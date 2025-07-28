@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import axios from 'axios'
 
 const router = useRouter()
 
@@ -18,29 +19,18 @@ const canSubmit = computed(() => {
 
 // Handle login
 const handleLogin = async () => {
-  if (!canSubmit.value || isLoading.value) return
-
+  if (!email.value || !password.value) return
   isLoading.value = true
-
-  const loginData = {
-    email: email.value.trim(),
-    password: password.value
-  }
-
   try {
-    // Here you would make your API call
-    // const response = await axios.post('/api/login', loginData)
-    
-    console.log('Login data:', loginData)
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    
-    alert('Login successful!')
-    router.push('/home') // or wherever you want to redirect after login
+    const response = await axios.post('/api/login/', {
+      email: email.value.trim(),
+      password: password.value
+    })
+    // Save token (example for JWT)
+    localStorage.setItem('token', response.data.token)
+    router.push('/home')
   } catch (error) {
-    console.error('Login error:', error)
-    alert('Login failed. Please check your credentials and try again.')
+    alert('Login failed: ' + (error.response?.data?.detail || error.message))
   } finally {
     isLoading.value = false
   }
