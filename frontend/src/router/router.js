@@ -17,7 +17,7 @@ const routes = [
     path: '/',
     component: MainView,
     children: [
-      { path: '', redirect: '/dashboard' },
+      { path: '/', redirect: '/login' },
       { path: 'dashboard', component: DashboardView },
       { path: 'home', component: HomeView },
       { path: 'board', component: BoardView },

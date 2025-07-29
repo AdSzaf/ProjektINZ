@@ -75,6 +75,7 @@ const createNew = (type) => {
 }
 
 const logout = () => {
+  localStorage.removeItem('token');
   router.push('/login')
 }
 
