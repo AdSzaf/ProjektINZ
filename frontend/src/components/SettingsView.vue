@@ -1,3 +1,119 @@
+<script setup>
+import { ref, reactive } from 'vue'
+import { onMounted } from 'vue'
+import axios from 'axios'
+
+// Form data
+const profile = reactive({
+  name: '',
+  email: '',
+  role: '',
+  department: ''
+})
+
+const notifications = reactive({
+  email: true,
+  push: true,
+  weeklyDigest: false
+})
+
+const preferences = reactive({
+  theme: 'light',
+  language: 'en',
+  timezone: 'UTC',
+  dateFormat: 'MM/DD/YYYY'
+})
+
+const security = reactive({
+  currentPassword: '',
+  newPassword: '',
+  confirmPassword: '',
+  twoFactorEnabled: false
+})
+
+// UI state
+const showDeleteConfirm = ref(false)
+const showSuccessToast = ref(false)
+const successMessage = ref('')
+
+// Methods
+const showToast = (message) => {
+  successMessage.value = message
+  showSuccessToast.value = true
+  setTimeout(() => {
+    showSuccessToast.value = false
+  }, 3000)
+}
+
+const fetchProfile = async () => {
+  const token = localStorage.getItem('token')
+  if (!token) return
+  if (token) {
+      axios.defaults.headers.common['Authorization'] = `Token ${token}`
+    }
+  const res = await axios.get('/api/me/')
+  profile.name = `${res.data.first_name} ${res.data.last_name}`
+  profile.email = res.data.email
+  profile.role = res.data.role
+  // Add department if you have it
+}
+
+const saveProfile = () => {
+  // Save profile logic here
+  console.log('Saving profile:', profile)
+  showToast('Profile updated successfully!')
+}
+
+const resetProfile = () => {
+  profile.name = 'John Doe'
+  profile.email = 'john.doe@company.com'
+  profile.role = 'Developer'
+  profile.department = 'Engineering'
+  showToast('Profile reset to defaults')
+}
+
+const saveNotifications = () => {
+  console.log('Saving notifications:', notifications)
+  showToast('Notification settings saved!')
+}
+
+const savePreferences = () => {
+  console.log('Saving preferences:', preferences)
+  showToast('Display preferences updated!')
+}
+
+const updatePassword = () => {
+  if (security.newPassword !== security.confirmPassword) {
+    alert('New passwords do not match!')
+    return
+  }
+  if (security.newPassword.length < 8) {
+    alert('Password must be at least 8 characters long!')
+    return
+  }
+  
+  console.log('Updating password')
+  security.currentPassword = ''
+  security.newPassword = ''
+  security.confirmPassword = ''
+  showToast('Password updated successfully!')
+}
+
+const exportData = () => {
+  console.log('Exporting account data')
+  showToast('Account data export started!')
+}
+
+const deleteAccount = () => {
+  console.log('Deleting account')
+  showDeleteConfirm.value = false
+  // Handle account deletion
+  alert('Account deletion would be processed here')
+}
+
+onMounted(fetchProfile)
+</script>
+
 <template>
   <div class="settings-page">
     <div class="settings-header">
@@ -245,105 +361,6 @@
     </div>
   </div>
 </template>
-
-<script setup>
-import { ref, reactive } from 'vue'
-
-// Form data
-const profile = reactive({
-  name: 'John Doe',
-  email: 'john.doe@company.com',
-  role: 'Developer',
-  department: 'Engineering'
-})
-
-const notifications = reactive({
-  email: true,
-  push: true,
-  weeklyDigest: false
-})
-
-const preferences = reactive({
-  theme: 'light',
-  language: 'en',
-  timezone: 'UTC',
-  dateFormat: 'MM/DD/YYYY'
-})
-
-const security = reactive({
-  currentPassword: '',
-  newPassword: '',
-  confirmPassword: '',
-  twoFactorEnabled: false
-})
-
-// UI state
-const showDeleteConfirm = ref(false)
-const showSuccessToast = ref(false)
-const successMessage = ref('')
-
-// Methods
-const showToast = (message) => {
-  successMessage.value = message
-  showSuccessToast.value = true
-  setTimeout(() => {
-    showSuccessToast.value = false
-  }, 3000)
-}
-
-const saveProfile = () => {
-  // Save profile logic here
-  console.log('Saving profile:', profile)
-  showToast('Profile updated successfully!')
-}
-
-const resetProfile = () => {
-  profile.name = 'John Doe'
-  profile.email = 'john.doe@company.com'
-  profile.role = 'Developer'
-  profile.department = 'Engineering'
-  showToast('Profile reset to defaults')
-}
-
-const saveNotifications = () => {
-  console.log('Saving notifications:', notifications)
-  showToast('Notification settings saved!')
-}
-
-const savePreferences = () => {
-  console.log('Saving preferences:', preferences)
-  showToast('Display preferences updated!')
-}
-
-const updatePassword = () => {
-  if (security.newPassword !== security.confirmPassword) {
-    alert('New passwords do not match!')
-    return
-  }
-  if (security.newPassword.length < 8) {
-    alert('Password must be at least 8 characters long!')
-    return
-  }
-  
-  console.log('Updating password')
-  security.currentPassword = ''
-  security.newPassword = ''
-  security.confirmPassword = ''
-  showToast('Password updated successfully!')
-}
-
-const exportData = () => {
-  console.log('Exporting account data')
-  showToast('Account data export started!')
-}
-
-const deleteAccount = () => {
-  console.log('Deleting account')
-  showDeleteConfirm.value = false
-  // Handle account deletion
-  alert('Account deletion would be processed here')
-}
-</script>
 
 <style scoped>
 .settings-page {

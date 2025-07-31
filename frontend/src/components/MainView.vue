@@ -1,16 +1,39 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import axios from 'axios'
 
 const router = useRouter()
 
+
 // User and project data
 const currentUser = ref({
-  name: 'John Doe',
-  email: 'john.doe@company.com',
-  avatar: 'JD',
-  role: 'Developer'
+  name: '',
+  email: '',
+  avatar: '',
+  role: ''
 })
+
+const fetchCurrentUser = async () => {
+  try {
+    const token = localStorage.getItem('token')
+    if (!token) return
+    if (token) {
+      axios.defaults.headers.common['Authorization'] = `Token ${token}`
+    }
+    const res = await axios.get('/api/me/')
+    currentUser.value = {
+      name: `${res.data.first_name} ${res.data.last_name}`,
+      email: res.data.email,
+      avatar: (res.data.first_name[0] || '') + (res.data.last_name[0] || ''),
+      role: res.data.role
+    }
+  } catch (e) {
+    // Token invalid/expired, force logout
+    localStorage.removeItem('token')
+    router.push('/login')
+  }
+}
 
 const projects = ref([
   { id: 1, name: 'AgilePro', key: 'AP' },
@@ -96,6 +119,7 @@ const closeDropdowns = () => {
 onMounted(() => {
   document.addEventListener('click', closeDropdowns)
 })
+onMounted(fetchCurrentUser)
 </script>
 
 <template>
@@ -196,7 +220,7 @@ onMounted(() => {
             </div>
             <hr>
             <div class="dropdown-item">👤 Profile</div>
-            <div class="dropdown-item">⚙️ Settings</div>
+            <div class="dropdown-item" @click="router.push('/settings')">⚙️ Settings</div>
             <hr>
             <div class="dropdown-item" @click="logout">🚪 Logout</div>
           </div>
