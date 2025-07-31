@@ -28,12 +28,11 @@ const hasDigit = ref(false)
 const roles = [
   { value: 'developer', label: 'Developer' },
   { value: 'designer', label: 'Designer' },
-  { value: 'project-manager', label: 'Project Manager' },
-  { value: 'qa-tester', label: 'QA Tester' },
-  { value: 'product-owner', label: 'Product Owner' },
-  { value: 'scrum-master', label: 'Scrum Master' }
+  { value: 'project_manager', label: 'Project Manager' },
+  { value: 'tester', label: 'Tester' },
+  { value: 'product_owner', label: 'Product Owner' },
+  { value: 'scrum_master', label: 'Scrum Master' }
 ]
-
 // Email validation (basic)
 const validateEmail = () => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -157,7 +156,7 @@ const goToLogin = () => {
             v-model="role"
             required
           >
-            <option value="">Select your role</option>
+            <option value="" disabled>Select your role</option>
             <option
               v-for="roleOption in roles"
               :key="roleOption.value"

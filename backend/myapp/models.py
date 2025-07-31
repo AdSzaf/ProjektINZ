@@ -9,12 +9,12 @@ class User(AbstractUser):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     avatar = models.ImageField(upload_to='avatars/', null=True, blank=True)
     role = models.CharField(max_length=50, choices=[
-        ('admin', 'Admin'),
+        ('product_owner', 'Product Owner'),
         ('project_manager', 'Project Manager'),
+        ('scrum_master', 'Scrum Master'),
         ('developer', 'Developer'),
         ('designer', 'Designer'),
         ('tester', 'Tester'),
-        ('stakeholder', 'Stakeholder'),
     ], default='developer')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
