@@ -160,25 +160,9 @@ onMounted(fetchCurrentUser)
 
         <!-- Quick Create Button -->
         <div class="quick-create" @click.stop>
-          <button 
-            class="create-btn"
-            @click="toggleDropdown('create')"
-            :class="{ active: showCreateDropdown }"
-          >
-            + Create
+          <button class="create-btn" @click="router.push('/create-project')">
+            + Create Project
           </button>
-          
-          <div v-if="showCreateDropdown" class="dropdown create-dropdown">
-            <div class="dropdown-item" @click="createNew('issue')">
-              🎯 Issue
-            </div>
-            <div class="dropdown-item" @click="createNew('epic')">
-              📚 Epic
-            </div>
-            <div class="dropdown-item" @click="createNew('sprint')">
-              🏃 Sprint
-            </div>
-          </div>
         </div>
       </div>
 
