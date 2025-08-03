@@ -2,8 +2,14 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
+import { onMounted } from 'vue'
+import { onBeforeUnmount } from 'vue'
+import { nextTick } from 'vue'
 
 const router = useRouter()
+const users = ref([])
+const leadSearch = ref('')
+const showLeadDropdown = ref(false)
 
 // Current step in the creation flow
 const currentStep = ref('type-selection') // 'type-selection', 'kanban-setup', 'scrum-setup'
@@ -41,6 +47,7 @@ const availableMembers = ref([
 const selectedMembers = ref([])
 const showMemberDropdown = ref(false)
 const isCreating = ref(false)
+const searchInput = ref(null)
 
 // Computed properties
 const projectKeyPreview = computed(() => {
@@ -53,15 +60,22 @@ const projectKeyPreview = computed(() => {
 })
 
 const isFormValid = computed(() => {
-  const basic = projectData.value.name.trim() && 
+  const basic = projectData.value.name.trim() &&
                 projectData.value.description.trim() &&
-                projectData.value.lead.trim()
-  
+                projectData.value.lead // just check for presence, not .trim()
   if (selectedProjectType.value === 'scrum') {
     return basic && projectData.value.startDate
   }
-  
   return basic
+})
+
+const filteredUsers = computed(() => {
+  if (!leadSearch.value) return users.value
+  return users.value.filter(u =>
+    (u.first_name + ' ' + u.last_name + ' ' + u.email)
+      .toLowerCase()
+      .includes(leadSearch.value.toLowerCase())
+  )
 })
 
 // Methods
@@ -99,27 +113,59 @@ const updateProjectKey = () => {
   }
 }
 
+const openLeadDropdown = () => {
+  showLeadDropdown.value = true
+  nextTick(() => {
+    if (searchInput.value) {
+      searchInput.value.focus()
+    }
+  })
+}
+
+const selectLead = (user) => {
+  projectData.value.lead = user.id
+  projectData.value.leadName = `${user.first_name} ${user.last_name}`
+  showLeadDropdown.value = false
+  leadSearch.value = ''
+}
+
 const createProject = async () => {
   if (!isFormValid.value) return
-  
+
   isCreating.value = true
-  
+
   try {
-    const payload = {
-      ...projectData.value,
-      members: selectedMembers.value.map(m => m.id)
+    // Fetch current user info if needed
+    const token = localStorage.getItem('token')
+    axios.defaults.headers.common['Authorization'] = `Token ${token}`
+
+    // Optionally fetch user/org info if not already set
+    if (!projectData.value.lead || !projectData.value.organization) {
+      const res = await axios.get('/api/me/')
+      if (!projectData.value.lead) projectData.value.lead = res.data.id
+      if (!projectData.value.organization && res.data.organizations?.length) {
+        // If user has multiple orgs, pick the first for now
+        projectData.value.organization = res.data.organizations[0].id
+      }
     }
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000))
-    
-    console.log('Creating project:', payload)
-    
-    // Redirect to the new project dashboard
+
+    // Prepare payload for backend
+    const payload = {
+      name: projectData.value.name,
+      key: projectData.value.key,
+      description: projectData.value.description,
+      methodology: projectData.value.type, // 'scrum' or 'kanban'
+      lead: projectData.value.lead,
+      organization: projectData.value.organization,
+      // You can add more fields as your backend supports them
+    }
+
+    const response = await axios.post('/api/projects/', payload)
+    // Optionally show a success message
     router.push('/dashboard')
-    
   } catch (error) {
     console.error('Error creating project:', error)
+    alert('Failed to create project: ' + (error.response?.data?.detail || error.message))
   } finally {
     isCreating.value = false
   }
@@ -139,6 +185,49 @@ const initializeScrumDefaults = () => {
     setDefaultStartDate()
   }
 }
+
+const handleClickOutside = (event) => {
+  const leadSelector = event.target.closest('.lead-selector')
+  if (!leadSelector) {
+    showLeadDropdown.value = false
+  }
+  
+  const memberSelector = event.target.closest('.member-selector')
+  if (!memberSelector) {
+    showMemberDropdown.value = false
+  }
+}
+
+onMounted(async () => {
+  const token = localStorage.getItem('token')
+  axios.defaults.headers.common['Authorization'] = `Token ${token}`
+  try {
+    const res = await axios.get('/api/me/')
+    projectData.value.lead = res.data.id
+    projectData.value.leadName = `${res.data.first_name} ${res.data.last_name}`
+    if (res.data.organizations?.length) {
+      projectData.value.organization = res.data.organizations[0].id
+    }
+    // Fetch all users for dropdown
+    const usersRes = await axios.get('/api/users/')
+    users.value = usersRes.data
+  } catch (e) {
+    if (e.response && e.response.status === 401) {
+      alert('Session expired. Please log in again.')
+      router.push('/login')
+    } else {
+      alert('Could not fetch user info. Please try again later.')
+    }
+  }
+})
+
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside)
+})
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleClickOutside)
+})
+
 </script>
 
 <template>
@@ -238,14 +327,56 @@ const initializeScrumDefaults = () => {
               ></textarea>
             </div>
 
-            <div class="form-group">
+            <div class="form-group lead-selector">
               <label>Project Lead *</label>
-              <input 
-                type="text" 
-                v-model="projectData.lead"
-                placeholder="Enter project lead name or email"
-                class="form-input"
-              />
+              <div class="lead-input-container" :class="{ open: showLeadDropdown }">
+                <input
+                  type="text"
+                  v-model="projectData.leadName"
+                  @focus="showLeadDropdown = true"
+                  @click="showLeadDropdown = true"
+                  placeholder="Select project lead"
+                  class="form-input lead-input"
+                  autocomplete="off"
+                  readonly
+                />
+                
+                <div v-if="showLeadDropdown" class="dropdown lead-dropdown">
+                  <input
+                    type="text"
+                    v-model="leadSearch"
+                    placeholder="Search users by name or email..."
+                    class="dropdown-search"
+                    @input="showLeadDropdown = true"
+                    ref="searchInput"
+                  />
+                  
+                  <div class="dropdown-items">
+                    <div
+                      v-for="user in filteredUsers"
+                      :key="user.id"
+                      class="dropdown-item"
+                      :class="{ selected: projectData.lead === user.id }"
+                      @mousedown.prevent="selectLead(user)"
+                      tabindex="0"
+                      @keydown.enter="selectLead(user)"
+                      @keydown.space.prevent="selectLead(user)"
+                    >
+                      <div class="user-avatar">
+                        {{ (user.first_name?.charAt(0) || '') + (user.last_name?.charAt(0) || '') }}
+                      </div>
+                      <div class="user-info">
+                        <div class="user-name">{{ user.first_name }} {{ user.last_name }}</div>
+                        <div class="user-email">{{ user.email }}</div>
+                      </div>
+                    </div>
+                    
+                    <div v-if="filteredUsers.length === 0" class="dropdown-no-results">
+                      No users found matching "{{ leadSearch }}"
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <!-- Kanban Specific Settings -->
@@ -417,14 +548,56 @@ const initializeScrumDefaults = () => {
               ></textarea>
             </div>
 
-            <div class="form-group">
+           <div class="form-group lead-selector">
               <label>Project Lead *</label>
-              <input 
-                type="text" 
-                v-model="projectData.lead"
-                placeholder="Enter project lead name or email"
-                class="form-input"
-              />
+              <div class="lead-input-container" :class="{ open: showLeadDropdown }">
+                <input
+                  type="text"
+                  v-model="projectData.leadName"
+                  @focus="showLeadDropdown = true"
+                  @click="showLeadDropdown = true"
+                  placeholder="Select project lead"
+                  class="form-input lead-input"
+                  autocomplete="off"
+                  readonly
+                />
+                
+                <div v-if="showLeadDropdown" class="dropdown lead-dropdown">
+                  <input
+                    type="text"
+                    v-model="leadSearch"
+                    placeholder="Search users by name or email..."
+                    class="dropdown-search"
+                    @input="showLeadDropdown = true"
+                    ref="searchInput"
+                  />
+                  
+                  <div class="dropdown-items">
+                    <div
+                      v-for="user in filteredUsers"
+                      :key="user.id"
+                      class="dropdown-item"
+                      :class="{ selected: projectData.lead === user.id }"
+                      @mousedown.prevent="selectLead(user)"
+                      tabindex="0"
+                      @keydown.enter="selectLead(user)"
+                      @keydown.space.prevent="selectLead(user)"
+                    >
+                      <div class="user-avatar">
+                        {{ (user.first_name?.charAt(0) || '') + (user.last_name?.charAt(0) || '') }}
+                      </div>
+                      <div class="user-info">
+                        <div class="user-name">{{ user.first_name }} {{ user.last_name }}</div>
+                        <div class="user-email">{{ user.email }}</div>
+                      </div>
+                    </div>
+                    
+                    <div v-if="filteredUsers.length === 0" class="dropdown-no-results">
+                      No users found matching "{{ leadSearch }}"
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <!-- Scrum Specific Settings -->
@@ -994,6 +1167,293 @@ const initializeScrumDefaults = () => {
   background: #ccc;
   cursor: not-allowed;
 }
+.form-input.lead-input {
+  background: var(--bg-color, #fff);
+  color: var(--text-color, #333);
+  border: 2px solid var(--border-color, #ddd);
+  cursor: pointer;
+  position: relative;
+}
+
+.form-input.lead-input:focus {
+  border-color: var(--primary-color, #0066cc);
+  box-shadow: 0 0 0 3px var(--primary-color-alpha, rgba(0, 102, 204, 0.1));
+}
+
+.lead-input-container {
+  position: relative;
+}
+
+.lead-input-container::after {
+  content: '▼';
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted, #666);
+  pointer-events: none;
+  transition: transform 0.2s ease;
+  font-size: 0.8rem;
+}
+
+.lead-input-container.open::after {
+  transform: translateY(-50%) rotate(180deg);
+}
+
+/* Main dropdown container */
+.dropdown.lead-dropdown {
+  position: absolute;
+  top: calc(100% + 0.25rem);
+  left: 0;
+  width: 100%;           
+  background: var(--dropdown-bg, #fff);
+  border: 2px solid var(--primary-color, #0066cc);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px var(--shadow-color, rgba(0, 0, 0, 0.15));
+  z-index: 1000;
+  max-height: 320px;
+  overflow: hidden;
+  animation: dropdownSlideIn 0.2s ease-out;
+}
+
+@keyframes dropdownSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Search input within dropdown */
+.lead-dropdown .dropdown-search {
+  width: 100%;
+  padding: 0.75rem;
+  border: none;
+  border-bottom: 1px solid var(--border-light, #e9ecef);
+  background: var(--search-bg, #f8f9fa);
+  color: var(--text-color, #333);
+  font-size: 0.95rem;
+  outline: none;
+  border-radius: 6px 6px 0 0;
+}
+
+.lead-dropdown .dropdown-search:focus {
+  background: var(--search-focus-bg, #fff);
+  border-bottom-color: var(--primary-color, #0066cc);
+}
+
+.lead-dropdown .dropdown-search::placeholder {
+  color: var(--text-muted, #999);
+}
+
+/* Dropdown items container */
+.dropdown-items {
+  max-height: 240px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb, #ccc) var(--scrollbar-track, #f1f1f1);
+}
+
+.dropdown-items::-webkit-scrollbar {
+  width: 6px;
+}
+
+.dropdown-items::-webkit-scrollbar-track {
+  background: var(--scrollbar-track, #f1f1f1);
+}
+
+.dropdown-items::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb, #ccc);
+  border-radius: 3px;
+}
+
+.dropdown-items::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover, #999);
+}
+
+/* Individual dropdown items */
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border-bottom: 1px solid var(--border-light, #f0f0f0);
+  background: var(--item-bg, transparent);
+  color: var(--text-color, #333);
+}
+
+.dropdown-item:hover {
+  background: var(--item-hover-bg, #f8fbff);
+  border-left: 3px solid var(--primary-color, #0066cc);
+  padding-left: calc(1rem - 3px);
+}
+
+.dropdown-item:last-child {
+  border-bottom: none;
+}
+
+/* User avatar in dropdown */
+.dropdown-item .user-avatar {
+  width: 36px;
+  height: 36px;
+  background: var(--avatar-bg, #0066cc);
+  color: var(--avatar-text, #fff);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+  border: 2px solid var(--avatar-border, transparent);
+}
+
+/* User info in dropdown */
+.dropdown-item .user-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.dropdown-item .user-name {
+  font-weight: 500;
+  color: var(--text-color, #333);
+  margin-bottom: 0.125rem;
+  font-size: 0.95rem;
+}
+
+.dropdown-item .user-email {
+  color: var(--text-muted, #666);
+  font-size: 0.85rem;
+  opacity: 0.9;
+}
+
+/* No results state */
+.dropdown-no-results {
+  padding: 1.5rem 1rem;
+  text-align: center;
+  color: var(--text-muted, #999);
+  font-style: italic;
+}
+
+.dropdown-no-results::before {
+  content: '🔍';
+  display: block;
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+  opacity: 0.5;
+}
+
+/* Loading state */
+.dropdown-loading {
+  padding: 1.5rem 1rem;
+  text-align: center;
+  color: var(--text-muted, #666);
+}
+
+.dropdown-loading::before {
+  content: '';
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--border-color, #ddd);
+  border-top-color: var(--primary-color, #0066cc);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-right: 0.5rem;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Selected state indicator */
+.dropdown-item.selected {
+  background: var(--selected-bg, #e8f4fd);
+  border-left: 3px solid var(--primary-color, #0066cc);
+  padding-left: calc(1rem - 3px);
+}
+
+.dropdown-item.selected .user-avatar {
+  border-color: var(--primary-color, #0066cc);
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .dropdown.lead-dropdown {
+    --dropdown-bg: #2d3748;
+    --border-color: #4a5568;
+    --border-light: #4a5568;
+    --text-color: #e2e8f0;
+    --text-muted: #a0aec0;
+    --search-bg: #4a5568;
+    --search-focus-bg: #2d3748;
+    --item-bg: transparent;
+    --item-hover-bg: #4a5568;
+    --selected-bg: #2b6cb0;
+    --avatar-bg: #3182ce;
+    --avatar-text: #fff;
+    --avatar-border: transparent;
+    --shadow-color: rgba(0, 0, 0, 0.3);
+    --scrollbar-track: #4a5568;
+    --scrollbar-thumb: #718096;
+    --scrollbar-thumb-hover: #a0aec0;
+  }
+
+  .form-input.lead-input {
+    --bg-color: #2d3748;
+    --text-color: #e2e8f0;
+    --border-color: #4a5568;
+  }
+
+  .lead-input-container::after {
+    --text-muted: #a0aec0;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .dropdown.lead-dropdown {
+    border-width: 3px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+
+  .dropdown-item:hover {
+    border-left-width: 4px;
+  }
+
+  .dropdown-item.selected {
+    border-left-width: 4px;
+  }
+}
+
+/* Focus management for accessibility */
+.dropdown-item:focus {
+  outline: 2px solid var(--primary-color, #0066cc);
+  outline-offset: -2px;
+  background: var(--item-hover-bg, #f8fbff);
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .dropdown.lead-dropdown {
+    animation: none;
+  }
+
+  .lead-input-container::after {
+    transition: none;
+  }
+
+  .dropdown-item {
+    transition: none;
+  }
+}
 
 /* Responsive */
 @media (max-width: 768px) {
@@ -1038,6 +1498,26 @@ const initializeScrumDefaults = () => {
   
   .form-actions .btn {
     width: 100%;
+  }
+
+  .dropdown.lead-dropdown {
+    max-height: 50vh;
+    border-radius: 12px;
+    margin-top: 0.5rem;
+  }
+
+  .dropdown-item {
+    padding: 1rem;
+  }
+
+  .dropdown-item .user-avatar {
+    width: 32px;
+    height: 32px;
+  }
+
+  .lead-dropdown .dropdown-search {
+    padding: 1rem;
+    font-size: 16px;
   }
 }
 

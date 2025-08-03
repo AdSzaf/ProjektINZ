@@ -52,7 +52,7 @@ class Project(models.Model):
     name = models.CharField(max_length=255)
     key = models.CharField(max_length=10, unique=True)  # e.g., 'PROJ', 'WEB'
     description = models.TextField(blank=True)
-    organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name='projects')
+    organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name='projects', null=True, blank=True)
     lead = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='led_projects')
     members = models.ManyToManyField(User, through='ProjectMembership', related_name='projects')
     

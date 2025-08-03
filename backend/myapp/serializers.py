@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.contrib.auth import authenticate
+from .models import Project
 import re
 
 User = get_user_model()
@@ -55,3 +56,14 @@ class LoginSerializer(serializers.Serializer):
             raise serializers.ValidationError("Invalid credentials")
         data['user'] = user
         return data
+
+class ProjectCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Project
+        fields = [
+            'name', 'key', 'description', 'methodology', 'lead', 'organization'
+        ]
+        extra_kwargs = {
+            'lead': {'required': True},
+            'organization': {'required': False},
+        }

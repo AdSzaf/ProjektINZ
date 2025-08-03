@@ -18,7 +18,10 @@ from django.contrib import admin
 from django.urls import path, include
 from myapp.views import (register_user
 , login_user
-, current_user)
+, current_user
+, create_project
+, list_users
+)
 
 
 urlpatterns = [
@@ -26,4 +29,6 @@ urlpatterns = [
     path('api/register/', register_user, name='register'),
     path('api/login/', login_user, name='login'),
     path('api/me/', current_user, name='current_user'),
+    path('api/projects/', create_project, name='create_project'),
+    path('api/users/', list_users, name='list_users'),
 ]
