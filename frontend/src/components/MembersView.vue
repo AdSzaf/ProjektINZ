@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useProjectStore } from '../stores/projectStore'
 
 // UI State
 const viewMode = ref('grid') // 'grid' or 'list'
@@ -9,6 +10,8 @@ const selectedStatus = ref('all')
 const showInviteModal = ref(false)
 const showMemberDetails = ref(false)
 const selectedMember = ref(null)
+const projectStore = useProjectStore()
+const currentProject = computed(() => projectStore.selectedProject)
 
 // Filter options
 const roleOptions = [

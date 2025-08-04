@@ -67,3 +67,11 @@ class ProjectCreateSerializer(serializers.ModelSerializer):
             'lead': {'required': True},
             'organization': {'required': False},
         }
+
+class ProjectGetSerializer(serializers.ModelSerializer):
+    lead = serializers.StringRelatedField()
+    organization = serializers.StringRelatedField()
+
+    class Meta:
+        model = Project
+        fields = ['id', 'key', 'name', 'lead', 'organization', 'description', 'methodology']

@@ -1,3 +1,354 @@
+<script setup>
+import { ref, computed, onMounted } from 'vue'
+import { useProjectStore } from '../stores/projectStore'
+
+// Data
+const showFilters = ref(false)
+const showCreateModal = ref(false)
+const selectedIssueDetails = ref(null)
+const selectedIssues = ref([])
+const bulkAction = ref('')
+const projectStore = useProjectStore()
+const currentProject = computed(() => projectStore.selectedProject)
+
+// Pagination
+const currentPage = ref(1)
+const pageSize = ref(25)
+
+// Sorting
+const sortField = ref('created')
+const sortDirection = ref('desc')
+
+// Team members
+const teamMembers = ref([
+  { id: 1, name: 'Alice Johnson', avatar: 'AJ' },
+  { id: 2, name: 'Bob Smith', avatar: 'BS' },
+  { id: 3, name: 'Charlie Brown', avatar: 'CB' },
+  { id: 4, name: 'Diana Prince', avatar: 'DP' },
+  { id: 5, name: 'Eve Wilson', avatar: 'EW' }
+])
+
+// Sample issues data
+const totalIssues = ref([
+  {
+    id: 1, key: 'AP-143', title: 'Implement user authentication system',
+    description: 'Create a secure login system with JWT tokens and role-based access control.',
+    type: 'Story', status: 'todo', priority: 'High', storyPoints: 8,
+    assignee: { id: 1, name: 'Alice Johnson', avatar: 'AJ' },
+    created: '2024-01-15', labels: ['security', 'auth']
+  },
+  {
+    id: 2, key: 'AP-144', title: 'Fix navigation menu responsiveness',
+    description: 'The navigation menu breaks on mobile devices and needs responsive design fixes.',
+    type: 'Bug', status: 'inprogress', priority: 'Critical', storyPoints: 3,
+    assignee: { id: 2, name: 'Bob Smith', avatar: 'BS' },
+    created: '2024-01-16', labels: ['ui', 'responsive']
+  },
+  {
+    id: 3, key: 'AP-145', title: 'Add dark mode toggle',
+    description: 'Implement a dark mode theme switcher in the user preferences.',
+    type: 'Task', status: 'review', priority: 'Medium', storyPoints: 5,
+    assignee: { id: 3, name: 'Charlie Brown', avatar: 'CB' },
+    created: '2024-01-17', labels: ['ui', 'theme']
+  },
+  {
+    id: 4, key: 'AP-146', title: 'Database performance optimization',
+    description: 'Optimize slow queries and add proper indexing to improve database performance.',
+    type: 'Story', status: 'done', priority: 'High', storyPoints: 13,
+    assignee: { id: 4, name: 'Diana Prince', avatar: 'DP' },
+    created: '2024-01-18', labels: ['performance', 'database']
+  },
+  {
+    id: 5, key: 'AP-147', title: 'Update user profile page',
+    description: 'Redesign the user profile page with better UX and additional fields.',
+    type: 'Story', status: 'todo', priority: 'Medium', storyPoints: 8,
+    assignee: null,
+    created: '2024-01-19', labels: ['ui', 'profile']
+  },
+  {
+    id: 6, key: 'AP-148', title: 'Fix email notification bug',
+    description: 'Users are not receiving email notifications for issue assignments.',
+    type: 'Bug', status: 'done', priority: 'High', storyPoints: 2,
+    assignee: { id: 5, name: 'Eve Wilson', avatar: 'EW' },
+    created: '2024-01-20', labels: ['bug', 'notifications']
+  },
+  {
+    id: 7, key: 'AP-149', title: 'Implement API rate limiting',
+    description: 'Add rate limiting to prevent API abuse and improve security.',
+    type: 'Epic', status: 'todo', priority: 'Low', storyPoints: 21,
+    assignee: { id: 1, name: 'Alice Johnson', avatar: 'AJ' },
+    created: '2024-01-21', labels: ['api', 'security']
+  },
+  {
+    id: 8, key: 'AP-150', title: 'Create user onboarding flow',
+    description: 'Design and implement a guided onboarding process for new users.',
+    type: 'Story', status: 'inprogress', priority: 'Medium', storyPoints: 13,
+    assignee: { id: 2, name: 'Bob Smith', avatar: 'BS' },
+    created: '2024-01-22', labels: ['onboarding', 'ux']
+  }
+])
+
+// Filters
+const filters = ref({
+  search: '',
+  status: [],
+  type: [],
+  assignee: [],
+  priority: [],
+  dateRange: ''
+})
+
+// Computed properties
+const activeFiltersCount = computed(() => {
+  let count = 0
+  if (filters.value.search) count++
+  if (filters.value.status.length) count++
+  if (filters.value.type.length) count++
+  if (filters.value.assignee.length) count++
+  if (filters.value.priority.length) count++
+  if (filters.value.dateRange) count++
+  return count
+})
+
+const filteredIssues = computed(() => {
+  let filtered = [...totalIssues.value]
+
+  // Search filter
+  if (filters.value.search) {
+    const search = filters.value.search.toLowerCase()
+    filtered = filtered.filter(issue => 
+      issue.title.toLowerCase().includes(search) ||
+      issue.key.toLowerCase().includes(search) ||
+      (issue.description && issue.description.toLowerCase().includes(search))
+    )
+  }
+
+  // Status filter
+  if (filters.value.status.length) {
+    filtered = filtered.filter(issue => filters.value.status.includes(issue.status))
+  }
+
+  // Type filter
+  if (filters.value.type.length) {
+    filtered = filtered.filter(issue => filters.value.type.includes(issue.type))
+  }
+
+  // Assignee filter
+  if (filters.value.assignee.length) {
+    filtered = filtered.filter(issue => {
+      if (filters.value.assignee.includes('unassigned')) {
+        return !issue.assignee || filters.value.assignee.includes(issue.assignee?.id)
+      }
+      return issue.assignee && filters.value.assignee.includes(issue.assignee.id)
+    })
+  }
+
+  // Priority filter
+  if (filters.value.priority.length) {
+    filtered = filtered.filter(issue => filters.value.priority.includes(issue.priority))
+  }
+
+  // Sort
+  filtered.sort((a, b) => {
+    let aVal = a[sortField.value]
+    let bVal = b[sortField.value]
+
+    if (sortField.value === 'assignee') {
+      aVal = a.assignee?.name || 'Unassigned'
+      bVal = b.assignee?.name || 'Unassigned'
+    }
+
+    if (typeof aVal === 'string') {
+      aVal = aVal.toLowerCase()
+      bVal = bVal?.toLowerCase() || ''
+    }
+
+    if (sortDirection.value === 'asc') {
+      return aVal > bVal ? 1 : -1
+    } else {
+      return aVal < bVal ? 1 : -1
+    }
+  })
+
+  return filtered
+})
+
+const paginatedIssues = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value
+  const end = start + pageSize.value
+  return filteredIssues.value.slice(start, end)
+})
+
+const totalPages = computed(() => {
+  return Math.ceil(filteredIssues.value.length / pageSize.value)
+})
+
+const isAllSelected = computed(() => {
+  return paginatedIssues.value.length > 0 && 
+         paginatedIssues.value.every(issue => selectedIssues.value.includes(issue.id))
+})
+
+const isSomeSelected = computed(() => {
+  return selectedIssues.value.length > 0 && !isAllSelected.value
+})
+
+// Methods
+const toggleFilters = () => {
+  showFilters.value = !showFilters.value
+}
+
+const applyFilters = () => {
+  currentPage.value = 1
+}
+
+const clearAllFilters = () => {
+  filters.value = {
+    search: '',
+    status: [],
+    type: [],
+    assignee: [],
+    priority: [],
+    dateRange: ''
+  }
+  currentPage.value = 1
+}
+
+const sortBy = (field) => {
+  if (sortField.value === field) {
+    sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc'
+  } else {
+    sortField.value = field
+    sortDirection.value = 'asc'
+  }
+}
+
+const toggleSelectAll = () => {
+  if (isAllSelected.value) {
+    selectedIssues.value = selectedIssues.value.filter(id => 
+      !paginatedIssues.value.some(issue => issue.id === id)
+    )
+  } else {
+    paginatedIssues.value.forEach(issue => {
+      if (!selectedIssues.value.includes(issue.id)) {
+        selectedIssues.value.push(issue.id)
+      }
+    })
+  }
+}
+
+const toggleIssueSelection = (issueId) => {
+  const index = selectedIssues.value.indexOf(issueId)
+  if (index > -1) {
+    selectedIssues.value.splice(index, 1)
+  } else {
+    selectedIssues.value.push(issueId)
+  }
+}
+
+const selectIssue = (issueId, event) => {
+  if (!event.ctrlKey && !event.metaKey) return
+  toggleIssueSelection(issueId)
+}
+
+const clearSelection = () => {
+  selectedIssues.value = []
+  bulkAction.value = ''
+}
+
+const applyBulkAction = () => {
+  console.log(`Applying ${bulkAction.value} to ${selectedIssues.value.length} issues`)
+  // Implement bulk action logic here
+  clearSelection()
+}
+
+const openIssue = (issue) => {
+  selectedIssueDetails.value = issue
+}
+
+const closeIssueModal = () => {
+  selectedIssueDetails.value = null
+}
+
+const editIssue = (issue) => {
+  console.log('Editing issue:', issue.key)
+  // Implement edit logic
+}
+
+const deleteIssue = (issue) => {
+  if (confirm(`Are you sure you want to delete ${issue.key}?`)) {
+    const index = totalIssues.value.findIndex(i => i.id === issue.id)
+    if (index > -1) {
+      totalIssues.value.splice(index, 1)
+    }
+    selectedIssueDetails.value = null
+  }
+}
+
+const exportIssues = () => {
+  console.log('Exporting issues...')
+  // Implement export logic
+}
+
+const saveCurrentView = () => {
+  console.log('Saving current view...')
+  // Implement save view logic
+}
+
+// Utility methods
+const getTypeIcon = (type) => {
+  const icons = { 'Story': '📝', 'Bug': '🐛', 'Task': '✅', 'Epic': '📚' }
+  return icons[type] || '📄'
+}
+
+const getPriorityIcon = (priority) => {
+  const icons = { 'Critical': '🔥', 'High': '🔴', 'Medium': '🟡', 'Low': '🔵' }
+  return icons[priority] || '⚪'
+}
+
+const getStatusClass = (status) => {
+  const classes = {
+    'todo': 'status-todo',
+    'inprogress': 'status-progress',
+    'review': 'status-review',
+    'done': 'status-done'
+  }
+  return classes[status] || ''
+}
+
+const getStatusDisplay = (status) => {
+  const displays = {
+    'todo': 'To Do',
+    'inprogress': 'In Progress',
+    'review': 'Review',
+    'done': 'Done'
+  }
+  return displays[status] || status
+}
+
+const formatDate = (dateString) => {
+  return new Date(dateString).toLocaleDateString()
+}
+
+const getLabelColor = (label) => {
+  const colors = {
+    'security': '#e74c3c',
+    'auth': '#3498db',
+    'ui': '#9b59b6',
+    'responsive': '#f39c12',
+    'theme': '#2ecc71',
+    'performance': '#e67e22',
+    'database': '#34495e',
+    'profile': '#1abc9c',
+    'bug': '#e74c3c',
+    'notifications': '#f1c40f',
+    'api': '#8e44ad',
+    'onboarding': '#16a085',
+    'ux': '#27ae60'
+  }
+  return colors[label] || '#95a5a6'
+}
+</script>
+
 <template>
   <div class="issues-container">
     <!-- Issues Header -->
@@ -388,354 +739,6 @@
     </div>
   </div>
 </template>
-
-<script setup>
-import { ref, computed, onMounted } from 'vue'
-
-// Data
-const showFilters = ref(false)
-const showCreateModal = ref(false)
-const selectedIssueDetails = ref(null)
-const selectedIssues = ref([])
-const bulkAction = ref('')
-
-// Pagination
-const currentPage = ref(1)
-const pageSize = ref(25)
-
-// Sorting
-const sortField = ref('created')
-const sortDirection = ref('desc')
-
-// Team members
-const teamMembers = ref([
-  { id: 1, name: 'Alice Johnson', avatar: 'AJ' },
-  { id: 2, name: 'Bob Smith', avatar: 'BS' },
-  { id: 3, name: 'Charlie Brown', avatar: 'CB' },
-  { id: 4, name: 'Diana Prince', avatar: 'DP' },
-  { id: 5, name: 'Eve Wilson', avatar: 'EW' }
-])
-
-// Sample issues data
-const totalIssues = ref([
-  {
-    id: 1, key: 'AP-143', title: 'Implement user authentication system',
-    description: 'Create a secure login system with JWT tokens and role-based access control.',
-    type: 'Story', status: 'todo', priority: 'High', storyPoints: 8,
-    assignee: { id: 1, name: 'Alice Johnson', avatar: 'AJ' },
-    created: '2024-01-15', labels: ['security', 'auth']
-  },
-  {
-    id: 2, key: 'AP-144', title: 'Fix navigation menu responsiveness',
-    description: 'The navigation menu breaks on mobile devices and needs responsive design fixes.',
-    type: 'Bug', status: 'inprogress', priority: 'Critical', storyPoints: 3,
-    assignee: { id: 2, name: 'Bob Smith', avatar: 'BS' },
-    created: '2024-01-16', labels: ['ui', 'responsive']
-  },
-  {
-    id: 3, key: 'AP-145', title: 'Add dark mode toggle',
-    description: 'Implement a dark mode theme switcher in the user preferences.',
-    type: 'Task', status: 'review', priority: 'Medium', storyPoints: 5,
-    assignee: { id: 3, name: 'Charlie Brown', avatar: 'CB' },
-    created: '2024-01-17', labels: ['ui', 'theme']
-  },
-  {
-    id: 4, key: 'AP-146', title: 'Database performance optimization',
-    description: 'Optimize slow queries and add proper indexing to improve database performance.',
-    type: 'Story', status: 'done', priority: 'High', storyPoints: 13,
-    assignee: { id: 4, name: 'Diana Prince', avatar: 'DP' },
-    created: '2024-01-18', labels: ['performance', 'database']
-  },
-  {
-    id: 5, key: 'AP-147', title: 'Update user profile page',
-    description: 'Redesign the user profile page with better UX and additional fields.',
-    type: 'Story', status: 'todo', priority: 'Medium', storyPoints: 8,
-    assignee: null,
-    created: '2024-01-19', labels: ['ui', 'profile']
-  },
-  {
-    id: 6, key: 'AP-148', title: 'Fix email notification bug',
-    description: 'Users are not receiving email notifications for issue assignments.',
-    type: 'Bug', status: 'done', priority: 'High', storyPoints: 2,
-    assignee: { id: 5, name: 'Eve Wilson', avatar: 'EW' },
-    created: '2024-01-20', labels: ['bug', 'notifications']
-  },
-  {
-    id: 7, key: 'AP-149', title: 'Implement API rate limiting',
-    description: 'Add rate limiting to prevent API abuse and improve security.',
-    type: 'Epic', status: 'todo', priority: 'Low', storyPoints: 21,
-    assignee: { id: 1, name: 'Alice Johnson', avatar: 'AJ' },
-    created: '2024-01-21', labels: ['api', 'security']
-  },
-  {
-    id: 8, key: 'AP-150', title: 'Create user onboarding flow',
-    description: 'Design and implement a guided onboarding process for new users.',
-    type: 'Story', status: 'inprogress', priority: 'Medium', storyPoints: 13,
-    assignee: { id: 2, name: 'Bob Smith', avatar: 'BS' },
-    created: '2024-01-22', labels: ['onboarding', 'ux']
-  }
-])
-
-// Filters
-const filters = ref({
-  search: '',
-  status: [],
-  type: [],
-  assignee: [],
-  priority: [],
-  dateRange: ''
-})
-
-// Computed properties
-const activeFiltersCount = computed(() => {
-  let count = 0
-  if (filters.value.search) count++
-  if (filters.value.status.length) count++
-  if (filters.value.type.length) count++
-  if (filters.value.assignee.length) count++
-  if (filters.value.priority.length) count++
-  if (filters.value.dateRange) count++
-  return count
-})
-
-const filteredIssues = computed(() => {
-  let filtered = [...totalIssues.value]
-
-  // Search filter
-  if (filters.value.search) {
-    const search = filters.value.search.toLowerCase()
-    filtered = filtered.filter(issue => 
-      issue.title.toLowerCase().includes(search) ||
-      issue.key.toLowerCase().includes(search) ||
-      (issue.description && issue.description.toLowerCase().includes(search))
-    )
-  }
-
-  // Status filter
-  if (filters.value.status.length) {
-    filtered = filtered.filter(issue => filters.value.status.includes(issue.status))
-  }
-
-  // Type filter
-  if (filters.value.type.length) {
-    filtered = filtered.filter(issue => filters.value.type.includes(issue.type))
-  }
-
-  // Assignee filter
-  if (filters.value.assignee.length) {
-    filtered = filtered.filter(issue => {
-      if (filters.value.assignee.includes('unassigned')) {
-        return !issue.assignee || filters.value.assignee.includes(issue.assignee?.id)
-      }
-      return issue.assignee && filters.value.assignee.includes(issue.assignee.id)
-    })
-  }
-
-  // Priority filter
-  if (filters.value.priority.length) {
-    filtered = filtered.filter(issue => filters.value.priority.includes(issue.priority))
-  }
-
-  // Sort
-  filtered.sort((a, b) => {
-    let aVal = a[sortField.value]
-    let bVal = b[sortField.value]
-
-    if (sortField.value === 'assignee') {
-      aVal = a.assignee?.name || 'Unassigned'
-      bVal = b.assignee?.name || 'Unassigned'
-    }
-
-    if (typeof aVal === 'string') {
-      aVal = aVal.toLowerCase()
-      bVal = bVal?.toLowerCase() || ''
-    }
-
-    if (sortDirection.value === 'asc') {
-      return aVal > bVal ? 1 : -1
-    } else {
-      return aVal < bVal ? 1 : -1
-    }
-  })
-
-  return filtered
-})
-
-const paginatedIssues = computed(() => {
-  const start = (currentPage.value - 1) * pageSize.value
-  const end = start + pageSize.value
-  return filteredIssues.value.slice(start, end)
-})
-
-const totalPages = computed(() => {
-  return Math.ceil(filteredIssues.value.length / pageSize.value)
-})
-
-const isAllSelected = computed(() => {
-  return paginatedIssues.value.length > 0 && 
-         paginatedIssues.value.every(issue => selectedIssues.value.includes(issue.id))
-})
-
-const isSomeSelected = computed(() => {
-  return selectedIssues.value.length > 0 && !isAllSelected.value
-})
-
-// Methods
-const toggleFilters = () => {
-  showFilters.value = !showFilters.value
-}
-
-const applyFilters = () => {
-  currentPage.value = 1
-}
-
-const clearAllFilters = () => {
-  filters.value = {
-    search: '',
-    status: [],
-    type: [],
-    assignee: [],
-    priority: [],
-    dateRange: ''
-  }
-  currentPage.value = 1
-}
-
-const sortBy = (field) => {
-  if (sortField.value === field) {
-    sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc'
-  } else {
-    sortField.value = field
-    sortDirection.value = 'asc'
-  }
-}
-
-const toggleSelectAll = () => {
-  if (isAllSelected.value) {
-    selectedIssues.value = selectedIssues.value.filter(id => 
-      !paginatedIssues.value.some(issue => issue.id === id)
-    )
-  } else {
-    paginatedIssues.value.forEach(issue => {
-      if (!selectedIssues.value.includes(issue.id)) {
-        selectedIssues.value.push(issue.id)
-      }
-    })
-  }
-}
-
-const toggleIssueSelection = (issueId) => {
-  const index = selectedIssues.value.indexOf(issueId)
-  if (index > -1) {
-    selectedIssues.value.splice(index, 1)
-  } else {
-    selectedIssues.value.push(issueId)
-  }
-}
-
-const selectIssue = (issueId, event) => {
-  if (!event.ctrlKey && !event.metaKey) return
-  toggleIssueSelection(issueId)
-}
-
-const clearSelection = () => {
-  selectedIssues.value = []
-  bulkAction.value = ''
-}
-
-const applyBulkAction = () => {
-  console.log(`Applying ${bulkAction.value} to ${selectedIssues.value.length} issues`)
-  // Implement bulk action logic here
-  clearSelection()
-}
-
-const openIssue = (issue) => {
-  selectedIssueDetails.value = issue
-}
-
-const closeIssueModal = () => {
-  selectedIssueDetails.value = null
-}
-
-const editIssue = (issue) => {
-  console.log('Editing issue:', issue.key)
-  // Implement edit logic
-}
-
-const deleteIssue = (issue) => {
-  if (confirm(`Are you sure you want to delete ${issue.key}?`)) {
-    const index = totalIssues.value.findIndex(i => i.id === issue.id)
-    if (index > -1) {
-      totalIssues.value.splice(index, 1)
-    }
-    selectedIssueDetails.value = null
-  }
-}
-
-const exportIssues = () => {
-  console.log('Exporting issues...')
-  // Implement export logic
-}
-
-const saveCurrentView = () => {
-  console.log('Saving current view...')
-  // Implement save view logic
-}
-
-// Utility methods
-const getTypeIcon = (type) => {
-  const icons = { 'Story': '📝', 'Bug': '🐛', 'Task': '✅', 'Epic': '📚' }
-  return icons[type] || '📄'
-}
-
-const getPriorityIcon = (priority) => {
-  const icons = { 'Critical': '🔥', 'High': '🔴', 'Medium': '🟡', 'Low': '🔵' }
-  return icons[priority] || '⚪'
-}
-
-const getStatusClass = (status) => {
-  const classes = {
-    'todo': 'status-todo',
-    'inprogress': 'status-progress',
-    'review': 'status-review',
-    'done': 'status-done'
-  }
-  return classes[status] || ''
-}
-
-const getStatusDisplay = (status) => {
-  const displays = {
-    'todo': 'To Do',
-    'inprogress': 'In Progress',
-    'review': 'Review',
-    'done': 'Done'
-  }
-  return displays[status] || status
-}
-
-const formatDate = (dateString) => {
-  return new Date(dateString).toLocaleDateString()
-}
-
-const getLabelColor = (label) => {
-  const colors = {
-    'security': '#e74c3c',
-    'auth': '#3498db',
-    'ui': '#9b59b6',
-    'responsive': '#f39c12',
-    'theme': '#2ecc71',
-    'performance': '#e67e22',
-    'database': '#34495e',
-    'profile': '#1abc9c',
-    'bug': '#e74c3c',
-    'notifications': '#f1c40f',
-    'api': '#8e44ad',
-    'onboarding': '#16a085',
-    'ux': '#27ae60'
-  }
-  return colors[label] || '#95a5a6'
-}
-</script>
 
 <style scoped>
 .issues-container {

@@ -2,7 +2,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.authtoken.models import Token
-from .serializers import RegisterSerializer, LoginSerializer, ProjectCreateSerializer
+from .serializers import RegisterSerializer, LoginSerializer, ProjectCreateSerializer, ProjectGetSerializer
 from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth import get_user_model
 
@@ -44,6 +44,10 @@ def create_project(request):
     serializer = ProjectCreateSerializer(data=data)
     if serializer.is_valid():
         project = serializer.save()
+        # Ensure the lead is a member
+        from .models import ProjectMembership, User
+        lead_user = User.objects.get(id=data['lead'])
+        ProjectMembership.objects.get_or_create(user=lead_user, project=project, defaults={'role': 'developer'})
         return Response({'id': str(project.id), 'key': project.key, 'name': project.name}, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -62,3 +66,12 @@ def list_users(request):
         for u in users
     ]
     return Response(data)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def list_projects(request):
+    user = request.user
+    # Projects where user is a member or lead
+    projects = user.projects.all().distinct()
+    serializer = ProjectGetSerializer(projects, many=True)
+    return Response(serializer.data)

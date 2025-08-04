@@ -2,8 +2,12 @@
 import { ref, reactive } from 'vue'
 import { onMounted } from 'vue'
 import axios from 'axios'
+import { useProjectStore } from '../stores/projectStore'
 
 // Form data
+const projectStore = useProjectStore()
+const currentProject = computed(() => projectStore.selectedProject)
+
 const profile = reactive({
   name: '',
   email: '',

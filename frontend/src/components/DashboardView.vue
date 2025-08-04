@@ -1,5 +1,9 @@
 <script setup>
 import { ref, computed } from 'vue'
+import { useProjectStore } from '../stores/projectStore'
+
+const projectStore = useProjectStore()
+const currentProject = computed(() => projectStore.selectedProject)
 
 // Kanban columns
 const columns = ref([

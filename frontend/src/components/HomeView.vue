@@ -1,7 +1,11 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useProjectStore } from '../stores/projectStore'
 
-const selectedProject = ref({ name: 'AgilePro' })
+const projectStore = useProjectStore()
+const selectedProject = computed(() => projectStore.selectedProject)
+const currentProject = computed(() => projectStore.selectedProject)
+
 const dashboardData = ref({
   activeSprintName: 'Sprint 23',
   sprintProgress: 65,
@@ -21,11 +25,18 @@ const dashboardData = ref({
   <div>
     <div class="dashboard-header">
       <h1>Project Dashboard</h1>
-      <p class="project-description">{{ selectedProject.name }} - Overview and current sprint status</p>
+      <p class="project-description">
+        <template v-if="selectedProject">
+          {{ selectedProject.name }} - Overview and current sprint status
+        </template>
+        <template v-else>
+          No projects yet. Create a project to get started!
+        </template>
+      </p>
     </div>
 
     <!-- Dashboard Cards -->
-    <div class="dashboard-grid">
+    <div v-if="selectedProject" class="dashboard-grid">
       <!-- Sprint Progress Card -->
       <div class="dashboard-card">
         <h3>{{ dashboardData.activeSprintName }} Progress</h3>
@@ -81,6 +92,12 @@ const dashboardData = ref({
           </div>
         </div>
       </div>
+    </div>
+    <div v-else class="no-projects-message">
+      <p>You have no projects yet.</p>
+      <button class="create-btn" @click="$router.push('/create-project')">
+        + Create Project
+      </button>
     </div>
   </div>
 </template>
@@ -204,6 +221,21 @@ const dashboardData = ref({
   font-size: 0.9rem;
   color: #999;
   white-space: nowrap;
+}
+
+.no-projects-message {
+  text-align: center;
+  margin-top: 3rem;
+  color: #666;
+}
+.create-btn {
+  margin-top: 1rem;
+  background: #0066cc;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
 }
 
 /* Responsive */

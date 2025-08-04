@@ -1,189 +1,6 @@
-<template>
-  <div class="backlog-view">
-    <div class="page-header">
-      <div class="header-content">
-        <h1>Backlog</h1>
-        <p class="page-description">Prioritize your work and plan future sprints</p>
-      </div>
-      <div class="header-actions">
-        <button class="btn btn-secondary" @click="toggleBulkEdit">
-          {{ bulkEditMode ? 'Cancel' : 'Bulk Edit' }}
-        </button>
-        <button class="btn btn-primary" @click="createIssue">
-          + Create Issue
-        </button>
-      </div>
-    </div>
-
-    <div class="backlog-filters">
-      <div class="filter-group">
-        <select v-model="selectedEpic" class="filter-select">
-          <option value="">All Epics</option>
-          <option v-for="epic in epics" :key="epic.id" :value="epic.id">
-            {{ epic.name }}
-          </option>
-        </select>
-        
-        <select v-model="selectedAssignee" class="filter-select">
-          <option value="">All Assignees</option>
-          <option v-for="member in teamMembers" :key="member.id" :value="member.id">
-            {{ member.name }}
-          </option>
-        </select>
-
-        <input 
-          type="text" 
-          v-model="searchQuery"
-          placeholder="Search issues..."
-          class="search-input"
-        />
-      </div>
-      
-      <div class="view-options">
-        <button 
-          class="view-btn" 
-          :class="{ active: viewMode === 'list' }"
-          @click="viewMode = 'list'"
-        >
-          📋 List
-        </button>
-        <button 
-          class="view-btn" 
-          :class="{ active: viewMode === 'detailed' }"
-          @click="viewMode = 'detailed'"
-        >
-          📄 Detailed
-        </button>
-      </div>
-    </div>
-
-    <div class="backlog-content">
-      <!-- Sprint Planning Section -->
-      <div class="sprint-planning" v-if="futureSprints.length > 0">
-        <h3>Sprint Planning</h3>
-        <div 
-          v-for="sprint in futureSprints" 
-          :key="sprint.id"
-          class="sprint-container"
-          @drop="onDrop($event, sprint.id)"
-          @dragover.prevent
-          @dragenter.prevent
-        >
-          <div class="sprint-header">
-            <div class="sprint-info">
-              <span class="sprint-name">{{ sprint.name }}</span>
-              <span class="sprint-dates">{{ sprint.startDate }} - {{ sprint.endDate }}</span>
-              <span class="sprint-capacity">{{ sprint.issues.length }}/{{ sprint.capacity }} issues</span>
-            </div>
-            <div class="sprint-actions">
-              <button class="btn-icon" @click="startSprint(sprint.id)">▶️</button>
-              <button class="btn-icon" @click="editSprint(sprint.id)">✏️</button>
-            </div>
-          </div>
-          
-          <div class="sprint-issues" :class="{ empty: sprint.issues.length === 0 }">
-            <div 
-              v-for="issue in sprint.issues" 
-              :key="issue.id"
-              class="issue-card"
-              :class="{ selected: selectedIssues.includes(issue.id) }"
-              draggable="true"
-              @dragstart="onDragStart($event, issue)"
-              @click="selectIssue(issue.id)"
-            >
-              <div class="issue-header">
-                <span class="issue-key">{{ issue.key }}</span>
-                <span class="issue-type">{{ getIssueTypeIcon(issue.type) }}</span>
-                <span class="issue-priority">{{ getPriorityIcon(issue.priority) }}</span>
-              </div>
-              <div class="issue-title">{{ issue.title }}</div>
-              <div class="issue-meta">
-                <span class="issue-assignee" v-if="issue.assignee">
-                  {{ issue.assignee.initials }}
-                </span>
-                <span class="issue-story-points" v-if="issue.storyPoints">
-                  {{ issue.storyPoints }}
-                </span>
-              </div>
-            </div>
-            <div v-if="sprint.issues.length === 0" class="empty-sprint">
-              Drop issues here to add to {{ sprint.name }}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Product Backlog -->
-      <div class="product-backlog">
-        <div class="backlog-header">
-          <h3>Product Backlog</h3>
-          <div class="backlog-stats">
-            <span>{{ filteredBacklogIssues.length }} issues</span>
-            <span>{{ totalStoryPoints }} story points</span>
-          </div>
-        </div>
-
-        <div 
-          class="backlog-issues"
-          @drop="onDrop($event, 'backlog')"
-          @dragover.prevent
-          @dragenter.prevent
-        >
-          <div 
-            v-for="issue in filteredBacklogIssues" 
-            :key="issue.id"
-            class="issue-card"
-            :class="{ 
-              selected: selectedIssues.includes(issue.id),
-              detailed: viewMode === 'detailed'
-            }"
-            draggable="true"
-            @dragstart="onDragStart($event, issue)"
-            @click="selectIssue(issue.id)"
-          >
-            <input 
-              v-if="bulkEditMode"
-              type="checkbox"
-              :checked="selectedIssues.includes(issue.id)"
-              @click.stop="toggleIssueSelection(issue.id)"
-              class="issue-checkbox"
-            />
-            
-            <div class="issue-content">
-              <div class="issue-header">
-                <span class="issue-key">{{ issue.key }}</span>
-                <span class="issue-type">{{ getIssueTypeIcon(issue.type) }}</span>
-                <span class="issue-priority">{{ getPriorityIcon(issue.priority) }}</span>
-              </div>
-              
-              <div class="issue-title">{{ issue.title }}</div>
-              
-              <div class="issue-description" v-if="viewMode === 'detailed' && issue.description">
-                {{ issue.description }}
-              </div>
-              
-              <div class="issue-meta">
-                <span class="issue-epic" v-if="issue.epic">
-                  📚 {{ issue.epic.name }}
-                </span>
-                <span class="issue-assignee" v-if="issue.assignee">
-                  {{ issue.assignee.initials }}
-                </span>
-                <span class="issue-story-points" v-if="issue.storyPoints">
-                  {{ issue.storyPoints }} SP
-                </span>
-                <span class="issue-status">{{ issue.status }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</template>
-
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useProjectStore } from '../stores/projectStore'
 
 // Data
 const bulkEditMode = ref(false)
@@ -192,6 +9,8 @@ const viewMode = ref('list')
 const selectedEpic = ref('')
 const selectedAssignee = ref('')
 const searchQuery = ref('')
+const projectStore = useProjectStore()
+const currentProject = computed(() => projectStore.selectedProject)
 
 const epics = ref([
   { id: 1, name: 'User Authentication', key: 'AUTH' },
@@ -390,6 +209,191 @@ const getPriorityIcon = (priority) => {
   return icons[priority] || '🟡'
 }
 </script>
+
+
+<template>
+  <div class="backlog-view">
+    <div class="page-header">
+      <div class="header-content">
+        <h1>Backlog</h1>
+        <p class="page-description">Prioritize your work and plan future sprints</p>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-secondary" @click="toggleBulkEdit">
+          {{ bulkEditMode ? 'Cancel' : 'Bulk Edit' }}
+        </button>
+        <button class="btn btn-primary" @click="createIssue">
+          + Create Issue
+        </button>
+      </div>
+    </div>
+
+    <div class="backlog-filters">
+      <div class="filter-group">
+        <select v-model="selectedEpic" class="filter-select">
+          <option value="">All Epics</option>
+          <option v-for="epic in epics" :key="epic.id" :value="epic.id">
+            {{ epic.name }}
+          </option>
+        </select>
+        
+        <select v-model="selectedAssignee" class="filter-select">
+          <option value="">All Assignees</option>
+          <option v-for="member in teamMembers" :key="member.id" :value="member.id">
+            {{ member.name }}
+          </option>
+        </select>
+
+        <input 
+          type="text" 
+          v-model="searchQuery"
+          placeholder="Search issues..."
+          class="search-input"
+        />
+      </div>
+      
+      <div class="view-options">
+        <button 
+          class="view-btn" 
+          :class="{ active: viewMode === 'list' }"
+          @click="viewMode = 'list'"
+        >
+          📋 List
+        </button>
+        <button 
+          class="view-btn" 
+          :class="{ active: viewMode === 'detailed' }"
+          @click="viewMode = 'detailed'"
+        >
+          📄 Detailed
+        </button>
+      </div>
+    </div>
+
+    <div class="backlog-content">
+      <!-- Sprint Planning Section -->
+      <div class="sprint-planning" v-if="futureSprints.length > 0">
+        <h3>Sprint Planning</h3>
+        <div 
+          v-for="sprint in futureSprints" 
+          :key="sprint.id"
+          class="sprint-container"
+          @drop="onDrop($event, sprint.id)"
+          @dragover.prevent
+          @dragenter.prevent
+        >
+          <div class="sprint-header">
+            <div class="sprint-info">
+              <span class="sprint-name">{{ sprint.name }}</span>
+              <span class="sprint-dates">{{ sprint.startDate }} - {{ sprint.endDate }}</span>
+              <span class="sprint-capacity">{{ sprint.issues.length }}/{{ sprint.capacity }} issues</span>
+            </div>
+            <div class="sprint-actions">
+              <button class="btn-icon" @click="startSprint(sprint.id)">▶️</button>
+              <button class="btn-icon" @click="editSprint(sprint.id)">✏️</button>
+            </div>
+          </div>
+          
+          <div class="sprint-issues" :class="{ empty: sprint.issues.length === 0 }">
+            <div 
+              v-for="issue in sprint.issues" 
+              :key="issue.id"
+              class="issue-card"
+              :class="{ selected: selectedIssues.includes(issue.id) }"
+              draggable="true"
+              @dragstart="onDragStart($event, issue)"
+              @click="selectIssue(issue.id)"
+            >
+              <div class="issue-header">
+                <span class="issue-key">{{ issue.key }}</span>
+                <span class="issue-type">{{ getIssueTypeIcon(issue.type) }}</span>
+                <span class="issue-priority">{{ getPriorityIcon(issue.priority) }}</span>
+              </div>
+              <div class="issue-title">{{ issue.title }}</div>
+              <div class="issue-meta">
+                <span class="issue-assignee" v-if="issue.assignee">
+                  {{ issue.assignee.initials }}
+                </span>
+                <span class="issue-story-points" v-if="issue.storyPoints">
+                  {{ issue.storyPoints }}
+                </span>
+              </div>
+            </div>
+            <div v-if="sprint.issues.length === 0" class="empty-sprint">
+              Drop issues here to add to {{ sprint.name }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Product Backlog -->
+      <div class="product-backlog">
+        <div class="backlog-header">
+          <h3>Product Backlog</h3>
+          <div class="backlog-stats">
+            <span>{{ filteredBacklogIssues.length }} issues</span>
+            <span>{{ totalStoryPoints }} story points</span>
+          </div>
+        </div>
+
+        <div 
+          class="backlog-issues"
+          @drop="onDrop($event, 'backlog')"
+          @dragover.prevent
+          @dragenter.prevent
+        >
+          <div 
+            v-for="issue in filteredBacklogIssues" 
+            :key="issue.id"
+            class="issue-card"
+            :class="{ 
+              selected: selectedIssues.includes(issue.id),
+              detailed: viewMode === 'detailed'
+            }"
+            draggable="true"
+            @dragstart="onDragStart($event, issue)"
+            @click="selectIssue(issue.id)"
+          >
+            <input 
+              v-if="bulkEditMode"
+              type="checkbox"
+              :checked="selectedIssues.includes(issue.id)"
+              @click.stop="toggleIssueSelection(issue.id)"
+              class="issue-checkbox"
+            />
+            
+            <div class="issue-content">
+              <div class="issue-header">
+                <span class="issue-key">{{ issue.key }}</span>
+                <span class="issue-type">{{ getIssueTypeIcon(issue.type) }}</span>
+                <span class="issue-priority">{{ getPriorityIcon(issue.priority) }}</span>
+              </div>
+              
+              <div class="issue-title">{{ issue.title }}</div>
+              
+              <div class="issue-description" v-if="viewMode === 'detailed' && issue.description">
+                {{ issue.description }}
+              </div>
+              
+              <div class="issue-meta">
+                <span class="issue-epic" v-if="issue.epic">
+                  📚 {{ issue.epic.name }}
+                </span>
+                <span class="issue-assignee" v-if="issue.assignee">
+                  {{ issue.assignee.initials }}
+                </span>
+                <span class="issue-story-points" v-if="issue.storyPoints">
+                  {{ issue.storyPoints }} SP
+                </span>
+                <span class="issue-status">{{ issue.status }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
 
 <style scoped>
 .backlog-view {

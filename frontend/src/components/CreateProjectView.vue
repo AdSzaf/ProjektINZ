@@ -5,11 +5,14 @@ import axios from 'axios'
 import { onMounted } from 'vue'
 import { onBeforeUnmount } from 'vue'
 import { nextTick } from 'vue'
+import { useProjectStore } from '../stores/projectStore'
 
 const router = useRouter()
 const users = ref([])
 const leadSearch = ref('')
 const showLeadDropdown = ref(false)
+const projectStore = useProjectStore()
+const currentProject = computed(() => projectStore.selectedProject)
 
 // Current step in the creation flow
 const currentStep = ref('type-selection') // 'type-selection', 'kanban-setup', 'scrum-setup'

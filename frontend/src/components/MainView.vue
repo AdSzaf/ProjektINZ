@@ -2,9 +2,12 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
+import { useProjectStore } from '../stores/projectStore'
 
 const router = useRouter()
-
+const projects = ref([])
+const projectStore = useProjectStore()
+const selectedProject = computed(() => projectStore.selectedProject)
 
 // User and project data
 const currentUser = ref({
@@ -35,13 +38,26 @@ const fetchCurrentUser = async () => {
   }
 }
 
-const projects = ref([
-  { id: 1, name: 'AgilePro', key: 'AP' },
-  { id: 2, name: 'WebApp 2.0', key: 'WA' },
-  { id: 3, name: 'Mobile Project', key: 'MP' }
-])
-
-const selectedProject = ref(projects.value[0])
+const fetchProjects = async () => {
+  const token = localStorage.getItem('token')
+  axios.defaults.headers.common['Authorization'] = `Token ${token}`
+  try {
+    const res = await axios.get('/api/projects/')
+    console.log('Fetched projects:', res.data)
+    projects.value = res.data
+    if (!projectStore.selectedProject && projects.value.length > 0) {
+      projectStore.setProject(projects.value[0])
+      localStorage.setItem('selectedProjectId', projects.value[0].id)
+    }
+    const lastId = localStorage.getItem('selectedProjectId')
+    if (lastId) {
+      const found = projects.value.find(p => p.id === lastId)
+      if (found) projectStore.setProject(found)
+    }
+  } catch (e) {
+    // handle error
+  }
+}
 
 // UI state
 const showUserDropdown = ref(false)
@@ -81,10 +97,10 @@ const menuItems = ref([
 
 // Methods
 const selectProject = (project) => {
-  selectedProject.value = project
+  projectStore.setProject(project)
   showProjectDropdown.value = false
+  localStorage.setItem('selectedProjectId', project.id)
 }
-
 const toggleDropdown = (dropdown) => {
   showUserDropdown.value = dropdown === 'user' ? !showUserDropdown.value : false
   showProjectDropdown.value = dropdown === 'project' ? !showProjectDropdown.value : false
@@ -118,8 +134,9 @@ const closeDropdowns = () => {
 
 onMounted(() => {
   document.addEventListener('click', closeDropdowns)
+  fetchCurrentUser()
+  fetchProjects()
 })
-onMounted(fetchCurrentUser)
 </script>
 
 <template>
@@ -140,12 +157,16 @@ onMounted(fetchCurrentUser)
             @click="toggleDropdown('project')"
             :class="{ active: showProjectDropdown }"
           >
-            <span class="project-key">{{ selectedProject.key }}</span>
-            <span class="project-name">{{ selectedProject.name }}</span>
+            <span class="project-key">{{ selectedProject?.key }}</span>
+            <span class="project-name">{{ selectedProject?.name }}</span>
             <span class="dropdown-arrow">▼</span>
           </button>
-          
           <div v-if="showProjectDropdown" class="dropdown project-dropdown">
+            <div v-for="project in projects" :key="project.id" class="dropdown-item" @click="selectProject(project)">
+                <span class="project-key">{{ project.key }}</span>
+                <span class="project-name">{{ project.name }}</span>
+              </div>
+              <div v-if="projects.length === 0" style="padding:1rem;color:#888;">No projects found</div>
             <div 
               v-for="project in projects" 
               :key="project.id"

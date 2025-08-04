@@ -1,188 +1,9 @@
-<template>
-  <div class="board-container">
-    <!-- Board Header -->
-    <div class="board-header">
-      <div class="board-title">
-        <h1>{{ selectedProject.name }} Board</h1>
-        <p class="sprint-info">{{ activeSprint.name }} • {{ activeSprint.issues.length }} issues</p>
-      </div>
-      
-      <div class="board-actions">
-        <button class="action-btn" @click="showFilters = !showFilters">
-          🔍 Filters
-        </button>
-        <button class="action-btn" @click="toggleGroupBy">
-          👥 Group by: {{ groupBy }}
-        </button>
-        <button class="action-btn primary" @click="showCreateIssue = true">
-          + Create Issue
-        </button>
-      </div>
-    </div>
-
-    <!-- Filters Bar -->
-    <div v-if="showFilters" class="filters-bar">
-      <div class="filter-group">
-        <label>Assignee:</label>
-        <select v-model="filters.assignee" @change="applyFilters">
-          <option value="">All</option>
-          <option v-for="user in teamMembers" :key="user.id" :value="user.id">
-            {{ user.name }}
-          </option>
-        </select>
-      </div>
-      
-      <div class="filter-group">
-        <label>Type:</label>
-        <select v-model="filters.type" @change="applyFilters">
-          <option value="">All</option>
-          <option value="Story">Story</option>
-          <option value="Bug">Bug</option>
-          <option value="Task">Task</option>
-        </select>
-      </div>
-      
-      <div class="filter-group">
-        <label>Priority:</label>
-        <select v-model="filters.priority" @change="applyFilters">
-          <option value="">All</option>
-          <option value="High">High</option>
-          <option value="Medium">Medium</option>
-          <option value="Low">Low</option>
-        </select>
-      </div>
-      
-      <button class="clear-filters-btn" @click="clearFilters">Clear All</button>
-    </div>
-
-    <!-- Board Columns -->
-    <div class="board-content">
-      <div class="board-columns">
-        <div 
-          v-for="column in columns" 
-          :key="column.id"
-          class="board-column"
-          @drop="onDrop($event, column.id)"
-          @dragover.prevent
-          @dragenter.prevent
-        >
-          <div class="column-header">
-            <h3 class="column-title">{{ column.name }}</h3>
-            <span class="issue-count">{{ getColumnIssues(column.id).length }}</span>
-          </div>
-          
-          <div class="column-content">
-            <div 
-              v-for="issue in getColumnIssues(column.id)" 
-              :key="issue.id"
-              class="issue-card"
-              :class="{ 'dragging': draggingIssue === issue.id }"
-              draggable="true"
-              @dragstart="onDragStart($event, issue)"
-              @dragend="onDragEnd"
-              @click="openIssueDetails(issue)"
-            >
-              <div class="issue-header">
-                <div class="issue-type">
-                  <span class="type-icon" :class="issue.type.toLowerCase()">
-                    {{ getTypeIcon(issue.type) }}
-                  </span>
-                  <span class="issue-key">{{ issue.key }}</span>
-                </div>
-                <div class="issue-priority" :class="issue.priority.toLowerCase()">
-                  {{ getPriorityIcon(issue.priority) }}
-                </div>
-              </div>
-              
-              <div class="issue-title">{{ issue.title }}</div>
-              
-              <div class="issue-footer">
-                <div class="issue-assignee" v-if="issue.assignee">
-                  <div class="assignee-avatar" :title="issue.assignee.name">
-                    {{ issue.assignee.avatar }}
-                  </div>
-                </div>
-                <div class="issue-points" v-if="issue.storyPoints">
-                  {{ issue.storyPoints }}
-                </div>
-              </div>
-            </div>
-            
-            <!-- Add Issue Button -->
-            <button 
-              class="add-issue-btn"
-              @click="createIssueInColumn(column.id)"
-            >
-              + Create issue
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Issue Details Modal -->
-    <div v-if="selectedIssue" class="modal-overlay" @click="closeIssueDetails">
-      <div class="issue-modal" @click.stop>
-        <div class="modal-header">
-          <h2>{{ selectedIssue.key }}: {{ selectedIssue.title }}</h2>
-          <button class="close-btn" @click="closeIssueDetails">×</button>
-        </div>
-        
-        <div class="modal-content">
-          <div class="issue-details">
-            <div class="detail-row">
-              <label>Type:</label>
-              <span class="type-badge" :class="selectedIssue.type.toLowerCase()">
-                {{ getTypeIcon(selectedIssue.type) }} {{ selectedIssue.type }}
-              </span>
-            </div>
-            
-            <div class="detail-row">
-              <label>Status:</label>
-              <span class="status-badge">{{ selectedIssue.status }}</span>
-            </div>
-            
-            <div class="detail-row">
-              <label>Priority:</label>
-              <span class="priority-badge" :class="selectedIssue.priority.toLowerCase()">
-                {{ getPriorityIcon(selectedIssue.priority) }} {{ selectedIssue.priority }}
-              </span>
-            </div>
-            
-            <div class="detail-row">
-              <label>Assignee:</label>
-              <span v-if="selectedIssue.assignee" class="assignee-info">
-                <span class="assignee-avatar">{{ selectedIssue.assignee.avatar }}</span>
-                {{ selectedIssue.assignee.name }}
-              </span>
-              <span v-else class="unassigned">Unassigned</span>
-            </div>
-            
-            <div class="detail-row" v-if="selectedIssue.storyPoints">
-              <label>Story Points:</label>
-              <span class="story-points">{{ selectedIssue.storyPoints }}</span>
-            </div>
-            
-            <div class="description-section">
-              <label>Description:</label>
-              <p class="description-text">{{ selectedIssue.description || 'No description provided.' }}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</template>
-
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useProjectStore } from '../stores/projectStore'
 
 // Props
-const selectedProject = ref({
-  id: 1,
-  name: 'AgilePro',
-  key: 'AP'
-})
+const selectedProject = computed(() => projectStore.selectedProject)
 
 // Data
 const showFilters = ref(false)
@@ -190,6 +11,8 @@ const showCreateIssue = ref(false)
 const selectedIssue = ref(null)
 const draggingIssue = ref(null)
 const groupBy = ref('Status')
+const projectStore = useProjectStore()
+const currentProject = computed(() => projectStore.selectedProject)
 
 const activeSprint = ref({
   id: 1,
@@ -387,7 +210,184 @@ onMounted(() => {
 })
 </script>
 
+<template>
+  <div class="board-container">
+    <!-- Board Header -->
+    <div class="board-header">
+      <div class="board-title">
+        <h1>{{ selectedProject.name }} Board</h1>
+        <p class="sprint-info">{{ activeSprint.name }} • {{ activeSprint.issues.length }} issues</p>
+      </div>
+      
+      <div class="board-actions">
+        <button class="action-btn" @click="showFilters = !showFilters">
+          🔍 Filters
+        </button>
+        <button class="action-btn" @click="toggleGroupBy">
+          👥 Group by: {{ groupBy }}
+        </button>
+        <button class="action-btn primary" @click="showCreateIssue = true">
+          + Create Issue
+        </button>
+      </div>
+    </div>
+
+    <!-- Filters Bar -->
+    <div v-if="showFilters" class="filters-bar">
+      <div class="filter-group">
+        <label>Assignee:</label>
+        <select v-model="filters.assignee" @change="applyFilters">
+          <option value="">All</option>
+          <option v-for="user in teamMembers" :key="user.id" :value="user.id">
+            {{ user.name }}
+          </option>
+        </select>
+      </div>
+      
+      <div class="filter-group">
+        <label>Type:</label>
+        <select v-model="filters.type" @change="applyFilters">
+          <option value="">All</option>
+          <option value="Story">Story</option>
+          <option value="Bug">Bug</option>
+          <option value="Task">Task</option>
+        </select>
+      </div>
+      
+      <div class="filter-group">
+        <label>Priority:</label>
+        <select v-model="filters.priority" @change="applyFilters">
+          <option value="">All</option>
+          <option value="High">High</option>
+          <option value="Medium">Medium</option>
+          <option value="Low">Low</option>
+        </select>
+      </div>
+      
+      <button class="clear-filters-btn" @click="clearFilters">Clear All</button>
+    </div>
+
+    <!-- Board Columns -->
+    <div class="board-content">
+      <div class="board-columns">
+        <div 
+          v-for="column in columns" 
+          :key="column.id"
+          class="board-column"
+          @drop="onDrop($event, column.id)"
+          @dragover.prevent
+          @dragenter.prevent
+        >
+          <div class="column-header">
+            <h3 class="column-title">{{ column.name }}</h3>
+            <span class="issue-count">{{ getColumnIssues(column.id).length }}</span>
+          </div>
+          
+          <div class="column-content">
+            <div 
+              v-for="issue in getColumnIssues(column.id)" 
+              :key="issue.id"
+              class="issue-card"
+              :class="{ 'dragging': draggingIssue === issue.id }"
+              draggable="true"
+              @dragstart="onDragStart($event, issue)"
+              @dragend="onDragEnd"
+              @click="openIssueDetails(issue)"
+            >
+              <div class="issue-header">
+                <div class="issue-type">
+                  <span class="type-icon" :class="issue.type.toLowerCase()">
+                    {{ getTypeIcon(issue.type) }}
+                  </span>
+                  <span class="issue-key">{{ issue.key }}</span>
+                </div>
+                <div class="issue-priority" :class="issue.priority.toLowerCase()">
+                  {{ getPriorityIcon(issue.priority) }}
+                </div>
+              </div>
+              
+              <div class="issue-title">{{ issue.title }}</div>
+              
+              <div class="issue-footer">
+                <div class="issue-assignee" v-if="issue.assignee">
+                  <div class="assignee-avatar" :title="issue.assignee.name">
+                    {{ issue.assignee.avatar }}
+                  </div>
+                </div>
+                <div class="issue-points" v-if="issue.storyPoints">
+                  {{ issue.storyPoints }}
+                </div>
+              </div>
+            </div>
+            
+            <!-- Add Issue Button -->
+            <button 
+              class="add-issue-btn"
+              @click="createIssueInColumn(column.id)"
+            >
+              + Create issue
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Issue Details Modal -->
+    <div v-if="selectedIssue" class="modal-overlay" @click="closeIssueDetails">
+      <div class="issue-modal" @click.stop>
+        <div class="modal-header">
+          <h2>{{ selectedIssue.key }}: {{ selectedIssue.title }}</h2>
+          <button class="close-btn" @click="closeIssueDetails">×</button>
+        </div>
+        
+        <div class="modal-content">
+          <div class="issue-details">
+            <div class="detail-row">
+              <label>Type:</label>
+              <span class="type-badge" :class="selectedIssue.type.toLowerCase()">
+                {{ getTypeIcon(selectedIssue.type) }} {{ selectedIssue.type }}
+              </span>
+            </div>
+            
+            <div class="detail-row">
+              <label>Status:</label>
+              <span class="status-badge">{{ selectedIssue.status }}</span>
+            </div>
+            
+            <div class="detail-row">
+              <label>Priority:</label>
+              <span class="priority-badge" :class="selectedIssue.priority.toLowerCase()">
+                {{ getPriorityIcon(selectedIssue.priority) }} {{ selectedIssue.priority }}
+              </span>
+            </div>
+            
+            <div class="detail-row">
+              <label>Assignee:</label>
+              <span v-if="selectedIssue.assignee" class="assignee-info">
+                <span class="assignee-avatar">{{ selectedIssue.assignee.avatar }}</span>
+                {{ selectedIssue.assignee.name }}
+              </span>
+              <span v-else class="unassigned">Unassigned</span>
+            </div>
+            
+            <div class="detail-row" v-if="selectedIssue.storyPoints">
+              <label>Story Points:</label>
+              <span class="story-points">{{ selectedIssue.storyPoints }}</span>
+            </div>
+            
+            <div class="description-section">
+              <label>Description:</label>
+              <p class="description-text">{{ selectedIssue.description || 'No description provided.' }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
 <style scoped>
+
 .board-container {
   height: 100%;
   display: flex;

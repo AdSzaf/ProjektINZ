@@ -1,9 +1,12 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useProjectStore } from '../stores/projectStore'
 
 // Report data
 const selectedTimeframe = ref('current-sprint')
 const selectedReport = ref('burndown')
+const projectStore = useProjectStore()
+const currentProject = computed(() => projectStore.selectedProject)
 
 const timeframeOptions = [
   { value: 'current-sprint', label: 'Current Sprint' },
