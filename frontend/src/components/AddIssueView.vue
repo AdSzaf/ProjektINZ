@@ -11,9 +11,10 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['close', 'save'])
-
+const reporterId = ref(null)
 const projectStore = useProjectStore()
 const currentProject = computed(() => projectStore.selectedProject)
+const issueTypes = ref([])
 
 // Form data
 const formData = ref({
@@ -30,31 +31,31 @@ const formData = ref({
 })
 
 // Options data - these would typically come from API calls
-const issueTypes = ref([
-  { id: 1, name: 'Story', icon: '📖', color: '#0052CC' },
-  { id: 2, name: 'Task', icon: '✅', color: '#36B37E' },
-  { id: 3, name: 'Bug', icon: '🐛', color: '#FF5630' },
-  { id: 4, name: 'Epic', icon: '📚', color: '#6554C0' }
-])
+// const issueTypes = ref([
+//   { id: 1, name: 'Story', icon: '📖', color: '#0052CC' },
+//   { id: 2, name: 'Task', icon: '✅', color: '#36B37E' },
+//   { id: 3, name: 'Bug', icon: '🐛', color: '#FF5630' },
+//   { id: 4, name: 'Epic', icon: '📚', color: '#6554C0' }
+// ])
 
-const epics = ref([
-  { id: 1, name: 'User Management Epic', key: 'UME-1' },
-  { id: 2, name: 'Dashboard Epic', key: 'DE-1' },
-  { id: 3, name: 'API Integration Epic', key: 'AIE-1' }
-])
+// const epics = ref([
+//   { id: 1, name: 'User Management Epic', key: 'UME-1' },
+//   { id: 2, name: 'Dashboard Epic', key: 'DE-1' },
+//   { id: 3, name: 'API Integration Epic', key: 'AIE-1' }
+// ])
 
-const sprints = ref([
-  { id: 1, name: 'Sprint 1', status: 'active' },
-  { id: 2, name: 'Sprint 2', status: 'future' },
-  { id: 3, name: 'Sprint 3', status: 'future' }
-])
+// const sprints = ref([
+//   { id: 1, name: 'Sprint 1', status: 'active' },
+//   { id: 2, name: 'Sprint 2', status: 'future' },
+//   { id: 3, name: 'Sprint 3', status: 'future' }
+// ])
 
-const users = ref([
-  { id: 1, name: 'John Doe', email: 'john@example.com' },
-  { id: 2, name: 'Jane Smith', email: 'jane@example.com' },
-  { id: 3, name: 'Bob Johnson', email: 'bob@example.com' },
-  { id: 4, name: 'Alice Brown', email: 'alice@example.com' }
-])
+// const users = ref([
+//   { id: 1, name: 'John Doe', email: 'john@example.com' },
+//   { id: 2, name: 'Jane Smith', email: 'jane@example.com' },
+//   { id: 3, name: 'Bob Johnson', email: 'bob@example.com' },
+//   { id: 4, name: 'Alice Brown', email: 'alice@example.com' }
+// ])
 
 const priorities = ref([
   { value: 'lowest', label: 'Lowest', color: '#57D9A3' },
@@ -120,7 +121,7 @@ const saveIssue = async () => {
     const issueData = {
       ...formData.value,
       project: currentProject.value?.id,
-      reporter: 1 // TODO: Replace with current user ID from store or /api/me/
+      reporter: reporterId.value
     }
 
     await axios.post('/api/issues/', issueData)
@@ -162,12 +163,25 @@ const hoursToMinutes = (hoursString) => {
   return Math.round(hours * 60)
 }
 
-onMounted(() => {
-  // Load data from APIs when component mounts
-  // loadIssueTypes()
-  // loadEpics()
-  // loadSprints()
-  // loadUsers()
+onMounted(async () => {
+  const token = localStorage.getItem('token')
+  axios.defaults.headers.common['Authorization'] = `Token ${token}`
+
+  // Fetch current user
+  const meRes = await axios.get('/api/me/')
+  reporterId.value = meRes.data.id
+
+  // Fetch issue types for this project
+  if (currentProject.value?.id) {
+    const pid = currentProject.value.id
+    issueTypes.value = (await axios.get(`/api/projects/${pid}/issue-types/`)).data
+    epics.value = (await axios.get(`/api/projects/${pid}/epics/`)).data
+    sprints.value = (await axios.get(`/api/projects/${pid}/sprints/`)).data
+    users.value = (await axios.get(`/api/projects/${pid}/users/`)).data
+    if (issueTypes.value.length > 0) {
+    formData.value.issue_type = issueTypes.value[0].id
+  }
+  }
 })
 </script>
 

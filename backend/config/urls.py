@@ -16,13 +16,16 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-from myapp.views import (register_user
-, login_user
-, current_user
-, projects_view
-, list_users
-, create_issue
-,)
+from myapp.views import (register_user , 
+    login_user , 
+    current_user , 
+    projects_view , 
+    list_users , 
+    create_issue , 
+    project_issue_types,
+    project_epics,
+    project_sprints,
+    project_users,)
 
 
 
@@ -33,5 +36,9 @@ urlpatterns = [
     path('api/me/', current_user, name='current_user'),
     path('api/projects/', projects_view, name='projects'),
     path('api/users/', list_users, name='list_users'),
-     path('api/issues/', create_issue, name='create_issue'),
+    path('api/issues/', create_issue, name='create_issue'),
+    path('api/projects/<uuid:project_id>/issue-types/', project_issue_types, name='project_issue_types'),
+    path('api/projects/<uuid:project_id>/epics/', project_epics, name='project_epics'),
+    path('api/projects/<uuid:project_id>/sprints/', project_sprints, name='project_sprints'),
+    path('api/projects/<uuid:project_id>/users/', project_users, name='project_users'),
 ]

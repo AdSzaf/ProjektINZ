@@ -3,6 +3,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.authtoken.models import Token
 from rest_framework.permissions import IsAuthenticated
+from .models import Project, IssueType, Epic, Sprint, User
 from django.contrib.auth import get_user_model
 from .serializers import (RegisterSerializer
                           , LoginSerializer
@@ -88,3 +89,44 @@ def create_issue(request):
         issue = serializer.save()
         return Response({'id': str(issue.id), 'key': issue.key, 'title': issue.title}, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def project_issue_types(request, project_id):
+    issue_types = IssueType.objects.filter(project_id=project_id)
+    data = [
+        {'id': str(it.id), 'name': it.name, 'icon': it.icon, 'color': it.color}
+        for it in issue_types
+    ]
+    return Response(data)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def project_epics(request, project_id):
+    epics = Epic.objects.filter(project_id=project_id)
+    data = [
+        {'id': str(e.id), 'name': e.title, 'key': e.id}
+        for e in epics
+    ]
+    return Response(data)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def project_sprints(request, project_id):
+    sprints = Sprint.objects.filter(project_id=project_id)
+    data = [
+        {'id': str(s.id), 'name': s.name, 'status': s.status}
+        for s in sprints
+    ]
+    return Response(data)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def project_users(request, project_id):
+    project = Project.objects.get(id=project_id)
+    users = project.members.all()
+    data = [
+        {'id': str(u.id), 'name': f"{u.first_name} {u.last_name}", 'email': u.email}
+        for u in users
+    ]
+    return Response(data)
