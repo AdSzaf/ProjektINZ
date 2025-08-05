@@ -5,8 +5,8 @@ import axios from 'axios'
 import { useProjectStore } from '../stores/projectStore'
 
 const router = useRouter()
-const projects = ref([])
 const projectStore = useProjectStore()
+const projects = computed(() => projectStore.projects)
 const selectedProject = computed(() => projectStore.selectedProject)
 
 // User and project data
@@ -99,7 +99,6 @@ const menuItems = ref([
 const selectProject = (project) => {
   projectStore.setProject(project)
   showProjectDropdown.value = false
-  localStorage.setItem('selectedProjectId', project.id)
 }
 const toggleDropdown = (dropdown) => {
   showUserDropdown.value = dropdown === 'user' ? !showUserDropdown.value : false
@@ -135,7 +134,7 @@ const closeDropdowns = () => {
 onMounted(() => {
   document.addEventListener('click', closeDropdowns)
   fetchCurrentUser()
-  fetchProjects()
+  projectStore.fetchProjects()
 })
 </script>
 
@@ -165,17 +164,8 @@ onMounted(() => {
             <div v-for="project in projects" :key="project.id" class="dropdown-item" @click="selectProject(project)">
                 <span class="project-key">{{ project.key }}</span>
                 <span class="project-name">{{ project.name }}</span>
-              </div>
-              <div v-if="projects.length === 0" style="padding:1rem;color:#888;">No projects found</div>
-            <div 
-              v-for="project in projects" 
-              :key="project.id"
-              class="dropdown-item"
-              @click="selectProject(project)"
-            >
-              <span class="project-key">{{ project.key }}</span>
-              <span class="project-name">{{ project.name }}</span>
             </div>
+            <div v-if="projects.length === 0" style="padding:1rem;color:#888;">No projects found</div>
           </div>
         </div>
 

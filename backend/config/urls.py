@@ -21,6 +21,7 @@ from myapp.views import (register_user
 , current_user
 , projects_view
 , list_users
+, create_issue
 ,)
 
 
@@ -32,4 +33,5 @@ urlpatterns = [
     path('api/me/', current_user, name='current_user'),
     path('api/projects/', projects_view, name='projects'),
     path('api/users/', list_users, name='list_users'),
+     path('api/issues/', create_issue, name='create_issue'),
 ]

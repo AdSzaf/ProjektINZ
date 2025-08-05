@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useProjectStore } from '../stores/projectStore'
+import AddIssueView from './AddIssueView.vue'
 
 // Data
 const showFilters = ref(false)
@@ -10,6 +11,7 @@ const selectedIssues = ref([])
 const bulkAction = ref('')
 const projectStore = useProjectStore()
 const currentProject = computed(() => projectStore.selectedProject)
+const showAddIssueModal = ref(false)
 
 // Pagination
 const currentPage = ref(1)
@@ -347,6 +349,12 @@ const getLabelColor = (label) => {
   }
   return colors[label] || '#95a5a6'
 }
+
+const onIssueCreated = (issueData) => {
+  // Optionally refresh issues or show a toast
+  showAddIssueModal.value = false
+}
+
 </script>
 
 <template>
@@ -366,7 +374,7 @@ const getLabelColor = (label) => {
         <button class="action-btn" @click="exportIssues">
           📤 Export
         </button>
-        <button class="action-btn primary" @click="showCreateModal = true">
+        <button class="action-btn primary" @click="showAddIssueModal = true">
           + Create Issue
         </button>
       </div>
@@ -738,6 +746,11 @@ const getLabelColor = (label) => {
       </div>
     </div>
   </div>
+  <AddIssueView
+  :showModal="showAddIssueModal"
+  @close="showAddIssueModal = false"
+  @save="onIssueCreated"
+/>
 </template>
 
 <style scoped>

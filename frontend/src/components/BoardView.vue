@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useProjectStore } from '../stores/projectStore'
+import AddIssueView from './AddIssueView.vue'
 
 // Props
 const selectedProject = computed(() => projectStore.selectedProject)
@@ -13,6 +14,7 @@ const draggingIssue = ref(null)
 const groupBy = ref('Status')
 const projectStore = useProjectStore()
 const currentProject = computed(() => projectStore.selectedProject)
+const showAddIssueModal = ref(false)
 
 const activeSprint = ref({
   id: 1,
@@ -204,6 +206,11 @@ const clearFilters = () => {
   }
 }
 
+const onIssueCreated = (issueData) => {
+  // Optionally refresh issues or show a toast
+  showAddIssueModal.value = false
+}
+
 // Initialize sprint issues count
 onMounted(() => {
   activeSprint.value.issues = issues.value
@@ -226,7 +233,7 @@ onMounted(() => {
         <button class="action-btn" @click="toggleGroupBy">
           👥 Group by: {{ groupBy }}
         </button>
-        <button class="action-btn primary" @click="showCreateIssue = true">
+        <button class="action-btn primary" @click="showAddIssueModal = true">
           + Create Issue
         </button>
       </div>
@@ -384,6 +391,11 @@ onMounted(() => {
       </div>
     </div>
   </div>
+  <AddIssueView
+  :showModal="showAddIssueModal"
+  @close="showAddIssueModal = false"
+  @save="onIssueCreated"
+/>
 </template>
 
 <style scoped>

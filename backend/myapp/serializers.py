@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.contrib.auth import authenticate
-from .models import Project
+from .models import Project, Issue
 import re
 
 User = get_user_model()
@@ -75,3 +75,12 @@ class ProjectGetSerializer(serializers.ModelSerializer):
     class Meta:
         model = Project
         fields = ['id', 'key', 'name', 'lead', 'organization', 'description', 'methodology']
+        
+class IssueCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Issue
+        fields = [
+            'title', 'description', 'project', 'issue_type', 'epic', 'sprint',
+            'reporter', 'assignee', 'priority', 'story_points',
+            'original_estimate', 'remaining_estimate'
+        ]

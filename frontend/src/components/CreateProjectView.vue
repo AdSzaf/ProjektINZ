@@ -164,7 +164,7 @@ const createProject = async () => {
     }
 
     const response = await axios.post('/api/projects/', payload)
-    // Optionally show a success message
+    await projectStore.fetchProjects()
     router.push('/dashboard')
   } catch (error) {
     console.error('Error creating project:', error)

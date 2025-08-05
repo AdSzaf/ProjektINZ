@@ -1,9 +1,11 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useProjectStore } from '../stores/projectStore'
+import AddIssueView from './AddIssueView.vue'
 
 const projectStore = useProjectStore()
 const currentProject = computed(() => projectStore.selectedProject)
+const showAddIssueModal = ref(false)
 
 // Kanban columns
 const columns = ref([
@@ -160,6 +162,12 @@ const getTypeIcon = (type) => {
     default: return '📄'
   }
 }
+
+const onIssueCreated = (issueData) => {
+  // Optionally refresh issues or show a toast
+  showAddIssueModal.value = false
+}
+
 </script>
 
 <template>
@@ -241,7 +249,7 @@ const getTypeIcon = (type) => {
           </div>
 
           <!-- Add Issue Button -->
-          <button class="add-issue-btn">
+          <button class="add-issue-btn" @click="showAddIssueModal = true">
             + Add Issue
           </button>
         </div>
@@ -305,6 +313,11 @@ const getTypeIcon = (type) => {
       </div>
     </div>
   </div>
+  <AddIssueView
+  :showModal="showAddIssueModal"
+  @close="showAddIssueModal = false"
+  @save="onIssueCreated"
+/>
 </template>
 
 <style scoped>

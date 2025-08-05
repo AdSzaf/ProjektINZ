@@ -2,9 +2,14 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.authtoken.models import Token
-from .serializers import RegisterSerializer, LoginSerializer, ProjectCreateSerializer, ProjectGetSerializer
 from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth import get_user_model
+from .serializers import (RegisterSerializer
+                          , LoginSerializer
+                          , ProjectCreateSerializer
+                          , ProjectGetSerializer
+                          , IssueCreateSerializer)
+
 
 @api_view(['POST'])
 def register_user(request):
@@ -70,3 +75,16 @@ def list_users(request):
         for u in users
     ]
     return Response(data)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_issue(request):
+    data = request.data.copy()
+    # Optionally, set reporter to request.user.id if not provided
+    if not data.get('reporter'):
+        data['reporter'] = str(request.user.id)
+    serializer = IssueCreateSerializer(data=data)
+    if serializer.is_valid():
+        issue = serializer.save()
+        return Response({'id': str(issue.id), 'key': issue.key, 'title': issue.title}, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

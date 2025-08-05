@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useProjectStore } from '../stores/projectStore'
+import AddIssueView from './AddIssueView.vue'
 
 // Data
 const bulkEditMode = ref(false)
@@ -11,6 +12,7 @@ const selectedAssignee = ref('')
 const searchQuery = ref('')
 const projectStore = useProjectStore()
 const currentProject = computed(() => projectStore.selectedProject)
+const showAddIssueModal = ref(false)
 
 const epics = ref([
   { id: 1, name: 'User Authentication', key: 'AUTH' },
@@ -208,6 +210,12 @@ const getPriorityIcon = (priority) => {
   }
   return icons[priority] || '🟡'
 }
+
+const onIssueCreated = (issueData) => {
+  // Optionally refresh issues or show a toast
+  showAddIssueModal.value = false
+}
+
 </script>
 
 
@@ -222,7 +230,7 @@ const getPriorityIcon = (priority) => {
         <button class="btn btn-secondary" @click="toggleBulkEdit">
           {{ bulkEditMode ? 'Cancel' : 'Bulk Edit' }}
         </button>
-        <button class="btn btn-primary" @click="createIssue">
+        <button class="btn btn-primary" @click="showAddIssueModal = true">
           + Create Issue
         </button>
       </div>
@@ -393,6 +401,11 @@ const getPriorityIcon = (priority) => {
       </div>
     </div>
   </div>
+  <AddIssueView
+  :showModal="showAddIssueModal"
+  @close="showAddIssueModal = false"
+  @save="onIssueCreated"
+/>
 </template>
 
 <style scoped>
