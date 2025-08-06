@@ -92,8 +92,8 @@ def create_issue(request):
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def project_issue_types(request, project_id):
-    issue_types = IssueType.objects.filter(project_id=project_id)
+def global_issue_types(request):
+    issue_types = IssueType.objects.all()
     data = [
         {'id': str(it.id), 'name': it.name, 'icon': it.icon, 'color': it.color}
         for it in issue_types

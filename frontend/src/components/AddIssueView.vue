@@ -171,16 +171,18 @@ onMounted(async () => {
   const meRes = await axios.get('/api/me/')
   reporterId.value = meRes.data.id
 
+  // Fetch global issue types
+  issueTypes.value = (await axios.get('/api/issue-types/')).data
+  if (issueTypes.value.length > 0) {
+    formData.value.issue_type = issueTypes.value[0].id
+  }
+  
   // Fetch issue types for this project
   if (currentProject.value?.id) {
     const pid = currentProject.value.id
-    issueTypes.value = (await axios.get(`/api/projects/${pid}/issue-types/`)).data
     epics.value = (await axios.get(`/api/projects/${pid}/epics/`)).data
     sprints.value = (await axios.get(`/api/projects/${pid}/sprints/`)).data
     users.value = (await axios.get(`/api/projects/${pid}/users/`)).data
-    if (issueTypes.value.length > 0) {
-    formData.value.issue_type = issueTypes.value[0].id
-  }
   }
 })
 </script>

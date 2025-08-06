@@ -145,19 +145,14 @@ class Sprint(models.Model):
         return f"{self.project.key} - {self.name}"
 
 class IssueType(models.Model):
-    """Issue types: Story, Bug, Task, etc."""
-    name = models.CharField(max_length=50)
+    """Global issue types: Story, Bug, Task, etc."""
+    name = models.CharField(max_length=50, unique=True)
     icon = models.CharField(max_length=50, blank=True)  # Icon class or emoji
     color = models.CharField(max_length=7, default='#0052CC')  # Hex color
-    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='issue_types')
-    
     created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        unique_together = ['name', 'project']
-
+#TODO MUSISZ USTALIC JAK SPRAWIC BY TYPY BYLY GLOBALNE I POBIERALNE. MASZ ROZMOWE Z SZATGPT I COPILOTEM O TYM
     def __str__(self):
-        return f"{self.project.key} - {self.name}"
+        return self.name
 
 class Issue(models.Model):
     """Main issue/ticket model (Stories, Tasks, Bugs, etc.)"""
