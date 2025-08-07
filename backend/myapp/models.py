@@ -145,12 +145,11 @@ class Sprint(models.Model):
         return f"{self.project.key} - {self.name}"
 
 class IssueType(models.Model):
-    """Global issue types: Story, Bug, Task, etc."""
     name = models.CharField(max_length=50, unique=True)
-    icon = models.CharField(max_length=50, blank=True)  # Icon class or emoji
-    color = models.CharField(max_length=7, default='#0052CC')  # Hex color
+    icon = models.CharField(max_length=50, blank=True)
+    color = models.CharField(max_length=7, default='#0052CC')
     created_at = models.DateTimeField(auto_now_add=True)
-#TODO MUSISZ USTALIC JAK SPRAWIC BY TYPY BYLY GLOBALNE I POBIERALNE. MASZ ROZMOWE Z SZATGPT I COPILOTEM O TYM
+
     def __str__(self):
         return self.name
 
