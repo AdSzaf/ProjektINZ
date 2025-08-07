@@ -80,7 +80,7 @@ class IssueCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Issue
         fields = [
-            'title', 'description', 'project', 'issue_type', 'epic', 'sprint',
+            'id', 'key', 'title', 'description', 'project', 'issue_type', 'epic', 'sprint',
             'reporter', 'assignee', 'priority', 'story_points',
-            'original_estimate', 'remaining_estimate'
+            'original_estimate', 'remaining_estimate', 'status'
         ]

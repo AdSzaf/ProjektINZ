@@ -25,7 +25,8 @@ from myapp.views import (register_user ,
     global_issue_types,
     project_epics,
     project_sprints,
-    project_users,)
+    project_users,
+    project_issues,)
 
 
 
@@ -37,8 +38,9 @@ urlpatterns = [
     path('api/projects/', projects_view, name='projects'),
     path('api/users/', list_users, name='list_users'),
     path('api/issues/', create_issue, name='create_issue'),
-   path('api/issue-types/', global_issue_types, name='global_issue_types'),
+    path('api/issue-types/', global_issue_types, name='global_issue_types'),
     path('api/projects/<uuid:project_id>/epics/', project_epics, name='project_epics'),
     path('api/projects/<uuid:project_id>/sprints/', project_sprints, name='project_sprints'),
     path('api/projects/<uuid:project_id>/users/', project_users, name='project_users'),
+    path('api/projects/<uuid:project_id>/issues/', project_issues, name='project_issues'),
 ]

@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.authtoken.models import Token
 from rest_framework.permissions import IsAuthenticated
-from .models import Project, IssueType, Epic, Sprint, User
+from .models import Project, IssueType, Epic, Sprint, User, Issue
 from django.contrib.auth import get_user_model
 from .serializers import (RegisterSerializer
                           , LoginSerializer
@@ -130,3 +130,10 @@ def project_users(request, project_id):
         for u in users
     ]
     return Response(data)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def project_issues(request, project_id):
+    issues = Issue.objects.filter(project_id=project_id)
+    serializer = IssueCreateSerializer(issues, many=True)
+    return Response(serializer.data)

@@ -1,11 +1,13 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useProjectStore } from '../stores/projectStore'
 import AddIssueView from './AddIssueView.vue'
+import axios from 'axios'
 
 const projectStore = useProjectStore()
 const currentProject = computed(() => projectStore.selectedProject)
 const showAddIssueModal = ref(false)
+const issues = ref([])
 
 // Kanban columns
 const columns = ref([
@@ -14,63 +16,17 @@ const columns = ref([
   { id: 'done', name: 'Done', color: '#28a745' }
 ])
 
-// Sample issues/tasks
-const issues = ref([
-  {
-    id: 'AP-101',
-    title: 'User Authentication System',
-    assignee: 'John Doe',
-    priority: 'High',
-    type: 'Story',
-    status: 'todo',
-    points: 8
-  },
-  {
-    id: 'AP-102',
-    title: 'Dashboard Layout Design',
-    assignee: 'Jane Smith',
-    priority: 'Medium',
-    type: 'Task',
-    status: 'todo',
-    points: 5
-  },
-  {
-    id: 'AP-103',
-    title: 'API Integration',
-    assignee: 'Bob Johnson',
-    priority: 'High',
-    type: 'Story',
-    status: 'inprogress',
-    points: 13
-  },
-  {
-    id: 'AP-104',
-    title: 'Unit Tests Setup',
-    assignee: 'Alice Brown',
-    priority: 'Medium',
-    type: 'Task',
-    status: 'inprogress',
-    points: 3
-  },
-  {
-    id: 'AP-105',
-    title: 'Login Page',
-    assignee: 'Charlie Wilson',
-    priority: 'Low',
-    type: 'Task',
-    status: 'done',
-    points: 2
-  },
-  {
-    id: 'AP-106',
-    title: 'Registration Form',
-    assignee: 'Diana Lee',
-    priority: 'Low',
-    type: 'Task',
-    status: 'done',
-    points: 3
+const fetchIssues = async () => {
+  if (!currentProject.value?.id) {
+    issues.value = []
+    return
   }
-])
+  const token = localStorage.getItem('token')
+  axios.defaults.headers.common['Authorization'] = `Token ${token}`
+  const res = await axios.get(`/api/projects/${currentProject.value.id}/issues/`)
+  issues.value = res.data
+  console.log('Fetched issues:', issues.value)
+}
 
 // UI state
 const showAddColumn = ref(false)
@@ -80,12 +36,24 @@ const showIssueModal = ref(false)
 const selectedIssue = ref(null)
 
 // Computed properties
-const getIssuesByStatus = (status) => {
-  return issues.value.filter(issue => issue.status === status)
+const statusMap = {
+  to_do: 'todo',
+  in_progress: 'inprogress',
+  done: 'done'
+}
+
+const getIssuesByStatus = (columnId) => {
+  return issues.value.filter(issue => statusMap[issue.status] === columnId)
 }
 
 const getTotalPoints = (status) => {
   return getIssuesByStatus(status).reduce((total, issue) => total + issue.points, 0)
+}
+
+const reverseStatusMap = {
+  todo: 'to_do',
+  inprogress: 'in_progress',
+  done: 'done'
 }
 
 // Methods
@@ -136,10 +104,11 @@ const onDragOver = (event) => {
   event.dataTransfer.dropEffect = 'move'
 }
 
-const onDrop = (event, targetStatus) => {
+const onDrop = (event, targetColumnId) => {
   event.preventDefault()
-  if (draggedIssue.value && draggedIssue.value.status !== targetStatus) {
-    draggedIssue.value.status = targetStatus
+  if (draggedIssue.value && statusMap[draggedIssue.value.status] !== targetColumnId) {
+    draggedIssue.value.status = reverseStatusMap[targetColumnId]
+    // Optionally: send update to backend here
   }
   draggedIssue.value = null
 }
@@ -168,6 +137,8 @@ const onIssueCreated = (issueData) => {
   showAddIssueModal.value = false
 }
 
+onMounted(fetchIssues)
+watch(currentProject, fetchIssues)
 </script>
 
 <template>
@@ -224,7 +195,7 @@ const onIssueCreated = (issueData) => {
             <!-- Issue Header -->
             <div class="issue-header">
               <span class="issue-id">{{ issue.id }}</span>
-              <span class="issue-type">{{ getTypeIcon(issue.type) }}</span>
+              <span class="issue-type">{{ getTypeIcon(issue.issue_type) }}</span>
             </div>
 
             <!-- Issue Title -->
@@ -243,7 +214,7 @@ const onIssueCreated = (issueData) => {
               </div>
               
               <div class="assignee-avatar" :title="issue.assignee">
-                {{ issue.assignee.split(' ').map(n => n[0]).join('') }}
+                {{ issue.assignee ? issue.assignee.split(' ').map(n => n[0]).join('') : '' }}
               </div>
             </div>
           </div>
