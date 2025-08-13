@@ -104,13 +104,26 @@ const onDragOver = (event) => {
   event.dataTransfer.dropEffect = 'move'
 }
 
-const onDrop = (event, targetColumnId) => {
+const onDrop = async (event, targetColumnId) => {
   event.preventDefault()
   if (draggedIssue.value && statusMap[draggedIssue.value.status] !== targetColumnId) {
-    draggedIssue.value.status = reverseStatusMap[targetColumnId]
-    // Optionally: send update to backend here
+    const newStatus = reverseStatusMap[targetColumnId]
+    const issueId = draggedIssue.value.id
+    // Optimistically update UI
+    draggedIssue.value.status = newStatus
+    // Send PATCH to backend
+    try {
+      const token = localStorage.getItem('token')
+      await axios.patch(`/api/issues/${issueId}/status/`, { status: newStatus }, {
+        headers: { Authorization: `Token ${token}` }
+      })
+    } catch (e) {
+      // Optionally: revert UI change or show error
+      console.error('Failed to update issue status:', e)
+    }
   }
   draggedIssue.value = null
+  fetchIssues() // Refresh issues after drop
 }
 
 const getPriorityColor = (priority) => {
@@ -194,7 +207,7 @@ watch(currentProject, fetchIssues)
           >
             <!-- Issue Header -->
             <div class="issue-header">
-              <span class="issue-id">{{ issue.id }}</span>
+              <span class="issue-id">{{ issue.key }}</span>
               <span class="issue-type">{{ getTypeIcon(issue.issue_type) }}</span>
             </div>
 
@@ -250,7 +263,7 @@ watch(currentProject, fetchIssues)
       <div class="issue-modal" @click.stop>
         <div class="issue-modal-header">
           <div>
-            <h2>{{ selectedIssue?.id }}: {{ selectedIssue?.title }}</h2>
+            <h2>{{ selectedIssue?.key }}: {{ selectedIssue?.title }}</h2>
             <div class="issue-modal-meta">
               <span class="issue-type-full">{{ getTypeIcon(selectedIssue?.type) }} {{ selectedIssue?.type }}</span>
               <span 

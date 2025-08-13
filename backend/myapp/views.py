@@ -137,3 +137,17 @@ def project_issues(request, project_id):
     issues = Issue.objects.filter(project_id=project_id)
     serializer = IssueCreateSerializer(issues, many=True)
     return Response(serializer.data)
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def update_issue_status(request, issue_id):
+    try:
+        issue = Issue.objects.get(id=issue_id)
+    except Issue.DoesNotExist:
+        return Response({'detail': 'Issue not found.'}, status=status.HTTP_404_NOT_FOUND)
+    status_value = request.data.get('status')
+    if status_value not in ['to_do', 'in_progress', 'done']:
+        return Response({'detail': 'Invalid status.'}, status=status.HTTP_400_BAD_REQUEST)
+    issue.status = status_value
+    issue.save()
+    return Response({'id': str(issue.id), 'status': issue.status})

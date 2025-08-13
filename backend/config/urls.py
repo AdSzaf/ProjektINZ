@@ -26,7 +26,8 @@ from myapp.views import (register_user ,
     project_epics,
     project_sprints,
     project_users,
-    project_issues,)
+    project_issues,
+    update_issue_status,)
 
 
 
@@ -43,4 +44,5 @@ urlpatterns = [
     path('api/projects/<uuid:project_id>/sprints/', project_sprints, name='project_sprints'),
     path('api/projects/<uuid:project_id>/users/', project_users, name='project_users'),
     path('api/projects/<uuid:project_id>/issues/', project_issues, name='project_issues'),
+    path('api/issues/<uuid:issue_id>/status/', update_issue_status, name='update_issue_status'),
 ]
