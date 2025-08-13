@@ -8,13 +8,7 @@ const projectStore = useProjectStore()
 const currentProject = computed(() => projectStore.selectedProject)
 const showAddIssueModal = ref(false)
 const issues = ref([])
-
-// Kanban columns
-const columns = ref([
-  { id: 'todo', name: 'To Do', color: '#6c757d' },
-  { id: 'inprogress', name: 'In Progress', color: '#ffc107' },
-  { id: 'done', name: 'Done', color: '#28a745' }
-])
+const columns = ref([])
 
 const fetchIssues = async () => {
   if (!currentProject.value?.id) {
@@ -42,8 +36,8 @@ const statusMap = {
   done: 'done'
 }
 
-const getIssuesByStatus = (columnId) => {
-  return issues.value.filter(issue => statusMap[issue.status] === columnId)
+const getIssuesByStatus = (category) => {
+  return issues.value.filter(issue => issue.status === category)
 }
 
 const getTotalPoints = (status) => {
@@ -57,30 +51,39 @@ const reverseStatusMap = {
 }
 
 // Methods
-const addColumn = () => {
+const addColumn = async () => {
   if (newColumnName.value.trim()) {
-    const newColumn = {
-      id: newColumnName.value.toLowerCase().replace(/\s+/g, '-'),
-      name: newColumnName.value.trim(),
-      color: '#6f42c1'
-    }
-    columns.value.push(newColumn)
+    const token = localStorage.getItem('token')
+    const res = await axios.post(
+      `/api/projects/${currentProject.value.id}/workflow-statuses/add/`,
+      { name: newColumnName.value, color: '#6f42c1' },
+      { headers: { Authorization: `Token ${token}` } }
+    )
+    columns.value.push(res.data)
     newColumnName.value = ''
     showAddColumn.value = false
   }
 }
 
-const removeColumn = (columnId) => {
+const fetchColumns = async () => {
+  if (!currentProject.value?.id) {
+    columns.value = []
+    return
+  }
+  const token = localStorage.getItem('token')
+  axios.defaults.headers.common['Authorization'] = `Token ${token}`
+  const res = await axios.get(`/api/projects/${currentProject.value.id}/workflow-statuses/`)
+  columns.value = res.data
+}
+
+const removeColumn = (columnCategory) => {
   if (columns.value.length <= 1) return
-  
-  // Move all issues from this column to the first column
   issues.value.forEach(issue => {
-    if (issue.status === columnId) {
-      issue.status = columns.value[0].id
+    if (issue.status === columnCategory) {
+      issue.status = columns.value[0].category
     }
   })
-  
-  columns.value = columns.value.filter(col => col.id !== columnId)
+  columns.value = columns.value.filter(col => col.category !== columnCategory)
 }
 
 const openIssueDetails = (issue) => {
@@ -106,24 +109,24 @@ const onDragOver = (event) => {
 
 const onDrop = async (event, targetColumnId) => {
   event.preventDefault()
-  if (draggedIssue.value && statusMap[draggedIssue.value.status] !== targetColumnId) {
-    const newStatus = reverseStatusMap[targetColumnId]
+  if (draggedIssue.value && draggedIssue.value.status !== targetColumnId) {
+    const newStatus = targetColumnId
     const issueId = draggedIssue.value.id
     // Optimistically update UI
     draggedIssue.value.status = newStatus
     // Send PATCH to backend
     try {
       const token = localStorage.getItem('token')
+      console.log('Updating issue status:', issueId, 'to', newStatus)
       await axios.patch(`/api/issues/${issueId}/status/`, { status: newStatus }, {
         headers: { Authorization: `Token ${token}` }
       })
     } catch (e) {
-      // Optionally: revert UI change or show error
       console.error('Failed to update issue status:', e)
     }
   }
   draggedIssue.value = null
-  fetchIssues() // Refresh issues after drop
+  fetchIssues()
 }
 
 const getPriorityColor = (priority) => {
@@ -150,8 +153,14 @@ const onIssueCreated = (issueData) => {
   showAddIssueModal.value = false
 }
 
-onMounted(fetchIssues)
-watch(currentProject, fetchIssues)
+onMounted(() => {
+  fetchColumns()
+  fetchIssues()
+})
+watch(currentProject, () => {
+  fetchColumns()
+  fetchIssues()
+})
 </script>
 
 <template>
@@ -172,23 +181,23 @@ watch(currentProject, fetchIssues)
     <div class="kanban-board">
       <div 
         v-for="column in columns" 
-        :key="column.id"
+        :key="column.category"
         class="kanban-column"
         @dragover="onDragOver"
-        @drop="onDrop($event, column.id)"
+        @drop="onDrop($event, column.category)"
       >
         <!-- Column Header -->
         <div class="column-header" :style="{ borderTopColor: column.color }">
           <div class="column-info">
             <h3 class="column-title">{{ column.name }}</h3>
-            <span class="column-count">{{ getIssuesByStatus(column.id).length }}</span>
-            <span class="column-points">{{ getTotalPoints(column.id) }} pts</span>
+            <span class="column-count">{{ getIssuesByStatus(column.category).length }}</span>
+            <span class="column-points">{{ getTotalPoints(column.category) }} pts</span>
           </div>
           
           <button 
             v-if="columns.length > 1"
             class="remove-column-btn"
-            @click="removeColumn(column.id)"
+            @click="removeColumn(column.category)"
             title="Remove column"
           >
             ×
@@ -198,7 +207,7 @@ watch(currentProject, fetchIssues)
         <!-- Issues/Cards -->
         <div class="issues-container">
           <div
-            v-for="issue in getIssuesByStatus(column.id)"
+            v-for="issue in getIssuesByStatus(column.category)"
             :key="issue.id"
             class="issue-card"
             draggable="true"

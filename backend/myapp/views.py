@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.authtoken.models import Token
 from rest_framework.permissions import IsAuthenticated
-from .models import Project, IssueType, Epic, Sprint, User, Issue
+from .models import Project, IssueType, Epic, Sprint, User, Issue, WorkflowStatus
 from django.contrib.auth import get_user_model
 from .serializers import (RegisterSerializer
                           , LoginSerializer
@@ -146,8 +146,57 @@ def update_issue_status(request, issue_id):
     except Issue.DoesNotExist:
         return Response({'detail': 'Issue not found.'}, status=status.HTTP_404_NOT_FOUND)
     status_value = request.data.get('status')
-    if status_value not in ['to_do', 'in_progress', 'done']:
+    # Allow any status that exists in WorkflowStatus for this project
+    valid_statuses = WorkflowStatus.objects.filter(project=issue.project).values_list('category', flat=True)
+    print(valid_statuses)
+    if status_value not in valid_statuses:
         return Response({'detail': 'Invalid status.'}, status=status.HTTP_400_BAD_REQUEST)
     issue.status = status_value
     issue.save()
     return Response({'id': str(issue.id), 'status': issue.status})
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def project_workflow_statuses(request, project_id):
+    statuses = WorkflowStatus.objects.filter(project_id=project_id).order_by('order')
+    if not statuses.exists():
+        # Create default columns if none exist
+        WorkflowStatus.objects.bulk_create([
+            WorkflowStatus(name='To Do', project_id=project_id, category='to_do', color='#6c757d', order=0),
+            WorkflowStatus(name='In Progress', project_id=project_id, category='in_progress', color='#ffc107', order=1),
+            WorkflowStatus(name='Done', project_id=project_id, category='done', color='#28a745', order=2),
+        ])
+        statuses = WorkflowStatus.objects.filter(project_id=project_id).order_by('order')
+    data = [
+        {
+            'id': s.category,  # Use category as the column id for consistency
+            'name': s.name,
+            'category': s.category,
+            'color': s.color,
+            'order': s.order
+        }
+        for s in statuses
+    ]
+    return Response(data)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def add_workflow_status(request, project_id):
+    name = request.data.get('name')
+    color = request.data.get('color', '#6f42c1')
+    order = WorkflowStatus.objects.filter(project_id=project_id).count()
+    category = name.lower().replace(' ', '_')
+    status = WorkflowStatus.objects.create(
+        name=name,
+        project_id=project_id,
+        category=category,
+        color=color,
+        order=order
+    )
+    return Response({
+        'id': status.id,
+        'name': status.name,
+        'category': status.category,
+        'color': status.color,
+        'order': status.order
+    }, status=201)
