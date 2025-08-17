@@ -38,14 +38,14 @@ const projectData = ref({
   }
 })
 
-// Available team members (in real app, fetch from API)
-const availableMembers = ref([
-  { id: 1, name: 'Alice Johnson', email: 'alice@company.com', avatar: 'AJ', role: 'Developer' },
-  { id: 2, name: 'Bob Smith', email: 'bob@company.com', avatar: 'BS', role: 'Designer' },
-  { id: 3, name: 'Charlie Brown', email: 'charlie@company.com', avatar: 'CB', role: 'Product Manager' },
-  { id: 4, name: 'Diana Prince', email: 'diana@company.com', avatar: 'DP', role: 'QA Engineer' },
-  { id: 5, name: 'Eve Wilson', email: 'eve@company.com', avatar: 'EW', role: 'Developer' }
-])
+const availableMembers = computed(() =>
+  users.value.map(u => ({
+    ...u,
+    name: `${u.first_name} ${u.last_name}`,
+    avatar: `${(u.first_name?.charAt(0) || '')}${(u.last_name?.charAt(0) || '')}`.toUpperCase(),
+    role: u.role || 'Member', // fallback if role is missing
+  }))
+)
 
 const selectedMembers = ref([])
 const showMemberDropdown = ref(false)
@@ -160,6 +160,7 @@ const createProject = async () => {
       methodology: projectData.value.type, // 'scrum' or 'kanban'
       lead: projectData.value.lead,
       organization: projectData.value.organization,
+      members: selectedMembers.value.map(m => m.id),
       // You can add more fields as your backend supports them
     }
 
@@ -1066,8 +1067,8 @@ onBeforeUnmount(() => {
 .member-avatar {
   width: 32px;
   height: 32px;
-  background: #0066cc;
-  color: white;
+  background: #0066cc !important;
+  color: white !important;
   border-radius: 50%;
   display: flex;
   align-items: center;

@@ -53,6 +53,10 @@ def projects_view(request):
         if not data.get('organization'):
             data['organization'] = None
         serializer = ProjectCreateSerializer(data=data)
+        if 'members' in data and isinstance(data['members'], str):
+            import json
+            data['members'] = json.loads(data['members'])
+        serializer = ProjectCreateSerializer(data=data)
         if serializer.is_valid():
             project = serializer.save()
             from .models import ProjectMembership, User
@@ -125,6 +129,7 @@ def project_sprints(request, project_id):
 def project_users(request, project_id):
     project = Project.objects.get(id=project_id)
     users = project.members.all()
+    print(f"Project {project_id} members: {[str(u) for u in users]}")
     data = [
         {'id': str(u.id), 'name': f"{u.first_name} {u.last_name}", 'email': u.email}
         for u in users

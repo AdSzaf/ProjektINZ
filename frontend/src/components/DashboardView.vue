@@ -9,6 +9,7 @@ const currentProject = computed(() => projectStore.selectedProject)
 const showAddIssueModal = ref(false)
 const issues = ref([])
 const columns = ref([])
+const users = ref([])
 
 const fetchIssues = async () => {
   if (!currentProject.value?.id) {
@@ -151,15 +152,35 @@ const getTypeIcon = (type) => {
 const onIssueCreated = (issueData) => {
   // Optionally refresh issues or show a toast
   showAddIssueModal.value = false
+   fetchIssues()
+}
+
+const getAssigneeName = (assigneeId) => {
+  if (!assigneeId) return 'Unassigned'
+  const user = users.value.find(u => u.id === assigneeId)
+  return user ? user.name : 'Unassigned'
+}
+
+const fetchUsers = async () => {
+  if (!currentProject.value?.id) {
+    users.value = []
+    return
+  }
+  const token = localStorage.getItem('token')
+  axios.defaults.headers.common['Authorization'] = `Token ${token}`
+  const res = await axios.get(`/api/projects/${currentProject.value.id}/users/`)
+  users.value = res.data
 }
 
 onMounted(() => {
   fetchColumns()
   fetchIssues()
+  fetchUsers()
 })
 watch(currentProject, () => {
   fetchColumns()
   fetchIssues()
+  fetchUsers()
 })
 </script>
 
@@ -290,7 +311,7 @@ watch(currentProject, () => {
         <div class="issue-modal-body">
           <div class="issue-field">
             <label>Assignee:</label>
-            <span>{{ selectedIssue?.assignee }}</span>
+            <span>{{ getAssigneeName(selectedIssue?.assignee) }}</span>
           </div>
           
           <div class="issue-field">

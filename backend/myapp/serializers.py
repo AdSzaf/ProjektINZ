@@ -58,15 +58,30 @@ class LoginSerializer(serializers.Serializer):
         return data
 
 class ProjectCreateSerializer(serializers.ModelSerializer):
+    members = serializers.ListField(child=serializers.UUIDField(), required=False)
+
     class Meta:
         model = Project
         fields = [
-            'name', 'key', 'description', 'methodology', 'lead', 'organization'
+            'name', 'key', 'description', 'methodology', 'lead', 'organization', 'members'
         ]
         extra_kwargs = {
             'lead': {'required': True},
             'organization': {'required': False},
         }
+
+    def create(self, validated_data):
+        members = validated_data.pop('members', [])
+        project = super().create(validated_data)
+        # Add lead as member if not already
+        if project.lead and project.lead.id not in members:
+            members.append(project.lead.id)
+        # Add members to project
+        from .models import ProjectMembership, User
+        for user_id in members:
+            user = User.objects.get(id=user_id)
+            ProjectMembership.objects.get_or_create(user=user, project=project, defaults={'role': 'developer'})
+        return project
 
 class ProjectGetSerializer(serializers.ModelSerializer):
     lead = serializers.StringRelatedField()
