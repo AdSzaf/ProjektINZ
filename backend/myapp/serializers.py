@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.contrib.auth import authenticate
-from .models import Project, Issue
+from .models import Project, Issue, Epic
 import re
 
 User = get_user_model()
@@ -98,4 +98,11 @@ class IssueCreateSerializer(serializers.ModelSerializer):
             'id', 'key', 'title', 'description', 'project', 'issue_type', 'epic', 'sprint',
             'reporter', 'assignee', 'priority', 'story_points',
             'original_estimate', 'remaining_estimate', 'status'
+        ]
+
+class EpicCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Epic
+        fields = [
+            'id', 'title', 'description', 'project', 'assignee', 'status', 'priority'
         ]

@@ -9,7 +9,8 @@ from .serializers import (RegisterSerializer
                           , LoginSerializer
                           , ProjectCreateSerializer
                           , ProjectGetSerializer
-                          , IssueCreateSerializer)
+                          , IssueCreateSerializer
+                          , EpicCreateSerializer)
 
 
 @api_view(['POST'])
@@ -105,15 +106,21 @@ def global_issue_types(request):
     print("ISSUE TYPES SENT TO FRONTEND:", data)  # <-- Add this log
     return Response(data)
 
-@api_view(['GET'])
+@api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def project_epics(request, project_id):
-    epics = Epic.objects.filter(project_id=project_id)
-    data = [
-        {'id': str(e.id), 'name': e.title, 'key': e.id}
-        for e in epics
-    ]
-    return Response(data)
+    if request.method == 'GET':
+        epics = Epic.objects.filter(project_id=project_id)
+        serializer = EpicCreateSerializer(epics, many=True)
+        return Response(serializer.data)
+    elif request.method == 'POST':
+        data = request.data.copy()
+        data['project'] = project_id
+        serializer = EpicCreateSerializer(data=data)
+        if serializer.is_valid():
+            epic = serializer.save()
+            return Response(EpicCreateSerializer(epic).data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])

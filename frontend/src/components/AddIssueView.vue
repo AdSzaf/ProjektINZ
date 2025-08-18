@@ -231,9 +231,9 @@ onMounted(async () => {
             <div class="form-group">
               <label class="form-label">Epic</label>
               <select v-model="formData.epic" class="form-select">
-                <option value="">Select an epic</option>
+                <option value="">Unassigned</option>
                 <option v-for="epic in epics" :key="epic.id" :value="epic.id">
-                  {{ epic.key }}: {{ epic.name }}
+                  {{ epic.title }}
                 </option>
               </select>
             </div>
