@@ -22,15 +22,18 @@ export const useProjectStore = defineStore('project', {
         }
       }
       this.projects = unique
-      // Set selected project if not set
-      if (!this.selectedProject && this.projects.length > 0) {
-        this.setProject(this.projects[0])
-      }
       // Restore last selected project if available
       const lastId = localStorage.getItem('selectedProjectId')
       if (lastId) {
         const found = this.projects.find(p => p.id === lastId)
-        if (found) this.setProject(found)
+        if (found) {
+          this.setProject(found)
+          return
+        }
+      }
+      // If no lastId or not found, set first project
+      if (!this.selectedProject && this.projects.length > 0) {
+        this.setProject(this.projects[0])
       }
     },
     setProject(project) {

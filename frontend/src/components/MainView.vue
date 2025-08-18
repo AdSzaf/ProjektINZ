@@ -17,6 +17,9 @@ const currentUser = ref({
   role: ''
 })
 
+const epics = ref([])
+const sprints = ref([])
+
 const fetchCurrentUser = async () => {
   try {
     const token = localStorage.getItem('token')

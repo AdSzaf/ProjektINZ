@@ -102,6 +102,7 @@ def global_issue_types(request):
         {'id': str(it.id), 'name': it.name, 'icon': it.icon, 'color': it.color}
         for it in issue_types
     ]
+    print("ISSUE TYPES SENT TO FRONTEND:", data)  # <-- Add this log
     return Response(data)
 
 @api_view(['GET'])
@@ -141,6 +142,7 @@ def project_users(request, project_id):
 def project_issues(request, project_id):
     issues = Issue.objects.filter(project_id=project_id)
     serializer = IssueCreateSerializer(issues, many=True)
+    print("ISSUES SENT TO FRONTEND:", serializer.data)
     return Response(serializer.data)
 
 @api_view(['PATCH'])
@@ -205,3 +207,13 @@ def add_workflow_status(request, project_id):
         'color': status.color,
         'order': status.order
     }, status=201)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_issue(request, issue_id):
+    try:
+        issue = Issue.objects.get(id=issue_id)
+    except Issue.DoesNotExist:
+        return Response({'detail': 'Issue not found.'}, status=status.HTTP_404_NOT_FOUND)
+    serializer = IssueCreateSerializer(issue)
+    return Response(serializer.data)

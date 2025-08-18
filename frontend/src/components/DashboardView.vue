@@ -10,6 +10,9 @@ const showAddIssueModal = ref(false)
 const issues = ref([])
 const columns = ref([])
 const users = ref([])
+const epics = ref([])
+const sprints = ref([])
+const issueTypes = ref([])
 
 const fetchIssues = async () => {
   if (!currentProject.value?.id) {
@@ -42,13 +45,21 @@ const getIssuesByStatus = (category) => {
 }
 
 const getTotalPoints = (status) => {
-  return getIssuesByStatus(status).reduce((total, issue) => total + issue.points, 0)
+  return getIssuesByStatus(status).reduce((total, issue) => total + (issue.story_points ?? 0), 0)
 }
 
 const reverseStatusMap = {
   todo: 'to_do',
   inprogress: 'in_progress',
   done: 'done'
+}
+
+const fetchIssueTypes = async () => {
+  const token = localStorage.getItem('token')
+  axios.defaults.headers.common['Authorization'] = `Token ${token}`
+  const res = await axios.get('/api/issue-types/')
+  issueTypes.value = res.data
+  console.log('Fetched issue types:', issueTypes.value) 
 }
 
 // Methods
@@ -139,14 +150,9 @@ const getPriorityColor = (priority) => {
   }
 }
 
-const getTypeIcon = (type) => {
-  switch (type) {
-    case 'Story': return '📖'
-    case 'Task': return '✅'
-    case 'Bug': return '🐛'
-    case 'Epic': return '📚'
-    default: return '📄'
-  }
+const getTypeIconById = (typeId) => {
+  const type = issueTypes.value.find(t => t.id === String(typeId))
+  return type ? type.icon : '📄'
 }
 
 const onIssueCreated = (issueData) => {
@@ -176,11 +182,13 @@ onMounted(() => {
   fetchColumns()
   fetchIssues()
   fetchUsers()
+  fetchIssueTypes()
 })
 watch(currentProject, () => {
   fetchColumns()
   fetchIssues()
   fetchUsers()
+  fetchIssueTypes()
 })
 </script>
 
@@ -238,7 +246,7 @@ watch(currentProject, () => {
             <!-- Issue Header -->
             <div class="issue-header">
               <span class="issue-id">{{ issue.key }}</span>
-              <span class="issue-type">{{ getTypeIcon(issue.issue_type) }}</span>
+              <span class="issue-type">{{ getTypeIconById(issue.issue_type) }}</span>
             </div>
 
             <!-- Issue Title -->
@@ -253,7 +261,7 @@ watch(currentProject, () => {
                 >
                   {{ issue.priority }}
                 </span>
-                <span class="story-points">{{ issue.points }} pts</span>
+                <span class="story-points">{{ issue.story_points ?? 0 }} pts</span>
               </div>
               
               <div class="assignee-avatar" :title="issue.assignee">
@@ -295,14 +303,17 @@ watch(currentProject, () => {
           <div>
             <h2>{{ selectedIssue?.key }}: {{ selectedIssue?.title }}</h2>
             <div class="issue-modal-meta">
-              <span class="issue-type-full">{{ getTypeIcon(selectedIssue?.type) }} {{ selectedIssue?.type }}</span>
+              <span class="issue-type-full">
+                {{ getTypeIconById(selectedIssue?.issue_type) }} 
+                {{ issueTypes.find(t => t.id === String(selectedIssue?.issue_type))?.name || '' }}
+              </span>
               <span 
                 class="priority-badge" 
                 :style="{ backgroundColor: getPriorityColor(selectedIssue?.priority) }"
               >
                 {{ selectedIssue?.priority }}
               </span>
-              <span class="story-points-full">{{ selectedIssue?.points }} Story Points</span>
+              <span class="story-points-full">{{ selectedIssue?.story_points ?? 0 }} Story Points</span>
             </div>
           </div>
           <button class="close-btn" @click="closeIssueModal">×</button>
@@ -321,7 +332,7 @@ watch(currentProject, () => {
           
           <div class="issue-field">
             <label>Description:</label>
-            <p>This is a placeholder description for the issue. In a real application, this would contain the full issue description.</p>
+            <p>{{ selectedIssue?.description || 'No description provided.' }}</p>
           </div>
         </div>
       </div>
