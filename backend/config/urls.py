@@ -30,7 +30,9 @@ from myapp.views import (register_user ,
     update_issue_status,
     project_workflow_statuses,
     add_workflow_status,
-    get_issue,)
+    delete_workflow_status,
+    update_sprint,
+    update_issue,)
 
 
 
@@ -50,5 +52,7 @@ urlpatterns = [
     path('api/issues/<uuid:issue_id>/status/', update_issue_status, name='update_issue_status'),
     path('api/projects/<uuid:project_id>/workflow-statuses/', project_workflow_statuses, name='project_workflow_statuses'),
     path('api/projects/<uuid:project_id>/workflow-statuses/add/', add_workflow_status, name='add_workflow_status'),
-    path('api/issues/<uuid:issue_id>/', get_issue, name='get_issue'),
+    path('api/projects/<uuid:project_id>/workflow-statuses/<str:category>/', delete_workflow_status, name='delete_workflow_status'),
+    path('api/issues/<uuid:issue_id>/', update_issue, name='update_issue'),
+    path('api/sprints/<uuid:sprint_id>/', update_sprint, name='update_sprint'),
 ]

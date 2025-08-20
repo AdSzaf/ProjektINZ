@@ -13,6 +13,8 @@ const users = ref([])
 const epics = ref([])
 const sprints = ref([])
 const issueTypes = ref([])
+const showDeleteColumnModal = ref(false)
+const columnToDelete = ref(null)
 
 const fetchIssues = async () => {
   if (!currentProject.value?.id) {
@@ -24,6 +26,16 @@ const fetchIssues = async () => {
   const res = await axios.get(`/api/projects/${currentProject.value.id}/issues/`)
   issues.value = res.data
   console.log('Fetched issues:', issues.value)
+}
+
+const confirmDeleteColumn = (column) => {
+  columnToDelete.value = column
+  showDeleteColumnModal.value = true
+}
+
+const cancelDeleteColumn = () => {
+  showDeleteColumnModal.value = false
+  columnToDelete.value = null
 }
 
 // UI state
@@ -88,14 +100,19 @@ const fetchColumns = async () => {
   columns.value = res.data
 }
 
-const removeColumn = (columnCategory) => {
-  if (columns.value.length <= 1) return
-  issues.value.forEach(issue => {
-    if (issue.status === columnCategory) {
-      issue.status = columns.value[0].category
-    }
-  })
-  columns.value = columns.value.filter(col => col.category !== columnCategory)
+const deleteColumn = async () => {
+  if (!columnToDelete.value) return
+  const token = localStorage.getItem('token')
+  try {
+    await axios.delete(`/api/projects/${currentProject.value.id}/workflow-statuses/${columnToDelete.value.category}/`)
+    // Optionally, refresh columns and issues
+    fetchColumns()
+    fetchIssues()
+  } catch (e) {
+    console.error('Failed to delete column:', e)
+  }
+  showDeleteColumnModal.value = false
+  columnToDelete.value = null
 }
 
 const openIssueDetails = (issue) => {
@@ -226,7 +243,7 @@ watch(currentProject, () => {
           <button 
             v-if="columns.length > 1"
             class="remove-column-btn"
-            @click="removeColumn(column.category)"
+            @click="confirmDeleteColumn(column)"
             title="Remove column"
           >
             ×
@@ -334,6 +351,23 @@ watch(currentProject, () => {
             <label>Description:</label>
             <p>{{ selectedIssue?.description || 'No description provided.' }}</p>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Delete Column Confirmation Modal -->
+    <div v-if="showDeleteColumnModal" class="modal-overlay" @click="cancelDeleteColumn">
+      <div class="modal-content" @click.stop>
+        <h3>Delete Column</h3>
+        <p>
+          Are you sure you want to delete the column "<b>{{ columnToDelete?.name }}</b>"?<br>
+          <span style="color: #dc3545;">
+            All issues in this column will be deleted!
+          </span>
+        </p>
+        <div class="modal-actions">
+          <button class="btn-secondary" @click="cancelDeleteColumn">Cancel</button>
+          <button class="btn-primary" style="background:#dc3545;" @click="deleteColumn">Delete</button>
         </div>
       </div>
     </div>

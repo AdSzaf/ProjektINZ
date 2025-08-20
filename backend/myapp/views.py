@@ -10,7 +10,8 @@ from .serializers import (RegisterSerializer
                           , ProjectCreateSerializer
                           , ProjectGetSerializer
                           , IssueCreateSerializer
-                          , EpicCreateSerializer)
+                          , EpicCreateSerializer
+                          , SprintSerializer)
 
 
 @api_view(['POST'])
@@ -215,12 +216,63 @@ def add_workflow_status(request, project_id):
         'order': status.order
     }, status=201)
 
-@api_view(['GET'])
+@api_view(['GET', 'PATCH'])
 @permission_classes([IsAuthenticated])
-def get_issue(request, issue_id):
+def update_issue(request, issue_id):
     try:
         issue = Issue.objects.get(id=issue_id)
     except Issue.DoesNotExist:
         return Response({'detail': 'Issue not found.'}, status=status.HTTP_404_NOT_FOUND)
-    serializer = IssueCreateSerializer(issue)
-    return Response(serializer.data)
+    if request.method == 'GET':
+        serializer = IssueCreateSerializer(issue)
+        return Response(serializer.data)
+    elif request.method == 'PATCH':
+        serializer = IssueCreateSerializer(issue, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_workflow_status(request, project_id, category):
+    try:
+        status_obj = WorkflowStatus.objects.get(project_id=project_id, category=category)
+    except WorkflowStatus.DoesNotExist:
+        return Response({'detail': 'Column not found.'}, status=status.HTTP_404_NOT_FOUND)
+    # Delete all issues in this column/status
+    Issue.objects.filter(project_id=project_id, status=category).delete()
+    status_obj.delete()
+    return Response({'detail': 'Column and its issues deleted.'}, status=status.HTTP_204_NO_CONTENT)
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def project_sprints(request, project_id):
+    if request.method == 'GET':
+        status_filter = request.GET.get('status')
+        sprints = Sprint.objects.filter(project_id=project_id)
+        if status_filter:
+            sprints = sprints.filter(status=status_filter)
+        serializer = SprintSerializer(sprints, many=True)
+        return Response(serializer.data)
+    elif request.method == 'POST':
+        data = request.data.copy()
+        data['project'] = project_id
+        serializer = SprintSerializer(data=data)
+        if serializer.is_valid():
+            sprint = serializer.save()
+            return Response(SprintSerializer(sprint).data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def update_sprint(request, sprint_id):
+    try:
+        sprint = Sprint.objects.get(id=sprint_id)
+    except Sprint.DoesNotExist:
+        return Response({'detail': 'Sprint not found.'}, status=status.HTTP_404_NOT_FOUND)
+    serializer = SprintSerializer(sprint, data=request.data, partial=True)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

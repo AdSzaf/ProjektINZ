@@ -1,71 +1,46 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import AddEpicView from './AddEpicView.vue'
+import { useProjectStore } from '../stores/projectStore'
+import axios from 'axios'
 
+const projectStore = useProjectStore()
 const showAddEpicModal = ref(false)
+const currentProject = computed(() => projectStore.selectedProject)
+
+const epics = ref([])
+const issues = ref([])
+const issueTypes = ref([])
+const viewMode = ref('board')
+const expandedEpics = ref([])
 
 const handleEpicCreated = () => {
   showAddEpicModal.value = false
-  // TODO: fetchEpics() here to refresh the epics list from backend
+  fetchEpics()
 }
 
-// Mock data - replace with real API calls
-const epics = ref([
-  {
-    id: 1,
-    key: 'EP-1',
-    title: 'User Authentication System',
-    status: 'in-progress',
-    progress: 65,
-    issues: [
-      { id: 1, key: 'TSK-101', title: 'Login page design', type: 'task', status: 'Done' },
-      { id: 2, key: 'TSK-102', title: 'JWT implementation', type: 'task', status: 'In Progress' },
-      { id: 3, key: 'BUG-45', title: 'Password reset not working', type: 'bug', status: 'To Do' },
-      { id: 4, key: 'SUB-12', title: 'Email validation', type: 'subtask', status: 'Done' }
-    ]
-  },
-  {
-    id: 2,
-    key: 'EP-2',
-    title: 'Dashboard Analytics',
-    status: 'planning',
-    progress: 25,
-    issues: [
-      { id: 5, key: 'TSK-201', title: 'Chart component library', type: 'task', status: 'In Progress' },
-      { id: 6, key: 'TSK-202', title: 'Data aggregation API', type: 'task', status: 'To Do' },
-      { id: 7, key: 'SUB-20', title: 'Performance metrics', type: 'subtask', status: 'To Do' }
-    ]
-  },
-  {
-    id: 3,
-    key: 'EP-3',
-    title: 'Mobile Responsive Design',
-    status: 'completed',
-    progress: 100,
-    issues: [
-      { id: 8, key: 'TSK-301', title: 'Mobile navigation', type: 'task', status: 'Done' },
-      { id: 9, key: 'TSK-302', title: 'Touch interactions', type: 'task', status: 'Done' },
-      { id: 10, key: 'BUG-67', title: 'Sidebar not responsive', type: 'bug', status: 'Done' }
-    ]
-  },
-  {
-    id: 4,
-    key: 'EP-4',
-    title: 'API Documentation',
-    status: 'todo',
-    progress: 0,
-    issues: [
-      { id: 11, key: 'TSK-401', title: 'Swagger setup', type: 'task', status: 'To Do' },
-      { id: 12, key: 'TSK-402', title: 'Endpoint documentation', type: 'task', status: 'To Do' },
-      { id: 13, key: 'SUB-30', title: 'API examples', type: 'subtask', status: 'To Do' },
-      { id: 14, key: 'TSK-403', title: 'Authentication docs', type: 'task', status: 'To Do' },
-      { id: 15, key: 'SUB-31', title: 'Error handling guide', type: 'subtask', status: 'To Do' }
-    ]
-  }
-])
+const fetchEpics = async () => {
+  if (!currentProject.value?.id) return
+  const token = localStorage.getItem('token')
+  axios.defaults.headers.common['Authorization'] = `Token ${token}`
+  const res = await axios.get(`/api/projects/${currentProject.value.id}/epics/`)
+  epics.value = res.data
+}
 
-const viewMode = ref('board')
-const expandedEpics = ref([])
+const fetchIssues = async () => {
+  if (!currentProject.value?.id) return
+  const token = localStorage.getItem('token')
+  axios.defaults.headers.common['Authorization'] = `Token ${token}`
+  const res = await axios.get(`/api/projects/${currentProject.value.id}/issues/`)
+  issues.value = res.data
+}
+
+const fetchIssueTypes = async () => {
+  const token = localStorage.getItem('token')
+  axios.defaults.headers.common['Authorization'] = `Token ${token}`
+  const res = await axios.get('/api/issue-types/')
+  issueTypes.value = res.data
+}
 
 const toggleView = () => {
   viewMode.value = viewMode.value === 'board' ? 'list' : 'board'
@@ -84,14 +59,9 @@ const toggleIssues = (epicId) => {
   }
 }
 
-const getIssueTypeIcon = (type) => {
-  const icons = {
-    task: '📝',
-    bug: '🐛',
-    subtask: '🔸',
-    story: '📖'
-  }
-  return icons[type] || '📝'
+const getIssueTypeIcon = (typeId) => {
+  const type = issueTypes.value.find(t => t.id === String(typeId))
+  return type ? type.icon : '📝'
 }
 
 const getIssueTypeCounts = (issues) => {
@@ -100,6 +70,28 @@ const getIssueTypeCounts = (issues) => {
     return counts
   }, {})
 }
+
+const getIssuesForEpic = (epicId) => {
+  return issues.value.filter(issue => issue.epic === epicId)
+}
+
+const getEpicProgress = (epicId) => {
+  const epicIssues = getIssuesForEpic(epicId)
+  if (!epicIssues.length) return 0
+  const doneCount = epicIssues.filter(i => i.status === 'done' || i.status === 'Done').length
+  return Math.round((doneCount / epicIssues.length) * 100)
+}
+
+onMounted(() => {
+  fetchEpics()
+  fetchIssues()
+  fetchIssueTypes()
+})
+watch(currentProject, () => {
+  fetchEpics()
+  fetchIssues()
+  fetchIssueTypes()
+})
 </script>
 
 <template>
@@ -129,7 +121,7 @@ const getIssueTypeCounts = (issues) => {
         <!-- Epic Header -->
         <div class="epic-header">
           <div class="epic-title-row">
-            <span class="epic-key">{{ epic.key }}</span>
+            <span class="epic-key">{{ epic.key || epic.id.slice(0, 8) }}</span>
             <h3 class="epic-title">{{ epic.title }}</h3>
           </div>
           <div class="epic-meta">
@@ -140,10 +132,10 @@ const getIssueTypeCounts = (issues) => {
               <div class="progress-bar">
                 <div 
                   class="progress-fill" 
-                  :style="{ width: `${epic.progress}%` }"
+                  :style="{ width: `${getEpicProgress(epic.id)}%` }"
                 ></div>
               </div>
-              <span class="progress-text">{{ epic.progress }}%</span>
+              <span class="progress-text">{{ getEpicProgress(epic.id) }}%</span>
             </div>
           </div>
         </div>
@@ -151,29 +143,29 @@ const getIssueTypeCounts = (issues) => {
         <!-- Epic Issues -->
         <div class="epic-issues">
           <div class="issues-header">
-            <span class="issues-count">{{ epic.issues.length }} issues</span>
+            <span class="issues-count">{{ getIssuesForEpic(epic.id).length }} issues</span>
             <button class="btn-link" @click="toggleIssues(epic.id)">
               {{ expandedEpics.includes(epic.id) ? 'Collapse' : 'View All' }}
             </button>
           </div>
           
           <div 
-            v-if="expandedEpics.includes(epic.id) || epic.issues.length <= 3"
+            v-if="expandedEpics.includes(epic.id) || getIssuesForEpic(epic.id).length <= 3"
             class="issues-list"
           >
             <div 
-              v-for="issue in (expandedEpics.includes(epic.id) ? epic.issues : epic.issues.slice(0, 3))" 
+              v-for="issue in (expandedEpics.includes(epic.id) ? getIssuesForEpic(epic.id) : getIssuesForEpic(epic.id).slice(0, 3))" 
               :key="issue.id"
               class="issue-item"
-              :class="`issue-${issue.type}`"
+              :class="`issue-${issue.issue_type}`"
             >
               <div class="issue-info">
                 <span class="issue-key">{{ issue.key }}</span>
                 <span class="issue-title">{{ issue.title }}</span>
               </div>
               <div class="issue-meta">
-                <span class="issue-type" :class="`type-${issue.type}`">
-                  {{ getIssueTypeIcon(issue.type) }}
+                <span class="issue-type" :class="`type-${issue.issue_type}`">
+                  {{ getIssueTypeIcon(issue.issue_type) }}
                 </span>
                 <span class="issue-status" :class="`status-${issue.status.toLowerCase()}`">
                   {{ issue.status }}
@@ -184,7 +176,7 @@ const getIssueTypeCounts = (issues) => {
 
           <div v-else class="issues-summary">
             <div class="issue-type-counts">
-              <span v-for="(count, type) in getIssueTypeCounts(epic.issues)" 
+              <span v-for="(count, type) in getIssueTypeCounts(getIssuesForEpic(epic.id))" 
                     :key="type" 
                     class="type-count"
                     :class="`type-${type}`">

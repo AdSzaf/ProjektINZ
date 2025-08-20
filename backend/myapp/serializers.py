@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.contrib.auth import authenticate
-from .models import Project, Issue, Epic
+from .models import Project, Issue, Epic, Sprint
 import re
 
 User = get_user_model()
@@ -105,4 +105,11 @@ class EpicCreateSerializer(serializers.ModelSerializer):
         model = Epic
         fields = [
             'id', 'title', 'description', 'project', 'assignee', 'status', 'priority'
+        ]
+
+class SprintSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Sprint
+        fields = [
+            'id', 'name', 'goal', 'start_date', 'end_date', 'status', 'project'
         ]

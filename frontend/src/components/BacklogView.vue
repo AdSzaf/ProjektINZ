@@ -1,7 +1,9 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useProjectStore } from '../stores/projectStore'
 import AddIssueView from './AddIssueView.vue'
+import CreateSprintView from './CreateSprintView.vue'
+import axios from 'axios'
 
 // Data
 const bulkEditMode = ref(false)
@@ -13,6 +15,17 @@ const searchQuery = ref('')
 const projectStore = useProjectStore()
 const currentProject = computed(() => projectStore.selectedProject)
 const showAddIssueModal = ref(false)
+const showCreateSprintModal = ref(false)
+const sprints = ref([])
+const backlogIssues = ref([])
+const isDragOver = ref(false)
+
+// New drag state management
+const dragState = ref({
+  isDragging: false,
+  draggedIssue: null,
+  dragOverTarget: null
+})
 
 const epics = ref([
   { id: 1, name: 'User Authentication', key: 'AUTH' },
@@ -50,69 +63,6 @@ const futureSprints = ref([
   }
 ])
 
-const backlogIssues = ref([
-  {
-    id: 1,
-    key: 'AP-147',
-    title: 'Create user profile management',
-    description: 'Allow users to edit their profile information including avatar, personal details, and preferences.',
-    type: 'story',
-    priority: 'high',
-    assignee: { name: 'Alice Johnson', initials: 'AJ' },
-    storyPoints: 5,
-    epic: { name: 'User Authentication', key: 'AUTH' },
-    status: 'To Do'
-  },
-  {
-    id: 2,
-    key: 'AP-148',
-    title: 'Add dark mode toggle',
-    description: 'Implement system-wide dark mode with user preference persistence.',
-    type: 'story',
-    priority: 'medium',
-    assignee: { name: 'Bob Smith', initials: 'BS' },
-    storyPoints: 3,
-    epic: { name: 'Dashboard Redesign', key: 'DASH' },
-    status: 'To Do'
-  },
-  {
-    id: 3,
-    key: 'AP-149',
-    title: 'Fix mobile responsiveness issues',
-    description: 'Address layout issues on mobile devices for better user experience.',
-    type: 'bug',
-    priority: 'high',
-    assignee: { name: 'Charlie Brown', initials: 'CB' },
-    storyPoints: 2,
-    epic: { name: 'Mobile Support', key: 'MOB' },
-    status: 'To Do'
-  },
-  {
-    id: 4,
-    key: 'AP-150',
-    title: 'Implement search functionality',
-    description: 'Add global search across issues, epics, and sprints with advanced filters.',
-    type: 'story',
-    priority: 'medium',
-    assignee: null,
-    storyPoints: 8,
-    epic: null,
-    status: 'To Do'
-  },
-  {
-    id: 5,
-    key: 'AP-151',
-    title: 'Add export functionality',
-    description: 'Allow users to export project data in various formats (CSV, PDF, Excel).',
-    type: 'feature',
-    priority: 'low',
-    assignee: { name: 'Diana Prince', initials: 'DP' },
-    storyPoints: 5,
-    epic: null,
-    status: 'To Do'
-  }
-])
-
 // Computed properties
 const filteredBacklogIssues = computed(() => {
   let filtered = backlogIssues.value
@@ -140,6 +90,113 @@ const filteredBacklogIssues = computed(() => {
 const totalStoryPoints = computed(() => {
   return filteredBacklogIssues.value.reduce((total, issue) => total + (issue.storyPoints || 0), 0)
 })
+
+// Enhanced drag and drop methods
+const onDragStart = (event, issue) => {
+  dragState.value = {
+    isDragging: true,
+    draggedIssue: issue,
+    dragOverTarget: null
+  }
+  
+  // Set drag data
+  event.dataTransfer.setData('text/plain', JSON.stringify(issue))
+  event.dataTransfer.effectAllowed = 'move'
+  
+  // Add drag image styling
+  const dragImage = event.target.cloneNode(true)
+  dragImage.style.transform = 'rotate(5deg)'
+  dragImage.style.opacity = '0.8'
+  event.dataTransfer.setDragImage(dragImage, 0, 0)
+}
+
+const onDragEnd = () => {
+  // Reset drag state
+  dragState.value = {
+    isDragging: false,
+    draggedIssue: null,
+    dragOverTarget: null
+  }
+}
+
+const onDragEnter = (event, target) => {
+  event.preventDefault()
+  dragState.value.dragOverTarget = target
+}
+
+const onDragLeave = (event, target) => {
+  // Only reset if we're actually leaving the target area
+  const rect = event.currentTarget.getBoundingClientRect()
+  const x = event.clientX
+  const y = event.clientY
+  
+  if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+    if (dragState.value.dragOverTarget === target) {
+      dragState.value.dragOverTarget = null
+    }
+  }
+}
+
+const onDragOver = (event) => {
+  event.preventDefault()
+  event.dataTransfer.dropEffect = 'move'
+}
+
+const onDrop = async (event, target) => {
+  event.preventDefault()
+  
+  const issueData = JSON.parse(event.dataTransfer.getData('text/plain'))
+  
+  try {
+    const token = localStorage.getItem('token')
+    const sprintId = target === 'backlog' ? null : target
+    
+    await axios.patch(`/api/issues/${issueData.id}/`, { 
+      sprint: sprintId 
+    }, {
+      headers: { Authorization: `Token ${token}` }
+    })
+    
+    // Show success feedback
+    showDropSuccess(target, issueData)
+    
+    await fetchIssues()
+  } catch (e) {
+    console.error('Failed to move issue:', e)
+    // Show error feedback
+    showDropError()
+  }
+  
+  // Reset drag state
+  dragState.value = {
+    isDragging: false,
+    draggedIssue: null,
+    dragOverTarget: null
+  }
+}
+
+// Visual feedback methods
+const showDropSuccess = (target, issue) => {
+  // You can implement toast notifications or other feedback here
+  console.log(`Successfully moved ${issue.key} to ${target === 'backlog' ? 'backlog' : `sprint ${target}`}`)
+}
+
+const showDropError = () => {
+  console.error('Failed to move issue')
+}
+
+// Helper methods to check drag states
+const isSprintDragTarget = (sprintId) => {
+  return dragState.value.dragOverTarget === sprintId && dragState.value.isDragging
+}
+
+const isBacklogDragTarget = () => {
+  return dragState.value.dragOverTarget === 'backlog' && dragState.value.isDragging
+}
+
+const isIssueDragging = (issueId) => {
+  return dragState.value.isDragging && dragState.value.draggedIssue?.id === issueId
+}
 
 // Methods
 const toggleBulkEdit = () => {
@@ -171,22 +228,8 @@ const createIssue = () => {
   console.log('Create new issue')
 }
 
-const startSprint = (sprintId) => {
-  console.log('Start sprint:', sprintId)
-}
-
 const editSprint = (sprintId) => {
   console.log('Edit sprint:', sprintId)
-}
-
-const onDragStart = (event, issue) => {
-  event.dataTransfer.setData('text/plain', JSON.stringify(issue))
-}
-
-const onDrop = (event, target) => {
-  const issueData = JSON.parse(event.dataTransfer.getData('text/plain'))
-  console.log('Drop issue', issueData.id, 'to', target)
-  // Handle issue movement logic here
 }
 
 const getIssueTypeIcon = (type) => {
@@ -211,13 +254,51 @@ const getPriorityIcon = (priority) => {
   return icons[priority] || '🟡'
 }
 
+const fetchSprints = async () => {
+  if (!currentProject.value?.id) return
+  const token = localStorage.getItem('token')
+  axios.defaults.headers.common['Authorization'] = `Token ${token}`
+  const res = await axios.get(`/api/projects/${currentProject.value.id}/sprints/`)
+  sprints.value = res.data
+}
+
+const fetchIssues = async () => {
+  if (!currentProject.value?.id) return
+  const token = localStorage.getItem('token')
+  axios.defaults.headers.common['Authorization'] = `Token ${token}`
+  const res = await axios.get(`/api/projects/${currentProject.value.id}/issues/`)
+  backlogIssues.value = res.data
+}
+
+const startSprint = async (sprintId) => {
+  // PATCH sprint status to 'active'
+  const token = localStorage.getItem('token')
+  await axios.patch(`/api/sprints/${sprintId}/`, { status: 'active' }, {
+    headers: { Authorization: `Token ${token}` }
+  })
+  fetchSprints()
+}
+
+const getSprintIssues = (sprintId) => {
+  return backlogIssues.value.filter(issue => issue.sprint === sprintId)
+}
+
 const onIssueCreated = (issueData) => {
   // Optionally refresh issues or show a toast
   showAddIssueModal.value = false
+  fetchIssues()
 }
 
-</script>
+onMounted(() => {
+  fetchSprints()
+  fetchIssues()
+})
 
+watch(currentProject, () => {
+  fetchSprints()
+  fetchIssues()
+})
+</script>
 
 <template>
   <div class="backlog-view">
@@ -232,6 +313,9 @@ const onIssueCreated = (issueData) => {
         </button>
         <button class="btn btn-primary" @click="showAddIssueModal = true">
           + Create Issue
+        </button>
+        <button class="btn btn-primary" @click="showCreateSprintModal = true">
+          + Create Sprint
         </button>
       </div>
     </div>
@@ -280,36 +364,45 @@ const onIssueCreated = (issueData) => {
 
     <div class="backlog-content">
       <!-- Sprint Planning Section -->
-      <div class="sprint-planning" v-if="futureSprints.length > 0">
+      <div class="sprint-planning" v-if="sprints.length > 0">
         <h3>Sprint Planning</h3>
         <div 
-          v-for="sprint in futureSprints" 
+          v-for="sprint in sprints" 
           :key="sprint.id"
           class="sprint-container"
+          :class="{ 
+            'drag-over': isSprintDragTarget(sprint.id),
+            'drag-active': dragState.isDragging
+          }"
           @drop="onDrop($event, sprint.id)"
-          @dragover.prevent
-          @dragenter.prevent
+          @dragover="onDragOver"
+          @dragenter="onDragEnter($event, sprint.id)"
+          @dragleave="onDragLeave($event, sprint.id)"
         >
           <div class="sprint-header">
             <div class="sprint-info">
               <span class="sprint-name">{{ sprint.name }}</span>
               <span class="sprint-dates">{{ sprint.startDate }} - {{ sprint.endDate }}</span>
-              <span class="sprint-capacity">{{ sprint.issues.length }}/{{ sprint.capacity }} issues</span>
+              <span class="sprint-capacity">{{ getSprintIssues(sprint.id).length }} issues</span>
             </div>
             <div class="sprint-actions">
-              <button class="btn-icon" @click="startSprint(sprint.id)">▶️</button>
+              <button class="btn-icon" @click="startSprint(sprint.id)">▶️ Start Sprint</button>
               <button class="btn-icon" @click="editSprint(sprint.id)">✏️</button>
             </div>
           </div>
           
-          <div class="sprint-issues" :class="{ empty: sprint.issues.length === 0 }">
+          <div class="sprint-issues" :class="{ empty: getSprintIssues(sprint.id).length === 0 }">
             <div 
-              v-for="issue in sprint.issues" 
+              v-for="issue in getSprintIssues(sprint.id)" 
               :key="issue.id"
               class="issue-card"
-              :class="{ selected: selectedIssues.includes(issue.id) }"
+              :class="{ 
+                selected: selectedIssues.includes(issue.id),
+                dragging: isIssueDragging(issue.id)
+              }"
               draggable="true"
               @dragstart="onDragStart($event, issue)"
+              @dragend="onDragEnd"
               @click="selectIssue(issue.id)"
             >
               <div class="issue-header">
@@ -327,15 +420,43 @@ const onIssueCreated = (issueData) => {
                 </span>
               </div>
             </div>
-            <div v-if="sprint.issues.length === 0" class="empty-sprint">
-              Drop issues here to add to {{ sprint.name }}
+            
+            <div 
+              v-if="getSprintIssues(sprint.id).length === 0" 
+              class="empty-sprint"
+              :class="{ 'drag-target-active': isSprintDragTarget(sprint.id) }"
+            >
+              <div class="empty-sprint-content">
+                <div class="empty-icon">📋</div>
+                <div class="empty-text">
+                  {{ isSprintDragTarget(sprint.id) ? 'Drop issue here' : `Drop issues here to add to ${sprint.name}` }}
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Drop zone indicator -->
+          <div v-if="isSprintDragTarget(sprint.id)" class="drop-zone-indicator">
+            <div class="drop-zone-content">
+              <span class="drop-icon">⬇️</span>
+              <span>Drop to add to {{ sprint.name }}</span>
             </div>
           </div>
         </div>
       </div>
 
       <!-- Product Backlog -->
-      <div class="product-backlog">
+      <div 
+        class="product-backlog"
+        :class="{ 
+          'drag-over': isBacklogDragTarget(),
+          'drag-active': dragState.isDragging
+        }"
+        @drop="onDrop($event, 'backlog')"
+        @dragover="onDragOver"
+        @dragenter="onDragEnter($event, 'backlog')"
+        @dragleave="onDragLeave($event, 'backlog')"
+      >
         <div class="backlog-header">
           <h3>Product Backlog</h3>
           <div class="backlog-stats">
@@ -344,22 +465,19 @@ const onIssueCreated = (issueData) => {
           </div>
         </div>
 
-        <div 
-          class="backlog-issues"
-          @drop="onDrop($event, 'backlog')"
-          @dragover.prevent
-          @dragenter.prevent
-        >
+        <div class="backlog-issues">
           <div 
             v-for="issue in filteredBacklogIssues" 
             :key="issue.id"
             class="issue-card"
             :class="{ 
               selected: selectedIssues.includes(issue.id),
-              detailed: viewMode === 'detailed'
+              detailed: viewMode === 'detailed',
+              dragging: isIssueDragging(issue.id)
             }"
             draggable="true"
             @dragstart="onDragStart($event, issue)"
+            @dragend="onDragEnd"
             @click="selectIssue(issue.id)"
           >
             <input 
@@ -398,14 +516,28 @@ const onIssueCreated = (issueData) => {
             </div>
           </div>
         </div>
+        
+        <!-- Backlog drop zone indicator -->
+        <div v-if="isBacklogDragTarget()" class="drop-zone-indicator backlog-drop">
+          <div class="drop-zone-content">
+            <span class="drop-icon">📋</span>
+            <span>Drop to return to backlog</span>
+          </div>
+        </div>
       </div>
     </div>
   </div>
+  
   <AddIssueView
-  :showModal="showAddIssueModal"
-  @close="showAddIssueModal = false"
-  @save="onIssueCreated"
-/>
+    :showModal="showAddIssueModal"
+    @close="showAddIssueModal = false"
+    @save="onIssueCreated"
+  />
+  <CreateSprintView
+    :showModal="showCreateSprintModal"
+    @close="showCreateSprintModal = false"
+    @save="fetchSprints"
+  />
 </template>
 
 <style scoped>
@@ -482,6 +614,10 @@ const onIssueCreated = (issueData) => {
   background: #f8f9fa;
 }
 
+.sprint-issues.drag-over {
+  border-color: #0066cc;
+  background: #e6f2ff;
+}
 .backlog-filters {
   display: flex;
   justify-content: space-between;
@@ -774,6 +910,86 @@ const onIssueCreated = (issueData) => {
   
   .issue-meta {
     flex-wrap: wrap;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .backlog-view,
+  .product-backlog,
+  .sprint-container,
+  .backlog-filters,
+  .issue-card,
+  .sprint-header,
+  .empty-sprint {
+    background: #181a1b !important;
+    color: #f3f3f3 !important;
+    border-color: #333 !important;
+  }
+  .page-header,
+  .header-content h1,
+  .page-description,
+  .backlog-header h3,
+  .sprint-name,
+  .sprint-dates,
+  .sprint-capacity,
+  .issue-title,
+  .issue-description,
+  .issue-meta,
+  .issue-key,
+  .issue-type,
+  .issue-priority,
+  .issue-status,
+  .issue-epic,
+  .issue-assignee,
+  .issue-story-points,
+  .backlog-stats,
+  .filter-select,
+  .search-input,
+  .view-btn,
+  .btn,
+  .btn-primary,
+  .btn-secondary,
+  .btn-icon {
+    color: #f3f3f3 !important;
+    background: #232526 !important;
+    border-color: #444 !important;
+  }
+  .btn-primary {
+    background: #0056b3 !important;
+    color: #fff !important;
+  }
+  .btn-secondary {
+    background: #232526 !important;
+    color: #f3f3f3 !important;
+    border: 1px solid #444 !important;
+  }
+  .view-btn.active {
+    background: #0056b3 !important;
+    color: #fff !important;
+    border-color: #0056b3 !important;
+  }
+  .issue-card.selected {
+    background: #232526 !important;
+    border-color: #0056b3 !important;
+  }
+  .issue-assignee {
+    background: #0056b3 !important;
+    color: #fff !important;
+  }
+  .issue-story-points {
+    background: #28a745 !important;
+    color: #fff !important;
+  }
+  .issue-key {
+    background: #232526 !important;
+    color: #4ea1ff !important;
+  }
+  .issue-status {
+    background: #232526 !important;
+    color: #f3f3f3 !important;
+  }
+  .empty-sprint {
+    color: #aaa !important;
   }
 }
 </style>
