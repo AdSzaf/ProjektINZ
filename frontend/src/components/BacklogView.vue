@@ -19,6 +19,7 @@ const showCreateSprintModal = ref(false)
 const sprints = ref([])
 const backlogIssues = ref([])
 const isDragOver = ref(false)
+const issueTypes = ref([])
 
 // New drag state management
 const dragState = ref({
@@ -27,45 +28,9 @@ const dragState = ref({
   dragOverTarget: null
 })
 
-const epics = ref([
-  { id: 1, name: 'User Authentication', key: 'AUTH' },
-  { id: 2, name: 'Dashboard Redesign', key: 'DASH' },
-  { id: 3, name: 'Mobile Support', key: 'MOB' }
-])
-
-const teamMembers = ref([
-  { id: 1, name: 'Alice Johnson', initials: 'AJ' },
-  { id: 2, name: 'Bob Smith', initials: 'BS' },
-  { id: 3, name: 'Charlie Brown', initials: 'CB' },
-  { id: 4, name: 'Diana Prince', initials: 'DP' }
-])
-
-const futureSprints = ref([
-  {
-    id: 1,
-    name: 'Sprint 24',
-    startDate: '2025-08-01',
-    endDate: '2025-08-14',
-    capacity: 25,
-    issues: [
-      {
-        id: 101,
-        key: 'AP-101',
-        title: 'Implement OAuth login',
-        type: 'story',
-        priority: 'high',
-        assignee: { name: 'Alice Johnson', initials: 'AJ' },
-        storyPoints: 8,
-        epic: { name: 'User Authentication', key: 'AUTH' },
-        status: 'To Do'
-      }
-    ]
-  }
-])
-
 // Computed properties
 const filteredBacklogIssues = computed(() => {
-  let filtered = backlogIssues.value
+  let filtered = backlogIssues.value.filter(issue => !issue.sprint) 
 
   if (selectedEpic.value) {
     filtered = filtered.filter(issue => issue.epic?.id === parseInt(selectedEpic.value))
@@ -232,15 +197,9 @@ const editSprint = (sprintId) => {
   console.log('Edit sprint:', sprintId)
 }
 
-const getIssueTypeIcon = (type) => {
-  const icons = {
-    story: '📝',
-    bug: '🐛',
-    feature: '⭐',
-    task: '✅',
-    epic: '📚'
-  }
-  return icons[type] || '📝'
+const getIssueTypeIcon = (typeId) => {
+  const type = issueTypes.value.find(t => t.id === String(typeId) || t.id === typeId)
+  return type ? type.icon : '📝'
 }
 
 const getPriorityIcon = (priority) => {
@@ -268,6 +227,14 @@ const fetchIssues = async () => {
   axios.defaults.headers.common['Authorization'] = `Token ${token}`
   const res = await axios.get(`/api/projects/${currentProject.value.id}/issues/`)
   backlogIssues.value = res.data
+  console.log('Fetched issues:', backlogIssues.value)
+}
+
+const fetchIssueTypes = async () => {
+  const token = localStorage.getItem('token')
+  axios.defaults.headers.common['Authorization'] = `Token ${token}`
+  const res = await axios.get('/api/issue-types/')
+  issueTypes.value = res.data
 }
 
 const startSprint = async (sprintId) => {
@@ -292,11 +259,13 @@ const onIssueCreated = (issueData) => {
 onMounted(() => {
   fetchSprints()
   fetchIssues()
+  fetchIssueTypes()
 })
 
 watch(currentProject, () => {
   fetchSprints()
   fetchIssues()
+  fetchIssueTypes()
 })
 </script>
 
@@ -322,7 +291,7 @@ watch(currentProject, () => {
 
     <div class="backlog-filters">
       <div class="filter-group">
-        <select v-model="selectedEpic" class="filter-select">
+        <!-- <select v-model="selectedEpic" class="filter-select">
           <option value="">All Epics</option>
           <option v-for="epic in epics" :key="epic.id" :value="epic.id">
             {{ epic.name }}
@@ -334,7 +303,7 @@ watch(currentProject, () => {
           <option v-for="member in teamMembers" :key="member.id" :value="member.id">
             {{ member.name }}
           </option>
-        </select>
+        </select> -->
 
         <input 
           type="text" 
@@ -407,7 +376,7 @@ watch(currentProject, () => {
             >
               <div class="issue-header">
                 <span class="issue-key">{{ issue.key }}</span>
-                <span class="issue-type">{{ getIssueTypeIcon(issue.type) }}</span>
+                <span class="issue-type">{{ getIssueTypeIcon(issue.issue_type) }}</span>
                 <span class="issue-priority">{{ getPriorityIcon(issue.priority) }}</span>
               </div>
               <div class="issue-title">{{ issue.title }}</div>
@@ -491,7 +460,7 @@ watch(currentProject, () => {
             <div class="issue-content">
               <div class="issue-header">
                 <span class="issue-key">{{ issue.key }}</span>
-                <span class="issue-type">{{ getIssueTypeIcon(issue.type) }}</span>
+                <span class="issue-type">{{ getIssueTypeIcon(issue.issue_type) }}</span>
                 <span class="issue-priority">{{ getPriorityIcon(issue.priority) }}</span>
               </div>
               
@@ -861,15 +830,16 @@ watch(currentProject, () => {
 .issue-assignee {
   background: #0066cc;
   color: white;
-  padding: 0.2rem 0.4rem;
   border-radius: 50%;
-  font-size: 0.7rem;
+  font-size: 0.9rem;
   font-weight: bold;
-  min-width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
+  text-transform: uppercase;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.08);
 }
 
 .issue-story-points {
