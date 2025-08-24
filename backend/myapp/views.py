@@ -276,3 +276,19 @@ def update_sprint(request, sprint_id):
         serializer.save()
         return Response(serializer.data)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_user_short(request, user_id):
+    try:
+        user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        return Response({'detail': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
+    initials = (user.first_name[:1] if user.first_name else '') + (user.last_name[:1] if user.last_name else '')
+    return Response({
+        'id': str(user.id),
+        'first_name': user.first_name,
+        'last_name': user.last_name,
+        'initials': initials.upper(),
+        'name': f"{user.first_name} {user.last_name}".strip()
+    })

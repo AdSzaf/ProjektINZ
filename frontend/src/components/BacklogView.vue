@@ -20,6 +20,7 @@ const sprints = ref([])
 const backlogIssues = ref([])
 const isDragOver = ref(false)
 const issueTypes = ref([])
+const userCache = ref({})
 
 // New drag state management
 const dragState = ref({
@@ -256,9 +257,33 @@ const onIssueCreated = (issueData) => {
   fetchIssues()
 }
 
+const fetchUserShort = async (userId) => {
+  if (!userId) return null
+  if (userCache.value[userId]) return userCache.value[userId]
+  const token = localStorage.getItem('token')
+  axios.defaults.headers.common['Authorization'] = `Token ${token}`
+  const res = await axios.get(`/api/users/${userId}/short/`)
+  userCache.value[userId] = res.data
+  return res.data
+}
+
+const getAssigneeInitials = async (assigneeId) => {
+  const user = await fetchUserShort(assigneeId)
+  return user ? user.initials : ''
+}
+
 onMounted(() => {
   fetchSprints()
-  fetchIssues()
+  fetchIssues().then(() => {
+    filteredBacklogIssues.value.forEach(issue => {
+      if (issue.assignee) fetchUserShort(issue.assignee)
+    })
+    sprints.value.forEach(sprint => {
+      getSprintIssues(sprint.id).forEach(issue => {
+        if (issue.assignee) fetchUserShort(issue.assignee)
+      })
+    })
+  })
   fetchIssueTypes()
 })
 
@@ -291,20 +316,6 @@ watch(currentProject, () => {
 
     <div class="backlog-filters">
       <div class="filter-group">
-        <!-- <select v-model="selectedEpic" class="filter-select">
-          <option value="">All Epics</option>
-          <option v-for="epic in epics" :key="epic.id" :value="epic.id">
-            {{ epic.name }}
-          </option>
-        </select>
-        
-        <select v-model="selectedAssignee" class="filter-select">
-          <option value="">All Assignees</option>
-          <option v-for="member in teamMembers" :key="member.id" :value="member.id">
-            {{ member.name }}
-          </option>
-        </select> -->
-
         <input 
           type="text" 
           v-model="searchQuery"
@@ -382,7 +393,7 @@ watch(currentProject, () => {
               <div class="issue-title">{{ issue.title }}</div>
               <div class="issue-meta">
                 <span class="issue-assignee" v-if="issue.assignee">
-                  {{ issue.assignee.initials }}
+                  {{ userCache[issue.assignee]?.initials || '' }}
                 </span>
                 <span class="issue-story-points" v-if="issue.storyPoints">
                   {{ issue.storyPoints }}
@@ -475,7 +486,7 @@ watch(currentProject, () => {
                   📚 {{ issue.epic.name }}
                 </span>
                 <span class="issue-assignee" v-if="issue.assignee">
-                  {{ issue.assignee.initials }}
+                  {{ userCache[issue.assignee]?.initials || '' }}
                 </span>
                 <span class="issue-story-points" v-if="issue.storyPoints">
                   {{ issue.storyPoints }} SP

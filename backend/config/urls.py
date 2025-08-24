@@ -32,7 +32,8 @@ from myapp.views import (register_user ,
     add_workflow_status,
     delete_workflow_status,
     update_sprint,
-    update_issue,)
+    update_issue,
+    get_user_short)
 
 
 
@@ -55,4 +56,5 @@ urlpatterns = [
     path('api/projects/<uuid:project_id>/workflow-statuses/<str:category>/', delete_workflow_status, name='delete_workflow_status'),
     path('api/issues/<uuid:issue_id>/', update_issue, name='update_issue'),
     path('api/sprints/<uuid:sprint_id>/', update_sprint, name='update_sprint'),
+    path('api/users/<uuid:user_id>/short/', get_user_short, name='get_user_short'),
 ]

@@ -15,6 +15,7 @@ const sprints = ref([])
 const issueTypes = ref([])
 const showDeleteColumnModal = ref(false)
 const columnToDelete = ref(null)
+const userCache = ref({})
 
 const fetchIssues = async () => {
   if (!currentProject.value?.id) {
@@ -25,6 +26,9 @@ const fetchIssues = async () => {
   axios.defaults.headers.common['Authorization'] = `Token ${token}`
   const res = await axios.get(`/api/projects/${currentProject.value.id}/issues/`)
   issues.value = res.data
+  issues.value.forEach(issue => {
+    if (issue.assignee) fetchUserShort(issue.assignee)
+  })
   console.log('Fetched issues:', issues.value)
 }
 
@@ -195,6 +199,16 @@ const fetchUsers = async () => {
   users.value = res.data
 }
 
+const fetchUserShort = async (userId) => {
+  if (!userId) return null
+  if (userCache.value[userId]) return userCache.value[userId]
+  const token = localStorage.getItem('token')
+  axios.defaults.headers.common['Authorization'] = `Token ${token}`
+  const res = await axios.get(`/api/users/${userId}/short/`)
+  userCache.value[userId] = res.data
+  return res.data
+}
+
 onMounted(() => {
   fetchColumns()
   fetchIssues()
@@ -281,8 +295,8 @@ watch(currentProject, () => {
                 <span class="story-points">{{ issue.story_points ?? 0 }} pts</span>
               </div>
               
-              <div class="assignee-avatar" :title="issue.assignee">
-                {{ issue.assignee ? issue.assignee.split(' ').map(n => n[0]).join('') : '' }}
+              <div class="assignee-avatar" :title="getAssigneeName(issue.assignee)">
+                {{ userCache[issue.assignee]?.initials || '' }}
               </div>
             </div>
           </div>
