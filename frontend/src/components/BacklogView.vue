@@ -251,6 +251,13 @@ const getSprintIssues = (sprintId) => {
   return backlogIssues.value.filter(issue => issue.sprint === sprintId)
 }
 
+const getSprintProgress = (sprintId) => {
+  const sprintIssues = getSprintIssues(sprintId)
+  if (!sprintIssues.length) return 0
+  const doneCount = sprintIssues.filter(i => i.status === 'done' || i.status === 'Done').length
+  return Math.round((doneCount / sprintIssues.length) * 100)
+}
+
 const onIssueCreated = (issueData) => {
   // Optionally refresh issues or show a toast
   showAddIssueModal.value = false
@@ -270,6 +277,11 @@ const fetchUserShort = async (userId) => {
 const getAssigneeInitials = async (assigneeId) => {
   const user = await fetchUserShort(assigneeId)
   return user ? user.initials : ''
+}
+
+const formatDate = (dateStr) => {
+  if (!dateStr) return ''
+  return dateStr.split('T')[0]
 }
 
 onMounted(() => {
@@ -362,11 +374,37 @@ watch(currentProject, () => {
           <div class="sprint-header">
             <div class="sprint-info">
               <span class="sprint-name">{{ sprint.name }}</span>
-              <span class="sprint-dates">{{ sprint.startDate }} - {{ sprint.endDate }}</span>
+              <span class="sprint-dates">{{ formatDate(sprint.start_date) }} - {{ formatDate(sprint.end_date) }}</span>
               <span class="sprint-capacity">{{ getSprintIssues(sprint.id).length }} issues</span>
+              <span class="sprint-status" :class="`status-${sprint.status}`">
+                {{ sprint.status === 'active' ? 'Active' : sprint.status === 'completed' ? 'Completed' : 'Planned' }}
+              </span>
+              <span class="sprint-end-date" v-if="sprint.status === 'active'">
+                Ends: {{ formatDate(sprint.end_date) }}
+              </span>
+              <div class="sprint-progress-bar">
+                <div class="progress-bar">
+                  <div 
+                    class="progress-fill" 
+                    :style="{ width: `${getSprintProgress(sprint.id)}%` }"
+                  ></div>
+                </div>
+                <span class="progress-text">{{ getSprintProgress(sprint.id) }}%</span>
+              </div>
             </div>
             <div class="sprint-actions">
-              <button class="btn-icon" @click="startSprint(sprint.id)">▶️ Start Sprint</button>
+              <button 
+                class="btn-icon" 
+                v-if="sprint.status === 'future'" 
+                @click="startSprint(sprint.id)">
+                ▶️ Start Sprint
+              </button>
+              <button 
+                class="btn-icon" 
+                v-if="sprint.status === 'active'" 
+                disabled>
+                ✅ Sprint Active
+              </button>
               <button class="btn-icon" @click="editSprint(sprint.id)">✏️</button>
             </div>
           </div>
@@ -870,6 +908,132 @@ watch(currentProject, () => {
   font-size: 0.8rem;
 }
 
+.sprint-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start; /* Changed from center to flex-start */
+  padding: 1rem;
+  border-bottom: 1px solid #e1e5e9;
+  background: #f8f9fa;
+  border-radius: 8px 8px 0 0;
+}
+
+.sprint-info {
+  display: flex;
+  flex-direction: column; /* Changed to column layout */
+  gap: 0.5rem; /* Reduced gap for tighter spacing */
+  flex: 1; /* Take available space */
+  min-width: 0; /* Allow shrinking */
+}
+
+/* If you can't modify template, use this instead */
+.sprint-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Create a virtual row by styling direct children */
+.sprint-info > span:not(.progress-text) {
+  display: inline-block;
+  margin-right: 1rem;
+}
+
+/* Force progress bar to be on its own line */
+.sprint-info > .sprint-progress-bar {
+  display: block;
+  width: 100%;
+}
+
+.sprint-name {
+  font-weight: bold;
+  color: #333;
+  white-space: nowrap; /* Prevent text wrapping */
+}
+
+.sprint-dates {
+  color: #666;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.sprint-capacity {
+  color: #0066cc;
+  font-size: 0.9rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.sprint-status {
+  font-size: 0.85rem;
+  font-weight: bold;
+  padding: 0.2rem 0.5rem; /* Add padding for better visual separation */
+  border-radius: 3px; /* Add border radius */
+  white-space: nowrap;
+}
+
+.sprint-status.status-active {
+  color: #28a745;
+  background: #d4edda;
+}
+
+.sprint-status.status-completed {
+  color: #888;
+  background: #f8f9fa;
+}
+
+.sprint-status.status-planned {
+  color: #0066cc;
+  background: #e6f2ff;
+}
+
+.sprint-end-date {
+  font-size: 0.85rem;
+  color: #666;
+  white-space: nowrap;
+}
+
+/* Progress bar should be full width and separate */
+.sprint-progress-bar {
+  width: 100%; /* Full width */
+  margin-top: 0.5rem; /* Space from metadata row */
+}
+
+.progress-bar {
+  width: 100%;
+  height: 12px;
+  background: #e1e5e9;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 0.25rem;
+  border: 1px solid #ddd;
+  position: relative;
+}
+
+.progress-fill {
+  height: 100%;
+  background: #0066cc;
+  transition: width 0.3s;
+  min-width: 2px;
+  display: block;
+}
+
+
+.progress-text {
+  font-size: 0.8rem;
+  color: #0066cc;
+  font-weight: bold;
+}
+
+.sprint-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start; /* Align to top */
+  flex-shrink: 0; /* Don't shrink */
+}
+
 @media (max-width: 768px) {
   .page-header {
     flex-direction: column;
@@ -891,6 +1055,20 @@ watch(currentProject, () => {
   
   .issue-meta {
     flex-wrap: wrap;
+  }
+
+  .sprint-header {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .sprint-info > .sprint-meta-row {
+    gap: 0.5rem;
+  }
+  
+  .sprint-actions {
+    align-self: stretch;
+    justify-content: flex-end;
   }
 }
 
@@ -930,6 +1108,13 @@ watch(currentProject, () => {
   .btn,
   .btn-primary,
   .btn-secondary,
+  .sprint-progress-bar,
+  .progress-text,
+  .sprint-status,
+  .sprint-end-date,
+  .sprint-status.status-active,
+  .sprint-status.status-completed,
+  .sprint-status.status-planned,
   .btn-icon {
     color: #f3f3f3 !important;
     background: #232526 !important;
@@ -971,6 +1156,13 @@ watch(currentProject, () => {
   }
   .empty-sprint {
     color: #aaa !important;
+  }
+  .progress-bar {
+    background: #232526 !important;
+    border-color: #444 !important;
+  }
+  .progress-fill {
+    background: #4ea1ff !important;
   }
 }
 </style>
