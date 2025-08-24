@@ -17,9 +17,6 @@ const currentUser = ref({
   role: ''
 })
 
-const epics = ref([])
-const sprints = ref([])
-
 const fetchCurrentUser = async () => {
   try {
     const token = localStorage.getItem('token')
@@ -683,6 +680,234 @@ onMounted(() => {
   
   .activity-card {
     grid-column: span 1;
+  }
+}
+
+/* Dark Mode Styles */
+@media (prefers-color-scheme: dark) {
+  .dashboard-layout {
+    background-color: #181a1b !important;
+  }
+
+  /* Top Navigation */
+  .top-nav {
+    background: #232526 !important;
+    border-bottom: 1px solid #444 !important;
+    color: #f3f3f3 !important;
+  }
+
+  .logo {
+    color: #4ea1ff !important;
+  }
+
+  .logo-text {
+    color: #f3f3f3 !important;
+  }
+
+  /* Project Selector */
+  .project-btn {
+    background: #181a1b !important;
+    border: 1px solid #444 !important;
+    color: #f3f3f3 !important;
+  }
+
+  .project-btn:hover, .project-btn.active {
+    background: #232526 !important;
+    border-color: #4ea1ff !important;
+  }
+
+  .project-key {
+    background: #0056b3 !important;
+    color: #fff !important;
+  }
+
+  .project-name {
+    color: #f3f3f3 !important;
+  }
+
+  /* Create Button */
+  .create-btn {
+    background: #0056b3 !important;
+    color: #fff !important;
+  }
+
+  .create-btn:hover, .create-btn.active {
+    background: #004494 !important;
+  }
+
+  /* Search Bar */
+  .search-bar input {
+    background: #181a1b !important;
+    border: 1px solid #444 !important;
+    color: #f3f3f3 !important;
+  }
+
+  .search-bar input:focus {
+    border-color: #4ea1ff !important;
+  }
+
+  .search-bar input::placeholder {
+    color: #aaa !important;
+  }
+
+  .search-btn {
+    background: #232526 !important;
+    border: 1px solid #444 !important;
+    color: #f3f3f3 !important;
+  }
+
+  .search-btn:hover {
+    background: #333 !important;
+  }
+
+  /* Notification Button */
+  .notification-btn {
+    color: #f3f3f3 !important;
+  }
+
+  .notification-btn:hover {
+    background: #232526 !important;
+  }
+
+  .notification-badge {
+    background: #e74c3c !important;
+    color: #fff !important;
+  }
+
+  /* User Menu */
+  .user-btn {
+    color: #f3f3f3 !important;
+  }
+
+  .user-btn:hover, .user-btn.active {
+    background: #232526 !important;
+  }
+
+  .user-avatar {
+    background: #0056b3 !important;
+    color: #fff !important;
+  }
+
+  /* Dropdowns */
+  .dropdown {
+    background: #232526 !important;
+    border: 1px solid #444 !important;
+    color: #f3f3f3 !important;
+  }
+
+  .dropdown-item {
+    color: #f3f3f3 !important;
+  }
+
+  .dropdown-item:hover {
+    background: #181a1b !important;
+  }
+
+  .user-info .user-name {
+    color: #f3f3f3 !important;
+  }
+
+  .user-info .user-email {
+    color: #aaa !important;
+  }
+
+  /* Sidebar */
+  .sidebar {
+    background: #232526 !important;
+    border-right: 1px solid #444 !important;
+  }
+
+  .menu-item {
+    color: #f3f3f3 !important;
+  }
+
+  .menu-item:hover {
+    background: #181a1b !important;
+  }
+
+  .menu-item.active {
+    background: #1a3a52 !important;
+    color: #4ea1ff !important;
+  }
+
+  /* Main Content */
+  .main-content {
+    background: #181a1b !important;
+    color: #f3f3f3 !important;
+  }
+
+  /* Dashboard Cards */
+  .dashboard-card {
+    background: #232526 !important;
+    color: #f3f3f3 !important;
+    border-color: #444 !important;
+  }
+
+  .dashboard-card h3 {
+    color: #f3f3f3 !important;
+  }
+
+  /* Progress Bar */
+  .progress-bar {
+    background: #333 !important;
+  }
+
+  .progress-fill {
+    background: #28a745 !important;
+  }
+
+  .progress-text {
+    color: #aaa !important;
+  }
+
+  /* Stats */
+  .stat-number {
+    color: #4ea1ff !important;
+  }
+
+  .stat-label {
+    color: #aaa !important;
+  }
+
+  /* Activity Items */
+  .activity-item {
+    background: #181a1b !important;
+    color: #f3f3f3 !important;
+  }
+
+  .activity-user {
+    color: #4ea1ff !important;
+  }
+
+  .activity-action {
+    color: #aaa !important;
+  }
+
+  .activity-item-name {
+    color: #f3f3f3 !important;
+  }
+
+  .activity-time {
+    color: #888 !important;
+  }
+
+  /* Dashboard Header */
+  .dashboard-header h1 {
+    color: #f3f3f3 !important;
+  }
+
+  .project-description {
+    color: #aaa !important;
+  }
+
+  /* Dropdown Arrow */
+  .dropdown-arrow {
+    color: #f3f3f3 !important;
+  }
+
+  /* HR elements */
+  hr {
+    border-color: #444 !important;
   }
 }
 </style>
