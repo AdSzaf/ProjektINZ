@@ -22,6 +22,11 @@ const isDragOver = ref(false)
 const issueTypes = ref([])
 const userCache = ref({})
 
+const showIssueModal = ref(false)
+const selectedIssue = ref(null)
+const showEditIssueModal = ref(false)
+const editIssueData = ref(null)
+
 // New drag state management
 const dragState = ref({
   isDragging: false,
@@ -172,15 +177,6 @@ const toggleBulkEdit = () => {
   }
 }
 
-const selectIssue = (issueId) => {
-  if (bulkEditMode.value) {
-    toggleIssueSelection(issueId)
-  } else {
-    // Navigate to issue detail or open modal
-    console.log('Open issue:', issueId)
-  }
-}
-
 const toggleIssueSelection = (issueId) => {
   const index = selectedIssues.value.indexOf(issueId)
   if (index > -1) {
@@ -188,6 +184,31 @@ const toggleIssueSelection = (issueId) => {
   } else {
     selectedIssues.value.push(issueId)
   }
+}
+
+const openIssueDetails = (issue) => {
+  selectedIssue.value = issue
+  showIssueModal.value = true
+}
+
+const closeIssueModal = () => {
+  showIssueModal.value = false
+  selectedIssue.value = null
+}
+
+const startEditIssue = (issue) => {
+  editIssueData.value = issue
+  showEditIssueModal.value = true
+}
+
+const closeEditIssueModal = () => {
+  showEditIssueModal.value = false
+  editIssueData.value = null
+}
+
+const onIssueEdited = () => {
+  closeEditIssueModal()
+  fetchIssues()
 }
 
 const createIssue = () => {
@@ -421,7 +442,7 @@ watch(currentProject, () => {
               draggable="true"
               @dragstart="onDragStart($event, issue)"
               @dragend="onDragEnd"
-              @click="selectIssue(issue.id)"
+              @click="openIssueDetails(issue)"
             >
               <div class="issue-header">
                 <span class="issue-key">{{ issue.key }}</span>
@@ -496,7 +517,7 @@ watch(currentProject, () => {
             draggable="true"
             @dragstart="onDragStart($event, issue)"
             @dragend="onDragEnd"
-            @click="selectIssue(issue.id)"
+            @click="openIssueDetails(issue)"
           >
             <input 
               v-if="bulkEditMode"
@@ -542,6 +563,50 @@ watch(currentProject, () => {
             <span>Drop to return to backlog</span>
           </div>
         </div>
+
+        <!-- Issue Details Modal -->
+        <div v-if="showIssueModal" class="modal-overlay" @click="closeIssueModal">
+          <div class="issue-modal" @click.stop>
+            <div class="issue-modal-header">
+              <div>
+                <h2>{{ selectedIssue?.key }}: {{ selectedIssue?.title }}</h2>
+                <div class="issue-modal-meta">
+                  <span class="issue-type-full">
+                    {{ getIssueTypeIcon(selectedIssue?.issue_type) }}
+                    {{ issueTypes.find(t => t.id === String(selectedIssue?.issue_type))?.name || '' }}
+                  </span>
+                  <span class="issue-priority">{{ getPriorityIcon(selectedIssue?.priority) }}</span>
+                  <span class="story-points-full">{{ selectedIssue?.storyPoints ?? 0 }} Story Points</span>
+                </div>
+              </div>
+              <div class="issue-modal-actions">
+                <button class="btn-edit" @click="startEditIssue(selectedIssue)">✏️ Edit Issue</button>
+                <button class="close-btn" @click="closeIssueModal">×</button>
+              </div>
+            </div>
+            <div class="issue-modal-body">
+              <div class="issue-field">
+                <label>Assignee:</label>
+                <span>{{ userCache[selectedIssue?.assignee]?.initials || 'Unassigned' }}</span>
+              </div>
+              <div class="issue-field">
+                <label>Status:</label>
+                <span>{{ selectedIssue?.status }}</span>
+              </div>
+              <div class="issue-field">
+                <label>Description:</label>
+                <p>{{ selectedIssue?.description || 'No description provided.' }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <AddIssueView
+        :showModal="showEditIssueModal"
+        mode="edit"
+        :issue="editIssueData"
+        @close="closeEditIssueModal"
+        @save="onIssueEdited"
+      />
       </div>
     </div>
   </div>
@@ -1034,6 +1099,174 @@ watch(currentProject, () => {
   flex-shrink: 0; /* Don't shrink */
 }
 
+/* Modals */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 8px;
+  padding: 2rem;
+  min-width: 300px;
+}
+
+.modal-content h3 {
+  margin: 0 0 1rem 0;
+  color: #333;
+}
+
+.column-input {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.btn-primary, .btn-secondary {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.btn-primary {
+  background: #0066cc;
+  color: white;
+}
+
+.btn-secondary {
+  background: #6c757d;
+  color: white;
+}
+
+/* Issue Modal */
+.issue-modal {
+  background: white;
+  border-radius: 8px;
+  max-width: 600px;
+  width: 90vw;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.issue-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 2rem 2rem 1rem;
+  border-bottom: 1px solid #e1e5e9;
+}
+
+.issue-modal-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+.btn-edit {
+  background: #f8f9fa;
+  color: #333;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+  padding: 0.4rem 0.8rem;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.btn-edit:hover {
+  background: #e9ecef;
+  color: #0066cc;
+  border-color: #0066cc;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: #6c757d;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.close-btn:hover {
+  background: #f8f9fa;
+}
+
+.issue-modal-header h2 {
+  margin: 0 0 0.5rem 0;
+  color: #333;
+}
+
+.issue-modal-meta {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.issue-type-full {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.story-points-full {
+  color: #6c757d;
+  font-size: 0.9rem;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: #6c757d;
+  cursor: pointer;
+  padding: 0.25rem;
+}
+
+.issue-modal-body {
+  padding: 2rem;
+}
+
+.issue-field {
+  margin-bottom: 1.5rem;
+}
+
+.issue-field label {
+  display: block;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 0.5rem;
+}
+
+.issue-field span {
+  color: #666;
+}
+
+.issue-field p {
+  color: #666;
+  line-height: 1.6;
+  margin: 0;
+}
+
 @media (max-width: 768px) {
   .page-header {
     flex-direction: column;
@@ -1115,6 +1348,19 @@ watch(currentProject, () => {
   .sprint-status.status-active,
   .sprint-status.status-completed,
   .sprint-status.status-planned,
+  .modal-content,
+  .column-input,
+  .modal-actions,
+  .btn-primary,
+  .btn-secondary,
+  .issue-modal,
+  .issue-modal-header,
+  .issue-modal-meta,
+  .issue-type-full,
+  .story-points-full,
+  .close-btn,
+  .issue-modal-body,
+  .issue-field,
   .btn-icon {
     color: #f3f3f3 !important;
     background: #232526 !important;
@@ -1163,6 +1409,16 @@ watch(currentProject, () => {
   }
   .progress-fill {
     background: #4ea1ff !important;
+  }
+  .btn-edit {
+    background: #232526 !important;
+    color: #f3f3f3 !important;
+    border-color: #444 !important;
+  }
+  .btn-edit:hover {
+    background: #0056b3 !important;
+    color: #fff !important;
+    border-color: #0056b3 !important;
   }
 }
 </style>

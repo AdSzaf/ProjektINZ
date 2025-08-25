@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useProjectStore } from '../stores/projectStore'
 import axios from 'axios'
 
@@ -7,7 +7,9 @@ const props = defineProps({
   showModal: {
     type: Boolean,
     default: false
-  }
+  },
+  mode: { type: String, default: 'add' }, // 'add' or 'edit'
+  issue: { type: Object, default: null }
 })
 
 const emit = defineEmits(['close', 'save'])
@@ -40,6 +42,22 @@ const priorities = ref([
   { value: 'high', label: 'High', color: '#FF8B00' },
   { value: 'highest', label: 'Highest', color: '#FF5630' }
 ])
+
+const updateIssue = async () => {
+  if (!validateForm()) return
+  isSubmitting.value = true
+  try {
+    const token = localStorage.getItem('token')
+    axios.defaults.headers.common['Authorization'] = `Token ${token}`
+    await axios.patch(`/api/issues/${props.issue.id}/`, formData.value)
+    emit('save', formData.value)
+    closeModal()
+  } catch (error) {
+    console.error('Error updating issue:', error)
+  } finally {
+    isSubmitting.value = false
+  }
+}
 
 // Validation
 const errors = ref({})
@@ -162,6 +180,23 @@ onMounted(async () => {
     sprints.value = (await axios.get(`/api/projects/${pid}/sprints/`)).data
     users.value = (await axios.get(`/api/projects/${currentProject.value.id}/users/`)).data
     console.log('Fetched project members:', users.value)
+  }
+})
+
+watch(() => props.issue, (newIssue) => {
+  if (props.mode === 'edit' && newIssue) {
+    formData.value = {
+      title: newIssue.title,
+      description: newIssue.description,
+      issue_type: newIssue.issue_type,
+      epic: newIssue.epic,
+      sprint: newIssue.sprint,
+      assignee: newIssue.assignee,
+      priority: newIssue.priority,
+      story_points: newIssue.story_points,
+      original_estimate: newIssue.original_estimate,
+      remaining_estimate: newIssue.remaining_estimate
+    }
   }
 })
 </script>
@@ -331,16 +366,17 @@ onMounted(async () => {
       </div>
 
       <!-- Modal Footer -->
+      <h2>{{ mode === 'edit' ? 'Edit Issue' : 'Create Issue' }}</h2>
       <div class="modal-footer">
         <button type="button" class="btn-secondary" @click="closeModal">Cancel</button>
         <button 
           type="button" 
           class="btn-primary" 
-          @click="saveIssue"
+          @click="mode === 'edit' ? updateIssue() : saveIssue()"
           :disabled="isSubmitting"
         >
-          <span v-if="isSubmitting">Creating...</span>
-          <span v-else>Create Issue</span>
+          <span v-if="isSubmitting">{{ mode === 'edit' ? 'Saving...' : 'Creating...' }}</span>
+          <span v-else>{{ mode === 'edit' ? 'Save Changes' : 'Create Issue' }}</span>
         </button>
       </div>
     </div>

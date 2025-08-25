@@ -16,6 +16,8 @@ const issueTypes = ref([])
 const showDeleteColumnModal = ref(false)
 const columnToDelete = ref(null)
 const userCache = ref({})
+const showEditIssueModal = ref(false)
+const editIssueData = ref(null)
 
 const fetchIssues = async () => {
   if (!currentProject.value?.id) {
@@ -127,6 +129,19 @@ const openIssueDetails = (issue) => {
 const closeIssueModal = () => {
   showIssueModal.value = false
   selectedIssue.value = null
+}
+
+const startEditIssue = (issue) => {
+  editIssueData.value = issue
+  showEditIssueModal.value = true
+}
+const closeEditIssueModal = () => {
+  showEditIssueModal.value = false
+  editIssueData.value = null
+}
+const onIssueEdited = () => {
+  closeEditIssueModal()
+  fetchIssues()
 }
 
 // Drag and Drop
@@ -347,7 +362,10 @@ watch(currentProject, () => {
               <span class="story-points-full">{{ selectedIssue?.story_points ?? 0 }} Story Points</span>
             </div>
           </div>
-          <button class="close-btn" @click="closeIssueModal">×</button>
+          <div class="issue-modal-actions">
+            <button class="btn-edit" @click="startEditIssue(selectedIssue)">✏️ Edit Issue</button>
+            <button class="close-btn" @click="closeIssueModal">×</button>
+          </div>
         </div>
         
         <div class="issue-modal-body">
@@ -390,6 +408,13 @@ watch(currentProject, () => {
   :showModal="showAddIssueModal"
   @close="showAddIssueModal = false"
   @save="onIssueCreated"
+/>
+<AddIssueView
+  :showModal="showEditIssueModal"
+  mode="edit"
+  :issue="editIssueData"
+  @close="closeEditIssueModal"
+  @save="onIssueEdited"
 />
 </template>
 
@@ -733,5 +758,223 @@ watch(currentProject, () => {
   color: #666;
   line-height: 1.6;
   margin: 0;
+}
+
+.issue-modal-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.btn-edit {
+  background: #f8f9fa;
+  color: #333;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+  padding: 0.4rem 0.8rem;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.btn-edit:hover {
+  background: #e9ecef;
+  color: #0066cc;
+  border-color: #0066cc;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: #6c757d;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.close-btn:hover {
+  background: #f8f9fa;
+}
+
+@media (prefers-color-scheme: dark) {
+  .dashboard-container {
+    background: #181a1b !important;
+    color: #f3f3f3 !important;
+  }
+  
+  .dashboard-header h1,
+  .dashboard-subtitle {
+    color: #f3f3f3 !important;
+  }
+  
+  .add-column-btn {
+    background: #0056b3 !important;
+    color: #fff !important;
+  }
+  
+  .add-column-btn:hover {
+    background: #004494 !important;
+  }
+  
+  .kanban-column {
+    background: #232526 !important;
+    border-color: #444 !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
+  }
+  
+  .column-header {
+    background: #232526 !important;
+    border-bottom-color: #444 !important;
+    border-top-color: #666 !important;
+  }
+  
+  .column-title {
+    color: #f3f3f3 !important;
+  }
+  
+  .column-count {
+    background: #444 !important;
+    color: #f3f3f3 !important;
+  }
+  
+  .column-points {
+    color: #aaa !important;
+  }
+  
+  .remove-column-btn {
+    color: #ff6b6b !important;
+  }
+  
+  .remove-column-btn:hover {
+    background: #4a1f1f !important;
+  }
+  
+  .issues-container {
+    background: #232526 !important;
+  }
+  
+  .issue-card {
+    background: #2c2f30 !important;
+    border-color: #444 !important;
+    color: #f3f3f3 !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3) !important;
+  }
+  
+  .issue-card:hover {
+    background: #353838 !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
+  }
+  
+  .issue-id {
+    color: #4ea1ff !important;
+  }
+  
+  .issue-title {
+    color: #f3f3f3 !important;
+  }
+  
+  .story-points {
+    color: #aaa !important;
+  }
+  
+  .assignee-avatar {
+    background: #0056b3 !important;
+    color: #fff !important;
+  }
+  
+  .add-issue-btn {
+    background: #2c2f30 !important;
+    border-color: #444 !important;
+    color: #aaa !important;
+  }
+  
+  .add-issue-btn:hover {
+    background: #353838 !important;
+    border-color: #0056b3 !important;
+    color: #4ea1ff !important;
+  }
+  
+  .modal-overlay {
+    background: rgba(0, 0, 0, 0.7) !important;
+  }
+  
+  .modal-content {
+    background: #232526 !important;
+    color: #f3f3f3 !important;
+  }
+  
+  .modal-content h3 {
+    color: #f3f3f3 !important;
+  }
+  
+  .column-input {
+    background: #2c2f30 !important;
+    border-color: #444 !important;
+    color: #f3f3f3 !important;
+  }
+  
+  .btn-primary {
+    background: #0056b3 !important;
+    color: #fff !important;
+  }
+  
+  .btn-secondary {
+    background: #444 !important;
+    color: #f3f3f3 !important;
+  }
+  
+  .issue-modal {
+    background: #232526 !important;
+    color: #f3f3f3 !important;
+  }
+  
+  .issue-modal-header {
+    background: #232526 !important;
+    border-bottom-color: #444 !important;
+  }
+  
+  .issue-modal-header h2 {
+    color: #f3f3f3 !important;
+  }
+  
+  .story-points-full {
+    color: #aaa !important;
+  }
+  
+  .close-btn {
+    color: #aaa !important;
+  }
+  
+  .close-btn:hover {
+    background: #2c2f30 !important;
+    color: #f3f3f3 !important;
+  }
+  
+  .issue-modal-body {
+    background: #232526 !important;
+  }
+  
+  .issue-field label {
+    color: #f3f3f3 !important;
+  }
+  
+  .issue-field span,
+  .issue-field p {
+    color: #ccc !important;
+  }
+  
+  .btn-edit {
+    background: #2c2f30 !important;
+    color: #f3f3f3 !important;
+    border-color: #444 !important;
+  }
+  
+  .btn-edit:hover {
+    background: #0056b3 !important;
+    color: #fff !important;
+    border-color: #0056b3 !important;
+  }
 }
 </style>
