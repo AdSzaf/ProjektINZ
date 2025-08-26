@@ -292,3 +292,21 @@ def get_user_short(request, user_id):
         'initials': initials.upper(),
         'name': f"{user.first_name} {user.last_name}".strip()
     })
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def update_user_settings(request):
+    user = request.user
+    data = request.data
+    # Update fields if present
+    if 'first_name' in data:
+        user.first_name = data['first_name']
+    if 'last_name' in data:
+        user.last_name = data['last_name']
+    if 'email' in data:
+        user.email = data['email']
+    if 'role' in data:
+        user.role = data['role']
+    # Add department if you have it in your model
+    user.save()
+    return Response({'detail': 'Profile updated successfully!'}, status=status.HTTP_200_OK)

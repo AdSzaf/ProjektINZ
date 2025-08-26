@@ -1,6 +1,5 @@
 <script setup>
-import { ref, reactive } from 'vue'
-import { onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import axios from 'axios'
 import { useProjectStore } from '../stores/projectStore'
 
@@ -62,10 +61,28 @@ const fetchProfile = async () => {
   // Add department if you have it
 }
 
-const saveProfile = () => {
-  // Save profile logic here
-  console.log('Saving profile:', profile)
-  showToast('Profile updated successfully!')
+const saveProfile = async () => {
+  const token = localStorage.getItem('token')
+  axios.defaults.headers.common['Authorization'] = `Token ${token}`
+  // Split full name into first and last name
+  const nameParts = profile.name.trim().split(' ')
+  const first_name = nameParts[0] || ''
+  const last_name = nameParts.slice(1).join(' ') || ''
+  const payload = {
+    first_name,
+    last_name,
+    email: profile.email,
+    role: profile.role,
+    // Add department if you want to support it
+  }
+  try {
+    await axios.patch('/api/me/update/', payload)
+    await fetchProfile()
+    showToast('Profile updated successfully!')
+  } catch (error) {
+    showToast('Failed to update profile!')
+    console.error(error)
+  }
 }
 
 const resetProfile = () => {
