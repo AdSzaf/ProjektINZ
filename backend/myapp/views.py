@@ -13,7 +13,8 @@ from .serializers import (RegisterSerializer
                           , ProjectGetSerializer
                           , IssueCreateSerializer
                           , EpicCreateSerializer
-                          , SprintSerializer)
+                          , SprintSerializer
+                          , IssueSerializer)
 
 
 @api_view(['POST'])
@@ -151,7 +152,7 @@ def project_users(request, project_id):
 @permission_classes([IsAuthenticated])
 def project_issues(request, project_id):
     issues = Issue.objects.filter(project_id=project_id)
-    serializer = IssueCreateSerializer(issues, many=True)
+    serializer = IssueSerializer(issues, many=True)
     print("ISSUES SENT TO FRONTEND:", serializer.data)
     return Response(serializer.data)
 

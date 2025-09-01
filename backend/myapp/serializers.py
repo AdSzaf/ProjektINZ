@@ -100,6 +100,17 @@ class IssueCreateSerializer(serializers.ModelSerializer):
             'original_estimate', 'remaining_estimate', 'status'
         ]
 
+class IssueSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Issue
+        fields = [
+            'id', 'key', 'title', 'description', 'project', 'issue_type', 'epic', 'sprint',
+            'reporter', 'assignee', 'priority', 'story_points',
+            'original_estimate', 'remaining_estimate', 'status',
+            'resolved_at',
+        ]
+        read_only_fields = ['resolved_at']
+
 class EpicCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Epic

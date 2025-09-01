@@ -284,6 +284,34 @@ const fetchSprintIssues = async () => {
   console.log('Fetched sprint issues:', sprintIssues.value)
 }
 
+function buildBurndownData(sprint, issues) {
+  const days = Math.ceil(
+    (new Date(sprint.end_date) - new Date(sprint.start_date)) / (1000 * 60 * 60 * 24)
+  ) + 1
+
+  const totalPoints = issues.reduce((sum, i) => sum + (i.story_points || 0), 0)
+
+  const burndown = []
+  for (let i = 0; i < days; i++) {
+    // Create a new Date object for each day!
+    const day = new Date(sprint.start_date)
+    day.setDate(day.getDate() + i)
+
+    // Sum points for issues resolved up to and including this day
+    const donePoints = issues
+      .filter(i => i.status === 'done' && i.resolved_at && new Date(i.resolved_at) <= day)
+      .reduce((sum, i) => sum + (i.story_points || 0), 0)
+
+    burndown.push({
+      date: day.toISOString().slice(0, 10),
+      actual: totalPoints - donePoints
+    })
+  }
+
+  return burndown
+}
+
+
 onMounted(async () => {
   // Set canvas sizes
   const burndownCanvas = document.getElementById('burndown-canvas')
@@ -307,6 +335,7 @@ onMounted(async () => {
 
   await fetchSprintInfo()
   await fetchSprintIssues()
+  burndownData.value = buildBurndownData(sprintInfo.value, sprintIssues.value)
   await fetchBurndownData()
   await fetchVelocityData()
   await fetchIssueBreakdown()
@@ -323,6 +352,7 @@ watch(currentProject, async (newVal) => {
   if (newVal && newVal.id) {
     await fetchSprintInfo()
     await fetchSprintIssues()
+    burndownData.value = buildBurndownData(sprintInfo.value, sprintIssues.value)
     await fetchBurndownData()
     await fetchVelocityData()
     await fetchIssueBreakdown()
@@ -723,8 +753,8 @@ watch(burndownData, (newVal) => {
 }
 
 .chart-container canvas {
-  width: 100%;
-  height: 100%;
+  width: 100% !important;
+  height: 100% !important;
   border-radius: 4px;
 }
 
