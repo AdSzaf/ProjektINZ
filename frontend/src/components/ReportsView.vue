@@ -1,12 +1,20 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useProjectStore } from '../stores/projectStore'
+import axios from 'axios'
 
 // Report data
 const selectedTimeframe = ref('current-sprint')
 const selectedReport = ref('burndown')
 const projectStore = useProjectStore()
 const currentProject = computed(() => projectStore.selectedProject)
+
+const sprintInfo = ref(null)
+const burndownData = ref([])
+const velocityData = ref([])
+const issueBreakdown = ref({})
+const teamPerformance = ref([])
+const sprintIssues = ref([])
 
 const timeframeOptions = [
   { value: 'current-sprint', label: 'Current Sprint' },
@@ -22,74 +30,28 @@ const reportTypes = [
   { value: 'time-tracking', label: 'Time Tracking', icon: '⏱️' }
 ]
 
-// Sprint data
-const sprintInfo = ref({
-  name: 'Sprint 23',
-  startDate: '2025-07-14',
-  endDate: '2025-07-27',
-  totalStoryPoints: 45,
-  completedStoryPoints: 29,
-  remainingStoryPoints: 16,
-  totalDays: 14,
-  remainingDays: 1
+const totalStoryPoints = computed(() => {
+  return sprintIssues.value.reduce((sum, issue) => sum + (issue.story_points || 0), 0)
 })
 
-// Burndown chart data (story points remaining per day)
-const burndownData = ref([
-  { day: 0, ideal: 45, actual: 45, date: '2025-07-14' },
-  { day: 1, ideal: 42, actual: 45, date: '2025-07-15' },
-  { day: 2, ideal: 39, actual: 43, date: '2025-07-16' },
-  { day: 3, ideal: 36, actual: 40, date: '2025-07-17' },
-  { day: 4, ideal: 33, actual: 38, date: '2025-07-18' },
-  { day: 5, ideal: 30, actual: 35, date: '2025-07-19' },
-  { day: 6, ideal: 27, actual: 35, date: '2025-07-20' },
-  { day: 7, ideal: 24, actual: 32, date: '2025-07-21' },
-  { day: 8, ideal: 21, actual: 28, date: '2025-07-22' },
-  { day: 9, ideal: 18, actual: 25, date: '2025-07-23' },
-  { day: 10, ideal: 15, actual: 22, date: '2025-07-24' },
-  { day: 11, ideal: 12, actual: 19, date: '2025-07-25' },
-  { day: 12, ideal: 9, actual: 16, date: '2025-07-26' },
-  { day: 13, ideal: 6, actual: 16, date: '2025-07-27' }
-])
-
-// Velocity data (last 6 sprints)
-const velocityData = ref([
-  { sprint: 'Sprint 18', planned: 38, completed: 35 },
-  { sprint: 'Sprint 19', planned: 42, completed: 40 },
-  { sprint: 'Sprint 20', planned: 45, completed: 41 },
-  { sprint: 'Sprint 21', planned: 40, completed: 43 },
-  { sprint: 'Sprint 22', planned: 47, completed: 44 },
-  { sprint: 'Sprint 23', planned: 45, completed: 29 }
-])
-
-// Issue breakdown data
-const issueBreakdown = ref({
-  byStatus: [
-    { status: 'To Do', count: 8, color: '#6c757d' },
-    { status: 'In Progress', count: 5, color: '#007bff' },
-    { status: 'Code Review', count: 3, color: '#ffc107' },
-    { status: 'Testing', count: 2, color: '#fd7e14' },
-    { status: 'Done', count: 18, color: '#28a745' }
-  ],
-  byType: [
-    { type: 'Story', count: 20, color: '#28a745' },
-    { type: 'Bug', count: 12, color: '#dc3545' },
-    { type: 'Task', count: 8, color: '#007bff' },
-    { type: 'Epic', count: 2, color: '#6f42c1' }
-  ]
+const completedStoryPoints = computed(() => {
+  return sprintIssues.value
+    .filter(issue => issue.status && issue.status.toLowerCase() === 'done')
+    .reduce((sum, issue) => sum + (issue.story_points || 0), 0)
 })
-
-// Team performance data
-const teamPerformance = ref([
-  { member: 'Alice Johnson', completed: 12, assigned: 15, efficiency: 80 },
-  { member: 'Bob Smith', completed: 10, assigned: 12, efficiency: 83 },
-  { member: 'Charlie Brown', completed: 8, assigned: 10, efficiency: 80 },
-  { member: 'Diana Wilson', completed: 6, assigned: 8, efficiency: 75 }
-])
 
 // Computed properties
 const sprintProgressPercentage = computed(() => {
-  return Math.round((sprintInfo.value.completedStoryPoints / sprintInfo.value.totalStoryPoints) * 100)
+  if (!totalStoryPoints.value) return 0
+  return Math.round((completedStoryPoints.value / totalStoryPoints.value) * 100)
+})
+
+const remainingDays = computed(() => {
+  if (!sprintInfo.value) return 0
+  const today = new Date()
+  const end = new Date(sprintInfo.value.end_date)
+  const diff = Math.ceil((end - today) / (1000 * 60 * 60 * 24))
+  return diff > 0 ? diff : 0
 })
 
 const averageVelocity = computed(() => {
@@ -98,7 +60,9 @@ const averageVelocity = computed(() => {
 })
 
 const maxBurndownValue = computed(() => {
-  return Math.max(...burndownData.value.map(d => Math.max(d.ideal, d.actual)))
+  const values = burndownData.value.map(d => Math.max(d.ideal, d.actual))
+  const max = Math.max(...values)
+  return isFinite(max) && max > 0 ? max : 1
 })
 
 // Chart drawing functions
@@ -256,7 +220,71 @@ const drawVelocityChart = () => {
   })
 }
 
-onMounted(() => {
+const fetchSprintInfo = async () => {
+   if (!currentProject.value || !currentProject.value.id) return
+  const token = localStorage.getItem('token')
+  axios.defaults.headers.common['Authorization'] = `Token ${token}`
+  // Get current sprint for the project
+  const res = await axios.get(`/api/projects/${currentProject.value.id}/sprints/?status=active`)
+  sprintInfo.value = res.data[0] || null
+  console.log('Fetched sprint info:', sprintInfo.value)
+}
+
+const fetchBurndownData = async () => {
+  if (!currentProject.value || !currentProject.value.id) return
+  if (!sprintInfo.value) return
+  const token = localStorage.getItem('token')
+  axios.defaults.headers.common['Authorization'] = `Token ${token}`
+  // Get burndown data for current sprint
+  const res = await axios.get(`/api/sprints/${sprintInfo.value.id}/burndown/`)
+  burndownData.value = res.data
+  console.log('Fetched burndown data:', burndownData.value)
+}
+
+const fetchVelocityData = async () => {
+  if (!currentProject.value || !currentProject.value.id) return
+  const token = localStorage.getItem('token')
+  axios.defaults.headers.common['Authorization'] = `Token ${token}`
+  // Get velocity for last N sprints
+  const res = await axios.get(`/api/projects/${currentProject.value.id}/velocity/`)
+  velocityData.value = res.data
+  console.log('Fetched velocity data:', velocityData.value)
+}
+
+const fetchIssueBreakdown = async () => {
+  if (!currentProject.value || !currentProject.value.id) return
+  if (!sprintInfo.value) return
+  const token = localStorage.getItem('token')
+  axios.defaults.headers.common['Authorization'] = `Token ${token}`
+  // Get issue breakdown for current sprint
+  const res = await axios.get(`/api/sprints/${sprintInfo.value.id}/breakdown/`)
+  issueBreakdown.value = res.data
+  console.log('Fetched issue breakdown:', issueBreakdown.value)
+}
+
+const fetchTeamPerformance = async () => {
+  if (!currentProject.value || !currentProject.value.id) return
+  if (!sprintInfo.value) return
+  const token = localStorage.getItem('token')
+  axios.defaults.headers.common['Authorization'] = `Token ${token}`
+  // Get team performance for current sprint
+  const res = await axios.get(`/api/sprints/${sprintInfo.value.id}/team-performance/`)
+  teamPerformance.value = res.data
+  console.log('Fetched team performance:', teamPerformance.value)
+}
+
+const fetchSprintIssues = async () => {
+  if (!currentProject.value || !currentProject.value.id) return
+  if (!sprintInfo.value) return
+  const token = localStorage.getItem('token')
+  axios.defaults.headers.common['Authorization'] = `Token ${token}`
+  const res = await axios.get(`/api/projects/${currentProject.value.id}/issues/`)
+  // Filter issues for the current sprint
+  sprintIssues.value = res.data.filter(issue => issue.sprint === sprintInfo.value.id)
+  console.log('Fetched sprint issues:', sprintIssues.value)
+}
+
+onMounted(async () => {
   // Set canvas sizes
   const burndownCanvas = document.getElementById('burndown-canvas')
   const velocityCanvas = document.getElementById('velocity-canvas')
@@ -275,6 +303,36 @@ onMounted(() => {
     velocityCanvas.style.width = velocityCanvas.offsetWidth / 2 + 'px'
     velocityCanvas.style.height = velocityCanvas.offsetHeight / 2 + 'px'
     drawVelocityChart()
+  }
+
+  await fetchSprintInfo()
+  await fetchSprintIssues()
+  await fetchBurndownData()
+  await fetchVelocityData()
+  await fetchIssueBreakdown()
+  await fetchTeamPerformance()
+})
+
+watch(sprintInfo, async (newVal) => {
+  if (newVal) {
+    await fetchSprintIssues()
+  }
+})
+
+watch(currentProject, async (newVal) => {
+  if (newVal && newVal.id) {
+    await fetchSprintInfo()
+    await fetchSprintIssues()
+    await fetchBurndownData()
+    await fetchVelocityData()
+    await fetchIssueBreakdown()
+    await fetchTeamPerformance()
+  }
+}, { immediate: true })
+
+watch(burndownData, (newVal) => {
+  if (newVal && newVal.length > 0) {
+    drawBurndownChart()
   }
 })
 </script>
@@ -309,9 +367,9 @@ onMounted(() => {
     </div>
 
     <!-- Sprint Overview -->
-    <div class="sprint-overview">
+    <div class="sprint-overview" v-if="sprintInfo">
       <div class="overview-card">
-        <h3>{{ sprintInfo.name }} Overview</h3>
+        <h3>{{ sprintInfo?.name }} Overview</h3>
         <div class="overview-stats">
           <div class="stat">
             <span class="stat-label">Progress</span>
@@ -319,11 +377,11 @@ onMounted(() => {
           </div>
           <div class="stat">
             <span class="stat-label">Completed</span>
-            <span class="stat-value">{{ sprintInfo.completedStoryPoints }}/{{ sprintInfo.totalStoryPoints }} SP</span>
+            <span class="stat-value">{{ completedStoryPoints }}/{{ totalStoryPoints }} SP</span>
           </div>
           <div class="stat">
             <span class="stat-label">Days Left</span>
-            <span class="stat-value">{{ sprintInfo.remainingDays }}</span>
+            <span class="stat-value">{{ remainingDays }}</span>
           </div>
           <div class="stat">
             <span class="stat-label">Avg Velocity</span>
@@ -334,7 +392,7 @@ onMounted(() => {
           <div class="progress-bar">
             <div class="progress-fill" :style="{ width: sprintProgressPercentage + '%' }"></div>
           </div>
-          <div class="progress-text">{{ sprintInfo.completedStoryPoints }} of {{ sprintInfo.totalStoryPoints }} story points completed</div>
+          <div class="progress-text">{{ completedStoryPoints }} of {{ totalStoryPoints }} story points completed</div>
         </div>
       </div>
     </div>
@@ -439,7 +497,7 @@ onMounted(() => {
       <div class="stat-card">
         <div class="stat-icon">🎯</div>
         <div class="stat-info">
-          <div class="stat-number">{{ issueBreakdown.byStatus.reduce((sum, item) => sum + item.count, 0) }}</div>
+          <div class="stat-number">{{ Array.isArray(issueBreakdown.byStatus) ? issueBreakdown.byStatus.reduce((sum, item) => sum + item.count, 0) : 0 }}</div>
           <div class="stat-label">Total Issues</div>
         </div>
       </div>
@@ -447,7 +505,7 @@ onMounted(() => {
       <div class="stat-card">
         <div class="stat-icon">✅</div>
         <div class="stat-info">
-          <div class="stat-number">{{ issueBreakdown.byStatus.find(item => item.status === 'Done')?.count || 0 }}</div>
+          <div class="stat-number">{{ Array.isArray(issueBreakdown.byStatus) ? (issueBreakdown.byStatus.find(item => item.status === 'Done')?.count || 0) : 0 }}</div>
           <div class="stat-label">Completed</div>
         </div>
       </div>
@@ -455,7 +513,7 @@ onMounted(() => {
       <div class="stat-card">
         <div class="stat-icon">🔥</div>
         <div class="stat-info">
-          <div class="stat-number">{{ issueBreakdown.byType.find(item => item.type === 'Bug')?.count || 0 }}</div>
+          <div class="stat-number"> {{ Array.isArray(issueBreakdown.byType) ? (issueBreakdown.byType.find(item => item.type === 'Bug')?.count || 0) : 0 }}</div>
           <div class="stat-label">Bugs</div>
         </div>
       </div>
@@ -463,7 +521,7 @@ onMounted(() => {
       <div class="stat-card">
         <div class="stat-icon">⚡</div>
         <div class="stat-info">
-          <div class="stat-number">{{ averageVelocity }}</div>
+          <div class="stat-number">{{ Array.isArray(sprintInfo) ? averageVelocity : 0 }}</div>
           <div class="stat-label">Avg Velocity</div>
         </div>
       </div>
@@ -472,6 +530,12 @@ onMounted(() => {
 </template>
 
 <style scoped>
+
+#burndown-canvas {
+  width: 2000px;
+  height: 800px;
+}
+
 .reports-container {
   max-width: 1400px;
   margin: 0 auto;
@@ -878,6 +942,116 @@ onMounted(() => {
   
   .quick-stats {
     grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .reports-container,
+  .reports-header,
+  .overview-card,
+  .chart-card,
+  .breakdown-card,
+  .team-card,
+  .stat-card {
+    background: #181a1b !important;
+    color: #f3f3f3 !important;
+    border-color: #333 !important;
+  }
+
+  .reports-header h1,
+  .reports-description,
+  .overview-card h3,
+  .chart-header h3,
+  .breakdown-section h4,
+  .stat-label,
+  .stat-value,
+  .member-name,
+  .performance-stat,
+  .efficiency-text,
+  .stat-card .stat-number,
+  .stat-card .stat-label {
+    color: #f3f3f3 !important;
+  }
+
+  .control-group label {
+    color: #f3f3f3 !important;
+  }
+
+  .control-select {
+    background: #232526 !important;
+    color: #f3f3f3 !important;
+    border-color: #444 !important;
+  }
+
+  .control-select:focus {
+    border-color: #4ea1ff !important;
+  }
+
+  .stat-value {
+    color: #4ea1ff !important;
+  }
+
+  .progress-bar {
+    background: #232526 !important;
+  }
+
+  .progress-fill {
+    background: #4ea1ff !important;
+  }
+
+  .progress-text {
+    color: #aaa !important;
+  }
+
+  .breakdown-item {
+    background: #232526 !important;
+    color: #f3f3f3 !important;
+  }
+
+  .breakdown-count {
+    background: #232526 !important;
+    color: #4ea1ff !important;
+    border: 1px solid #444 !important;
+  }
+
+  .performance-header {
+    background: #232526 !important;
+    color: #f3f3f3 !important;
+  }
+
+  .performance-row {
+    background: #232526 !important;
+    border-color: #444 !important;
+    color: #f3f3f3 !important;
+  }
+
+  .performance-stat.completed {
+    color: #4ea1ff !important;
+  }
+
+  .performance-stat.assigned {
+    color: #4ea1ff !important;
+  }
+
+  .efficiency-bar {
+    background: #232526 !important;
+  }
+
+  .stat-icon {
+    background: #232526 !important;
+  }
+
+  .stat-card .stat-number {
+    color: #4ea1ff !important;
+  }
+
+  .stat-card .stat-label {
+    color: #aaa !important;
+  }
+
+  #burndown-canvas,
+  #velocity-canvas {
+    filter: invert(0.9) hue-rotate(180deg);
   }
 }
 </style>

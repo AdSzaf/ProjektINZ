@@ -34,7 +34,12 @@ from myapp.views import (register_user ,
     update_sprint,
     update_issue,
     get_user_short,
-    update_user_settings,)
+    update_user_settings,
+    sprint_burndown,
+    project_velocity,
+    sprint_breakdown,
+    sprint_team_performance
+)
 
 
 
@@ -59,4 +64,9 @@ urlpatterns = [
     path('api/sprints/<uuid:sprint_id>/', update_sprint, name='update_sprint'),
     path('api/users/<uuid:user_id>/short/', get_user_short, name='get_user_short'),
     path('api/me/update/', update_user_settings, name='update_user_settings'),
+
+    path('api/sprints/<uuid:sprint_id>/burndown/', sprint_burndown, name='sprint_burndown'),
+    path('api/projects/<uuid:project_id>/velocity/', project_velocity, name='project_velocity'),
+    path('api/sprints/<uuid:sprint_id>/breakdown/', sprint_breakdown, name='sprint_breakdown'),
+    path('api/sprints/<uuid:sprint_id>/team-performance/', sprint_team_performance, name='sprint_team_performance')
 ]

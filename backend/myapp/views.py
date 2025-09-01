@@ -4,6 +4,8 @@ from rest_framework import status
 from rest_framework.authtoken.models import Token
 from rest_framework.permissions import IsAuthenticated
 from .models import Project, IssueType, Epic, Sprint, User, Issue, WorkflowStatus
+from datetime import timedelta
+from django.utils import timezone
 from django.contrib.auth import get_user_model
 from .serializers import (RegisterSerializer
                           , LoginSerializer
@@ -166,9 +168,15 @@ def update_issue_status(request, issue_id):
     print(valid_statuses)
     if status_value not in valid_statuses:
         return Response({'detail': 'Invalid status.'}, status=status.HTTP_400_BAD_REQUEST)
+     # Set resolved_at if moving to 'done', clear if moving out of 'done'
+    if status_value == 'done' and issue.status != 'done':
+        issue.resolved_at = timezone.now()
+    elif status_value != 'done':
+        issue.resolved_at = None
     issue.status = status_value
     issue.save()
     return Response({'id': str(issue.id), 'status': issue.status})
+
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -310,3 +318,85 @@ def update_user_settings(request):
     # Add department if you have it in your model
     user.save()
     return Response({'detail': 'Profile updated successfully!'}, status=status.HTTP_200_OK)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def sprint_burndown(request, sprint_id):
+    sprint = Sprint.objects.get(id=sprint_id)
+    issues = Issue.objects.filter(sprint=sprint)
+    total_points = sum(i.story_points or 0 for i in issues)
+    days = (sprint.end_date.date() - sprint.start_date.date()).days + 1
+    ideal_per_day = total_points / (days - 1) if days > 1 else total_points
+
+    # Build burndown data
+    burndown = []
+    for i in range(days):
+        day = sprint.start_date.date() + timedelta(days=i)
+        # Issues done by this day
+        done_points = sum(
+            i.story_points or 0
+            for i in issues
+            if i.status.lower() == 'done' and i.resolved_at and i.resolved_at.date() <= day
+        )
+        actual = total_points - done_points
+        ideal = total_points - int(i * ideal_per_day)
+        burndown.append({
+            'date': day.isoformat(),
+            'ideal': max(ideal, 0),
+            'actual': max(actual, 0)
+        })
+    return Response(burndown)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def project_velocity(request, project_id):
+    sprints = Sprint.objects.filter(project_id=project_id).order_by('-start_date')[:6][::-1]
+    data = []
+    for sprint in sprints:
+        issues = Issue.objects.filter(sprint=sprint)
+        planned = sum(i.story_points or 0 for i in issues)
+        completed = sum(i.story_points or 0 for i in issues if i.status.lower() == 'done')
+        data.append({
+            'sprint': sprint.name,
+            'planned': planned,
+            'completed': completed
+        })
+    return Response(data)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def sprint_breakdown(request, sprint_id):
+    sprint = Sprint.objects.get(id=sprint_id)
+    issues = Issue.objects.filter(sprint=sprint)
+    # By status
+    status_map = {s.category: s for s in WorkflowStatus.objects.filter(project=sprint.project)}
+    by_status = []
+    for cat, s in status_map.items():
+        count = issues.filter(status=cat).count()
+        by_status.append({'status': s.name, 'count': count, 'color': s.color})
+    # By type
+    types = IssueType.objects.all()
+    by_type = []
+    for t in types:
+        count = issues.filter(issue_type=t).count()
+        by_type.append({'type': t.name, 'count': count, 'color': t.color})
+    return Response({'byStatus': by_status, 'byType': by_type})
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def sprint_team_performance(request, sprint_id):
+    sprint = Sprint.objects.get(id=sprint_id)
+    issues = Issue.objects.filter(sprint=sprint)
+    members = sprint.project.members.all()
+    data = []
+    for member in members:
+        assigned = issues.filter(assignee=member).count()
+        completed = issues.filter(assignee=member, status__iexact='done').count()
+        efficiency = int((completed / assigned) * 100) if assigned else 0
+        data.append({
+            'member': f"{member.first_name} {member.last_name}".strip(),
+            'completed': completed,
+            'assigned': assigned,
+            'efficiency': efficiency
+        })
+    return Response(data)
