@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useProjectStore } from '../stores/projectStore'
 import axios from 'axios'
 
@@ -180,31 +180,60 @@ const drawVelocityChart = () => {
   if (!canvas) return
   
   const ctx = canvas.getContext('2d')
+  
+  // Set canvas size properly
+  canvas.width = canvas.offsetWidth
+  canvas.height = canvas.offsetHeight
+  
   const width = canvas.width
   const height = canvas.height
   
   ctx.clearRect(0, 0, width, height)
   
+  if (!velocityData.value.length) {
+    // Show "No data" message
+    ctx.fillStyle = '#666'
+    ctx.font = '16px Arial'
+    ctx.textAlign = 'center'
+    ctx.fillText('No velocity data available', width / 2, height / 2)
+    return
+  }
+  
   const padding = 40
   const chartWidth = width - 2 * padding
   const chartHeight = height - 2 * padding
-  const barWidth = chartWidth / velocityData.value.length * 0.8
-  const barSpacing = chartWidth / velocityData.value.length * 0.2
+  const barWidth = (chartWidth / velocityData.value.length) * 0.6
+  const barSpacing = (chartWidth / velocityData.value.length) * 0.4
   
   const maxValue = Math.max(...velocityData.value.map(d => Math.max(d.planned, d.completed)))
   const yScale = chartHeight / maxValue
-  console.log('Velocity chart maxValue:', maxValue)
-  console.log('Velocity chart lengh', velocityData.value.length)
-  if (!velocityData.value.length || !isFinite(maxValue) || maxValue <= 0) {
-    console.log('Velocity chart: No data or invalid maxValue', velocityData.value, maxValue)
-    // Optionally show a message in the chart area
-    return
+  
+  // Draw grid lines
+  ctx.strokeStyle = '#e9ecef'
+  ctx.lineWidth = 1
+  
+  // Horizontal grid lines
+  for (let i = 0; i <= 5; i++) {
+    const y = padding + (chartHeight / 5) * i
+    ctx.beginPath()
+    ctx.moveTo(padding, y)
+    ctx.lineTo(width - padding, y)
+    ctx.stroke()
   }
-  console.log('Drawing velocity chart with data:', velocityData.value)
-  console.log('maxValue:', maxValue)
+  
+  // Draw Y-axis labels
+  ctx.fillStyle = '#666'
+  ctx.font = '12px Arial'
+  ctx.textAlign = 'right'
+  for (let i = 0; i <= 5; i++) {
+    const value = Math.round((maxValue / 5) * (5 - i))
+    const y = padding + (chartHeight / 5) * i + 4
+    ctx.fillText(value.toString(), padding - 10, y)
+  }
+  
   // Draw bars
   velocityData.value.forEach((sprint, index) => {
-    const x = padding + (chartWidth / velocityData.value.length) * index + barSpacing / 2
+    const x = padding + (chartWidth / velocityData.value.length) * index + (barSpacing / 2)
     
     // Planned bar (background)
     const plannedHeight = sprint.planned * yScale
@@ -216,16 +245,50 @@ const drawVelocityChart = () => {
     ctx.fillStyle = index === velocityData.value.length - 1 ? '#007bff' : '#28a745'
     ctx.fillRect(x, height - padding - completedHeight, barWidth, completedHeight)
     
-    // Labels
+    // Sprint labels
     ctx.fillStyle = '#333'
-    ctx.font = '10px Arial'
+    ctx.font = '12px Arial'
     ctx.textAlign = 'center'
+    
+    // Draw label rotated
     ctx.save()
-    ctx.translate(x + barWidth / 2, height - 10)
-    ctx.rotate(-Math.PI / 4)
+    ctx.translate(x + barWidth / 2, height - padding + 20)
+    ctx.rotate(-Math.PI / 6) // 30 degrees instead of 45
     ctx.fillText(sprint.sprint.replace('Sprint ', 'S'), 0, 0)
     ctx.restore()
+    
+    // Draw values on bars
+    ctx.fillStyle = '#333'
+    ctx.font = '11px Arial'
+    ctx.textAlign = 'center'
+    
+    // Completed value
+    if (completedHeight > 20) {
+      ctx.fillText(sprint.completed.toString(), x + barWidth / 2, height - padding - completedHeight / 2 + 3)
+    }
+    
+    // Planned value (if different from completed)
+    if (sprint.planned !== sprint.completed && plannedHeight > 20) {
+      ctx.fillStyle = '#666'
+      ctx.fillText(sprint.planned.toString(), x + barWidth / 2, height - padding - plannedHeight + 15)
+    }
   })
+  
+  // Draw axes
+  ctx.strokeStyle = '#333'
+  ctx.lineWidth = 2
+  
+  // Y-axis
+  ctx.beginPath()
+  ctx.moveTo(padding, padding)
+  ctx.lineTo(padding, height - padding)
+  ctx.stroke()
+  
+  // X-axis
+  ctx.beginPath()
+  ctx.moveTo(padding, height - padding)
+  ctx.lineTo(width - padding, height - padding)
+  ctx.stroke()
 }
 
 const fetchSprintInfo = async () => {
@@ -292,63 +355,38 @@ const fetchSprintIssues = async () => {
   console.log('Fetched sprint issues:', sprintIssues.value)
 }
 
-function buildBurndownData(sprint, issues) {
-  if (!sprint || !sprint.start_date || !sprint.end_date) {
-    console.warn("Brak danych sprintu do zbudowania burndowna")
-    return []
-  }
-
-  const days = Math.ceil(
-    (new Date(sprint.end_date) - new Date(sprint.start_date)) / (1000 * 60 * 60 * 24)
-  ) + 1
-
-  const totalPoints = issues.reduce((sum, i) => sum + (i.story_points || 0), 0)
-
-  const burndown = []
-  for (let i = 0; i < days; i++) {
-    const day = new Date(sprint.start_date)
-    day.setDate(day.getDate() + i)
-
-    const donePoints = issues
-      .filter(i => i.status === 'done' && i.resolved_at && new Date(i.resolved_at) <= day)
-      .reduce((sum, i) => sum + (i.story_points || 0), 0)
-
-    burndown.push({
-      date: day.toISOString().slice(0, 10),
-      actual: totalPoints - donePoints
-    })
-  }
-
-  return burndown
-}
-
-
-
 onMounted(async () => {
 
   await fetchSprintInfo()
   await fetchSprintIssues()
-  burndownData.value = buildBurndownData(sprintInfo.value, sprintIssues.value)
   await fetchBurndownData()
   await fetchVelocityData()
   await fetchIssueBreakdown()
   await fetchTeamPerformance()
-})
 
-watch(sprintInfo, async (newVal) => {
-  if (newVal) {
-    await fetchSprintIssues()
-    if (sprintInfo.value && sprintIssues.value.length > 0) {
-      burndownData.value = buildBurndownData(sprintInfo.value, sprintIssues.value)
-    }
-  }
+  window.addEventListener('resize', () => {
+    setTimeout(() => {
+      if (velocityData.value.length > 0) {
+        const velocityCanvas = document.getElementById('velocity-canvas')
+        if (velocityCanvas) {
+          velocityCanvas.width = velocityCanvas.offsetWidth
+          velocityCanvas.height = velocityCanvas.offsetHeight
+          drawVelocityChart()
+        }
+      }
+      
+      if (burndownData.value.length > 0) {
+        drawBurndownChart()
+      }
+    }, 100)
+  })
+  
 })
 
 watch(currentProject, async (newVal) => {
   if (newVal && newVal.id) {
     await fetchSprintInfo()
     await fetchSprintIssues()
-    burndownData.value = buildBurndownData(sprintInfo.value, sprintIssues.value)
     await fetchBurndownData()
     await fetchVelocityData()
     await fetchIssueBreakdown()
@@ -356,22 +394,27 @@ watch(currentProject, async (newVal) => {
   }
 }, { immediate: true })
 
-watch(burndownData, (newVal) => {
-  if (newVal && newVal.length > 0) {
-    drawBurndownChart()
-  }
-})
-
-watch(velocityData, (newVal) => {
-  if (newVal && newVal.length > 0) {
-    const velocityCanvas = document.getElementById('velocity-canvas')
-    if (velocityCanvas) {
-      velocityCanvas.width = velocityCanvas.offsetWidth * 2
-      velocityCanvas.height = velocityCanvas.offsetHeight * 2
-      velocityCanvas.style.width = velocityCanvas.offsetWidth / 2 + 'px'
-      velocityCanvas.style.height = velocityCanvas.offsetHeight / 2 + 'px'
-      drawVelocityChart()
-    }
+watch(selectedReport, (newReport) => {
+  if (newReport === 'velocity') {
+    // Use nextTick to ensure DOM is updated
+    nextTick(() => {
+      setTimeout(() => {
+        const velocityCanvas = document.getElementById('velocity-canvas')
+        if (velocityCanvas && velocityData.value.length > 0) {
+          velocityCanvas.width = velocityCanvas.offsetWidth
+          velocityCanvas.height = velocityCanvas.offsetHeight
+          drawVelocityChart()
+        }
+      }, 50)
+    })
+  } else if (newReport === 'burndown') {
+    nextTick(() => {
+      setTimeout(() => {
+        if (burndownData.value.length > 0) {
+          drawBurndownChart()
+        }
+      }, 50)
+    })
   }
 })
 </script>
@@ -475,7 +518,6 @@ watch(velocityData, (newVal) => {
         </div>
         <div class="chart-container">
           <canvas id="velocity-canvas" width="600" height="400" style="border:1px solid red;"></canvas>
-
         </div>
       </div>
 
@@ -940,6 +982,12 @@ watch(velocityData, (newVal) => {
   font-size: 0.9rem;
   color: #666;
   margin: 0;
+}
+
+#velocity-canvas {
+  width: 100%;
+  height: 400px;
+  border: 1px solid #ddd; /* Optional: for debugging */
 }
 
 @media (max-width: 1200px) {
