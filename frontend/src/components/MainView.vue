@@ -131,10 +131,17 @@ const closeDropdowns = () => {
   showCreateDropdown.value = false
 }
 
+const autoCompleteSprints = async () => {
+  const token = localStorage.getItem('token')
+  axios.defaults.headers.common['Authorization'] = `Token ${token}`
+  await axios.post('/api/sprints/auto-complete/')
+}
+
 onMounted(() => {
   document.addEventListener('click', closeDropdowns)
   fetchCurrentUser()
   projectStore.fetchProjects()
+  autoCompleteSprints()
 })
 </script>
 

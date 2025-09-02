@@ -27,6 +27,9 @@ const selectedIssue = ref(null)
 const showEditIssueModal = ref(false)
 const editIssueData = ref(null)
 
+const showEditSprintModal = ref(false)
+const editSprintData = ref(null)
+
 // New drag state management
 const dragState = ref({
   isDragging: false,
@@ -216,7 +219,19 @@ const createIssue = () => {
 }
 
 const editSprint = (sprintId) => {
-  console.log('Edit sprint:', sprintId)
+  const sprint = sprints.value.find(s => s.id === sprintId)
+  editSprintData.value = sprint
+  showEditSprintModal.value = true
+}
+
+const closeEditSprintModal = () => {
+  showEditSprintModal.value = false
+  editSprintData.value = null
+}
+
+const onSprintEdited = () => {
+  closeEditSprintModal()
+  fetchSprints()
 }
 
 const getIssueTypeIcon = (typeId) => {
@@ -576,7 +591,7 @@ watch(currentProject, () => {
                     {{ issueTypes.find(t => t.id === String(selectedIssue?.issue_type))?.name || '' }}
                   </span>
                   <span class="issue-priority">{{ getPriorityIcon(selectedIssue?.priority) }}</span>
-                  <span class="story-points-full">{{ selectedIssue?.storyPoints ?? 0 }} Story Points</span>
+                  <span class="story-points-full">{{ selectedIssue?.story_points ?? selectedIssue?.storyPoints ?? 0 }} Story Points</span>
                 </div>
               </div>
               <div class="issue-modal-actions">
@@ -607,6 +622,13 @@ watch(currentProject, () => {
         @close="closeEditIssueModal"
         @save="onIssueEdited"
       />
+      <CreateSprintView
+      :showModal="showEditSprintModal"
+      mode="edit"
+      :sprint="editSprintData"
+      @close="closeEditSprintModal"
+      @save="onSprintEdited"
+    />
       </div>
     </div>
   </div>

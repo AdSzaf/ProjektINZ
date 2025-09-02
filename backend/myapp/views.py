@@ -401,3 +401,15 @@ def sprint_team_performance(request, sprint_id):
             'efficiency': efficiency
         })
     return Response(data)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def auto_complete_sprints(request):
+    now = timezone.now()
+    updated = 0
+    sprints = Sprint.objects.filter(status='active', end_date__lt=now)
+    for sprint in sprints:
+        sprint.status = 'completed'
+        sprint.save()
+        updated += 1
+    return Response({'updated': updated})

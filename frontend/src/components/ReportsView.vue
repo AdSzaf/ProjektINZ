@@ -355,6 +355,26 @@ const fetchSprintIssues = async () => {
   console.log('Fetched sprint issues:', sprintIssues.value)
 }
 
+const renderActiveChart = () => {
+  nextTick(() => {
+    setTimeout(() => {
+      if (selectedReport.value === 'burndown' && burndownData.value.length > 0) {
+        const canvas = document.getElementById('burndown-canvas')
+        if (canvas) {
+          drawBurndownChart()
+        }
+      } else if (selectedReport.value === 'velocity' && velocityData.value.length > 0) {
+        const canvas = document.getElementById('velocity-canvas')
+        if (canvas && canvas.offsetWidth > 0) {
+          canvas.width = canvas.offsetWidth
+          canvas.height = canvas.offsetHeight
+          drawVelocityChart()
+        }
+      }
+    }, 10)
+  })
+}
+
 onMounted(async () => {
 
   await fetchSprintInfo()
@@ -363,24 +383,8 @@ onMounted(async () => {
   await fetchVelocityData()
   await fetchIssueBreakdown()
   await fetchTeamPerformance()
-
-  window.addEventListener('resize', () => {
-    setTimeout(() => {
-      if (velocityData.value.length > 0) {
-        const velocityCanvas = document.getElementById('velocity-canvas')
-        if (velocityCanvas) {
-          velocityCanvas.width = velocityCanvas.offsetWidth
-          velocityCanvas.height = velocityCanvas.offsetHeight
-          drawVelocityChart()
-        }
-      }
-      
-      if (burndownData.value.length > 0) {
-        drawBurndownChart()
-      }
-    }, 100)
-  })
   
+  renderActiveChart()
 })
 
 watch(currentProject, async (newVal) => {
@@ -391,30 +395,24 @@ watch(currentProject, async (newVal) => {
     await fetchVelocityData()
     await fetchIssueBreakdown()
     await fetchTeamPerformance()
+
+    renderActiveChart()
   }
 }, { immediate: true })
 
-watch(selectedReport, (newReport) => {
-  if (newReport === 'velocity') {
-    // Use nextTick to ensure DOM is updated
-    nextTick(() => {
-      setTimeout(() => {
-        const velocityCanvas = document.getElementById('velocity-canvas')
-        if (velocityCanvas && velocityData.value.length > 0) {
-          velocityCanvas.width = velocityCanvas.offsetWidth
-          velocityCanvas.height = velocityCanvas.offsetHeight
-          drawVelocityChart()
-        }
-      }, 50)
-    })
-  } else if (newReport === 'burndown') {
-    nextTick(() => {
-      setTimeout(() => {
-        if (burndownData.value.length > 0) {
-          drawBurndownChart()
-        }
-      }, 50)
-    })
+watch(selectedReport, () => {
+   renderActiveChart()
+})
+
+watch(burndownData, (newVal) => {
+  if (newVal && newVal.length > 0 && selectedReport.value === 'burndown') {
+    renderActiveChart()
+  }
+})
+
+watch(velocityData, (newVal) => {
+  if (newVal && newVal.length > 0 && selectedReport.value === 'velocity') {
+    renderActiveChart()
   }
 })
 </script>
@@ -517,7 +515,7 @@ watch(selectedReport, (newReport) => {
           </div>
         </div>
         <div class="chart-container">
-          <canvas id="velocity-canvas" width="600" height="400" style="border:1px solid red;"></canvas>
+          <canvas id="velocity-canvas" width="600" height="400"></canvas>
         </div>
       </div>
 
@@ -614,13 +612,14 @@ watch(selectedReport, (newReport) => {
 <style scoped>
 
 #burndown-canvas {
-  width: 2000px;
-  height: 800px;
+  width: 100%;
+  height: 100%;
 }
 
 .reports-container {
   max-width: 1400px;
   margin: 0 auto;
+  padding-bottom: 2rem;
 }
 
 .reports-header {
@@ -944,6 +943,8 @@ watch(selectedReport, (newReport) => {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 1rem;
+  margin-top: 2rem;
+  margin-bottom: 2rem;
 }
 
 .stat-card {

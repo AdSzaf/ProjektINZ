@@ -16,7 +16,7 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-from myapp.views import (register_user , 
+from myapp.views import (auto_complete_sprints, register_user , 
     login_user , 
     current_user , 
     projects_view , 
@@ -38,7 +38,7 @@ from myapp.views import (register_user ,
     sprint_burndown,
     project_velocity,
     sprint_breakdown,
-    sprint_team_performance
+    sprint_team_performance,
 )
 
 
@@ -68,5 +68,7 @@ urlpatterns = [
     path('api/sprints/<uuid:sprint_id>/burndown/', sprint_burndown, name='sprint_burndown'),
     path('api/projects/<uuid:project_id>/velocity/', project_velocity, name='project_velocity'),
     path('api/sprints/<uuid:sprint_id>/breakdown/', sprint_breakdown, name='sprint_breakdown'),
-    path('api/sprints/<uuid:sprint_id>/team-performance/', sprint_team_performance, name='sprint_team_performance')
+    path('api/sprints/<uuid:sprint_id>/team-performance/', sprint_team_performance, name='sprint_team_performance'),
+
+    path('api/sprints/auto-complete/', auto_complete_sprints, name='auto_complete_sprints'),
 ]

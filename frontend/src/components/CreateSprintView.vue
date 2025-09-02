@@ -1,10 +1,12 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useProjectStore } from '../stores/projectStore'
 import axios from 'axios'
 
 const props = defineProps({
-  showModal: { type: Boolean, default: false }
+  showModal: { type: Boolean, default: false },
+  mode: { type: String, default: 'create' }, // 'create' or 'edit'
+  sprint: { type: Object, default: null }
 })
 const emit = defineEmits(['close', 'save'])
 
@@ -50,26 +52,44 @@ const saveSprint = async () => {
   try {
     const token = localStorage.getItem('token')
     axios.defaults.headers.common['Authorization'] = `Token ${token}`
-    const sprintData = {
-      ...formData.value,
-      project: currentProject.value?.id
+    if (props.mode === 'edit' && props.sprint) {
+      await axios.patch(`/api/sprints/${props.sprint.id}/`, formData.value)
+      emit('save', formData.value)
+      closeModal()
+    } else {
+      const sprintData = {
+        ...formData.value,
+        project: currentProject.value?.id
+      }
+      await axios.post(`/api/projects/${currentProject.value.id}/sprints/`, sprintData)
+      emit('save', sprintData)
+      closeModal()
     }
-    await axios.post(`/api/projects/${currentProject.value.id}/sprints/`, sprintData)
-    emit('save', sprintData)
-    closeModal()
   } catch (error) {
     console.error('Error saving sprint:', error)
   } finally {
     isSubmitting.value = false
   }
 }
+
+watch(() => props.sprint, (newSprint) => {
+  if (props.mode === 'edit' && newSprint) {
+    formData.value = {
+      name: newSprint.name || '',
+      goal: newSprint.goal || '',
+      start_date: newSprint.start_date ? newSprint.start_date.slice(0, 10) : '',
+      end_date: newSprint.end_date ? newSprint.end_date.slice(0, 10) : ''
+    }
+  }
+})
+
 </script>
 
 <template>
   <div v-if="showModal" class="modal-overlay" @click="closeModal">
     <div class="modal-content" @click.stop>
       <div class="modal-header">
-        <h2>Create Sprint</h2>
+        <h2>{{ mode === 'edit' ? 'Edit Sprint' : 'Create Sprint' }}</h2>
         <button class="close-btn" @click="closeModal">×</button>
       </div>
       <form @submit.prevent="saveSprint">
@@ -119,8 +139,8 @@ const saveSprint = async () => {
         <div class="modal-footer">
           <button type="button" class="btn-secondary" @click="closeModal">Cancel</button>
           <button type="submit" class="btn-primary" :disabled="isSubmitting">
-            <span v-if="isSubmitting">Creating...</span>
-            <span v-else>Create Sprint</span>
+            <span v-if="isSubmitting">{{ mode === 'edit' ? 'Saving...' : 'Creating...' }}</span>
+            <span v-else>{{ mode === 'edit' ? 'Save Changes' : 'Create Sprint' }}</span>
           </button>
         </div>
       </form>
