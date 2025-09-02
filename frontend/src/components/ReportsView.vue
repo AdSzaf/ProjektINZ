@@ -193,7 +193,15 @@ const drawVelocityChart = () => {
   
   const maxValue = Math.max(...velocityData.value.map(d => Math.max(d.planned, d.completed)))
   const yScale = chartHeight / maxValue
-  
+  console.log('Velocity chart maxValue:', maxValue)
+  console.log('Velocity chart lengh', velocityData.value.length)
+  if (!velocityData.value.length || !isFinite(maxValue) || maxValue <= 0) {
+    console.log('Velocity chart: No data or invalid maxValue', velocityData.value, maxValue)
+    // Optionally show a message in the chart area
+    return
+  }
+  console.log('Drawing velocity chart with data:', velocityData.value)
+  console.log('maxValue:', maxValue)
   // Draw bars
   velocityData.value.forEach((sprint, index) => {
     const x = padding + (chartWidth / velocityData.value.length) * index + barSpacing / 2
@@ -285,6 +293,11 @@ const fetchSprintIssues = async () => {
 }
 
 function buildBurndownData(sprint, issues) {
+  if (!sprint || !sprint.start_date || !sprint.end_date) {
+    console.warn("Brak danych sprintu do zbudowania burndowna")
+    return []
+  }
+
   const days = Math.ceil(
     (new Date(sprint.end_date) - new Date(sprint.start_date)) / (1000 * 60 * 60 * 24)
   ) + 1
@@ -293,11 +306,9 @@ function buildBurndownData(sprint, issues) {
 
   const burndown = []
   for (let i = 0; i < days; i++) {
-    // Create a new Date object for each day!
     const day = new Date(sprint.start_date)
     day.setDate(day.getDate() + i)
 
-    // Sum points for issues resolved up to and including this day
     const donePoints = issues
       .filter(i => i.status === 'done' && i.resolved_at && new Date(i.resolved_at) <= day)
       .reduce((sum, i) => sum + (i.story_points || 0), 0)
@@ -312,26 +323,8 @@ function buildBurndownData(sprint, issues) {
 }
 
 
+
 onMounted(async () => {
-  // Set canvas sizes
-  const burndownCanvas = document.getElementById('burndown-canvas')
-  const velocityCanvas = document.getElementById('velocity-canvas')
-  
-  if (burndownCanvas) {
-    burndownCanvas.width = burndownCanvas.offsetWidth * 2
-    burndownCanvas.height = burndownCanvas.offsetHeight * 2
-    burndownCanvas.style.width = burndownCanvas.offsetWidth / 2 + 'px'
-    burndownCanvas.style.height = burndownCanvas.offsetHeight / 2 + 'px'
-    drawBurndownChart()
-  }
-  
-  if (velocityCanvas) {
-    velocityCanvas.width = velocityCanvas.offsetWidth * 2
-    velocityCanvas.height = velocityCanvas.offsetHeight * 2
-    velocityCanvas.style.width = velocityCanvas.offsetWidth / 2 + 'px'
-    velocityCanvas.style.height = velocityCanvas.offsetHeight / 2 + 'px'
-    drawVelocityChart()
-  }
 
   await fetchSprintInfo()
   await fetchSprintIssues()
@@ -345,6 +338,9 @@ onMounted(async () => {
 watch(sprintInfo, async (newVal) => {
   if (newVal) {
     await fetchSprintIssues()
+    if (sprintInfo.value && sprintIssues.value.length > 0) {
+      burndownData.value = buildBurndownData(sprintInfo.value, sprintIssues.value)
+    }
   }
 })
 
@@ -363,6 +359,19 @@ watch(currentProject, async (newVal) => {
 watch(burndownData, (newVal) => {
   if (newVal && newVal.length > 0) {
     drawBurndownChart()
+  }
+})
+
+watch(velocityData, (newVal) => {
+  if (newVal && newVal.length > 0) {
+    const velocityCanvas = document.getElementById('velocity-canvas')
+    if (velocityCanvas) {
+      velocityCanvas.width = velocityCanvas.offsetWidth * 2
+      velocityCanvas.height = velocityCanvas.offsetHeight * 2
+      velocityCanvas.style.width = velocityCanvas.offsetWidth / 2 + 'px'
+      velocityCanvas.style.height = velocityCanvas.offsetHeight / 2 + 'px'
+      drawVelocityChart()
+    }
   }
 })
 </script>
@@ -465,7 +474,8 @@ watch(burndownData, (newVal) => {
           </div>
         </div>
         <div class="chart-container">
-          <canvas id="velocity-canvas" width="800" height="400"></canvas>
+          <canvas id="velocity-canvas" width="600" height="400" style="border:1px solid red;"></canvas>
+
         </div>
       </div>
 
@@ -1083,5 +1093,4 @@ watch(burndownData, (newVal) => {
   #velocity-canvas {
     filter: invert(0.9) hue-rotate(180deg);
   }
-}
-</style>
+}</style>
