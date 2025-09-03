@@ -1,6 +1,7 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useProjectStore } from '../stores/projectStore'
+import axios from 'axios'
 
 // UI State
 const viewMode = ref('grid') // 'grid' or 'list'
@@ -32,225 +33,7 @@ const statusOptions = [
   { value: 'offline', label: 'Offline' }
 ]
 
-// Team members data
-const teamMembers = ref([
-  {
-    id: 1,
-    name: 'Alice Johnson',
-    email: 'alice.johnson@company.com',
-    avatar: 'AJ',
-    role: 'product-manager',
-    roleDisplay: 'Product Manager',
-    status: 'active',
-    location: 'San Francisco, CA',
-    timezone: 'PST',
-    joinDate: '2023-01-15',
-    assignedIssues: 12,
-    completedIssues: 47,
-    currentSprint: 8,
-    workload: 85,
-    skills: ['Product Strategy', 'User Research', 'Roadmapping', 'Agile'],
-    bio: 'Experienced Product Manager with a passion for user-centered design and data-driven decisions.',
-    recentActivity: [
-      { action: 'Created epic', item: 'User Authentication Overhaul', time: '2 hours ago' },
-      { action: 'Updated story', item: 'AP-234: Login flow improvements', time: '5 hours ago' }
-    ],
-    socialLinks: {
-      linkedin: 'https://linkedin.com/in/alicejohnson',
-      github: null,
-      twitter: '@alice_pm'
-    }
-  },
-  {
-    id: 2,
-    name: 'Bob Smith',
-    email: 'bob.smith@company.com',
-    avatar: 'BS',
-    role: 'developer',
-    roleDisplay: 'Senior Developer',
-    status: 'busy',
-    location: 'New York, NY',
-    timezone: 'EST',
-    joinDate: '2022-08-20',
-    assignedIssues: 15,
-    completedIssues: 89,
-    currentSprint: 15,
-    workload: 95,
-    skills: ['React', 'Node.js', 'Python', 'AWS', 'Docker'],
-    bio: 'Full-stack developer specializing in modern web technologies and cloud architecture.',
-    recentActivity: [
-      { action: 'Completed task', item: 'AP-156: API optimization', time: '1 hour ago' },
-      { action: 'Code review', item: 'AP-167: User dashboard', time: '3 hours ago' }
-    ],
-    socialLinks: {
-      linkedin: 'https://linkedin.com/in/bobsmith',
-      github: 'https://github.com/bobsmith',
-      twitter: null
-    }
-  },
-  {
-    id: 3,
-    name: 'Charlie Brown',
-    email: 'charlie.brown@company.com',
-    avatar: 'CB',
-    role: 'designer',
-    roleDisplay: 'UX Designer',
-    status: 'active',
-    location: 'Austin, TX',
-    timezone: 'CST',
-    joinDate: '2023-03-10',
-    assignedIssues: 8,
-    completedIssues: 32,
-    currentSprint: 6,
-    workload: 70,
-    skills: ['Figma', 'Adobe XD', 'User Research', 'Prototyping', 'Design Systems'],
-    bio: 'Creative UX designer focused on creating intuitive and accessible user experiences.',
-    recentActivity: [
-      { action: 'Updated design', item: 'Mobile app wireframes', time: '4 hours ago' },
-      { action: 'Created mockup', item: 'Dashboard redesign v2', time: '1 day ago' }
-    ],
-    socialLinks: {
-      linkedin: 'https://linkedin.com/in/charliebrown',
-      github: null,
-      twitter: '@charlie_ux'
-    }
-  },
-  {
-    id: 4,
-    name: 'Diana Wilson',
-    email: 'diana.wilson@company.com',
-    avatar: 'DW',
-    role: 'qa',
-    roleDisplay: 'QA Engineer',
-    status: 'active',
-    location: 'Seattle, WA',
-    timezone: 'PST',
-    joinDate: '2022-11-05',
-    assignedIssues: 10,
-    completedIssues: 65,
-    currentSprint: 9,
-    workload: 80,
-    skills: ['Test Automation', 'Selenium', 'Jest', 'Cypress', 'Manual Testing'],
-    bio: 'Quality assurance engineer ensuring robust and reliable software delivery.',
-    recentActivity: [
-      { action: 'Reported bug', item: 'AP-189: Login validation error', time: '3 hours ago' },
-      { action: 'Completed testing', item: 'User registration flow', time: '6 hours ago' }
-    ],
-    socialLinks: {
-      linkedin: 'https://linkedin.com/in/dianawilson',
-      github: 'https://github.com/dianaw',
-      twitter: null
-    }
-  },
-  {
-    id: 5,
-    name: 'Ethan Garcia',
-    email: 'ethan.garcia@company.com',
-    avatar: 'EG',
-    role: 'developer',
-    roleDisplay: 'Frontend Developer',
-    status: 'away',
-    location: 'Denver, CO',
-    timezone: 'MST',
-    joinDate: '2023-05-12',
-    assignedIssues: 11,
-    completedIssues: 28,
-    currentSprint: 7,
-    workload: 75,
-    skills: ['Vue.js', 'TypeScript', 'CSS', 'JavaScript', 'Webpack'],
-    bio: 'Frontend specialist passionate about creating beautiful and performant user interfaces.',
-    recentActivity: [
-      { action: 'Pushed commit', item: 'Component refactoring', time: '2 days ago' },
-      { action: 'Updated story', item: 'AP-201: Navigation improvements', time: '2 days ago' }
-    ],
-    socialLinks: {
-      linkedin: 'https://linkedin.com/in/ethangarcia',
-      github: 'https://github.com/ethandev',
-      twitter: '@ethan_codes'
-    }
-  },
-  {
-    id: 6,
-    name: 'Fiona Lee',
-    email: 'fiona.lee@company.com',
-    avatar: 'FL',
-    role: 'devops',
-    roleDisplay: 'DevOps Engineer',
-    status: 'active',
-    location: 'Remote',
-    timezone: 'PST',
-    joinDate: '2022-06-18',
-    assignedIssues: 6,
-    completedIssues: 41,
-    currentSprint: 5,
-    workload: 60,
-    skills: ['Kubernetes', 'AWS', 'Docker', 'Terraform', 'CI/CD'],
-    bio: 'DevOps engineer focused on automation, scalability, and reliable infrastructure.',
-    recentActivity: [
-      { action: 'Deployed', item: 'Production hotfix v2.1.3', time: '1 hour ago' },
-      { action: 'Updated pipeline', item: 'CI/CD optimization', time: '8 hours ago' }
-    ],
-    socialLinks: {
-      linkedin: 'https://linkedin.com/in/fionalee',
-      github: 'https://github.com/fionalee',
-      twitter: null
-    }
-  },
-  {
-    id: 7,
-    name: 'George Kim',
-    email: 'george.kim@company.com',
-    avatar: 'GK',
-    role: 'admin',
-    roleDisplay: 'Team Lead',
-    status: 'busy',
-    location: 'Los Angeles, CA',
-    timezone: 'PST',
-    joinDate: '2021-12-01',
-    assignedIssues: 5,
-    completedIssues: 156,
-    currentSprint: 3,
-    workload: 90,
-    skills: ['Leadership', 'Architecture', 'Mentoring', 'Strategy', 'Full-Stack'],
-    bio: 'Technical team lead with extensive experience in software architecture and team management.',
-    recentActivity: [
-      { action: 'Approved PR', item: 'Security enhancement patch', time: '30 minutes ago' },
-      { action: 'Sprint planning', item: 'Sprint 24 planning session', time: '2 hours ago' }
-    ],
-    socialLinks: {
-      linkedin: 'https://linkedin.com/in/georgekim',
-      github: 'https://github.com/georgekim',
-      twitter: '@george_lead'
-    }
-  },
-  {
-    id: 8,
-    name: 'Hannah Davis',
-    email: 'hannah.davis@company.com',
-    avatar: 'HD',
-    role: 'developer',
-    roleDisplay: 'Backend Developer',
-    status: 'offline',
-    location: 'Chicago, IL',
-    timezone: 'CST',
-    joinDate: '2023-02-28',
-    assignedIssues: 13,
-    completedIssues: 34,
-    currentSprint: 8,
-    workload: 85,
-    skills: ['Java', 'Spring Boot', 'PostgreSQL', 'Redis', 'Microservices'],
-    bio: 'Backend developer specializing in scalable systems and database optimization.',
-    recentActivity: [
-      { action: 'Fixed bug', item: 'AP-178: Database connection pool', time: '1 day ago' },
-      { action: 'Code review', item: 'API performance improvements', time: '1 day ago' }
-    ],
-    socialLinks: {
-      linkedin: 'https://linkedin.com/in/hannahdavis',
-      github: 'https://github.com/hannahdev',
-      twitter: null
-    }
-  }
-])
+const teamMembers = ref([])
 
 // Invite form data
 const inviteForm = ref({
@@ -340,6 +123,44 @@ const closeModals = (event) => {
     showInviteModal.value = false
   }
 }
+
+
+const fetchTeamMembers = async () => {
+  if (!currentProject.value?.id) return
+  const token = localStorage.getItem('token')
+  axios.defaults.headers.common['Authorization'] = `Token ${token}`
+  const res = await axios.get(`/api/projects/${currentProject.value.id}/users/`)
+  // Map backend data to frontend format if needed
+  teamMembers.value = res.data.map(u => ({
+    id: u.id,
+    name: u.name || `${u.first_name} ${u.last_name}`,
+    email: u.email,
+    avatar: (u.first_name?.[0] || '') + (u.last_name?.[0] || ''),
+    role: u.role || 'developer',
+    roleDisplay: u.role ? u.role.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Developer',
+    status: 'active', // You may want to add a real status field later
+    location: u.location || '',
+    timezone: u.timezone || '',
+    joinDate: u.joined_at || '',
+    assignedIssues: u.assigned_issues || 0,
+    completedIssues: u.completed_issues || 0,
+    currentSprint: u.current_sprint || '',
+    workload: u.workload || 0,
+    skills: u.skills || [],
+    bio: u.bio || '',
+    recentActivity: u.recent_activity || [],
+    socialLinks: u.social_links || {}
+  }))
+  console.log('Fetched team members:', teamMembers.value)
+}
+
+onMounted(() => {
+  fetchTeamMembers()
+})
+
+watch(currentProject, (newVal) => {
+  if (newVal?.id) fetchTeamMembers()
+})
 </script>
 
 <template>
@@ -1494,6 +1315,311 @@ const closeModals = (event) => {
   
   .form-actions {
     flex-direction: column;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  /* Main container and background elements */
+  .team-members-container,
+  .team-header,
+  .team-stats,
+  .team-controls,
+  .members-container,
+  .stat-card,
+  .member-card,
+  .search-filters,
+  .modal-overlay,
+  .modal-content,
+  .member-modal,
+  .invite-modal,
+  .member-details-content,
+  .stats-card,
+  .skills-card,
+  .recent-activity-card,
+  .invite-form,
+  .activity-item,
+  .member-profile,
+  .profile-left,
+  .profile-right {
+    background: #181a1b !important;
+    color: #f3f3f3 !important;
+    border-color: #333 !important;
+  }
+
+  /* Headers and text elements */
+  .header-content h1,
+  .team-description,
+  .stat-number,
+  .stat-label,
+  .member-name,
+  .member-role,
+  .member-location,
+  .workload-label,
+  .workload-percentage,
+  .contact-email,
+  .contact-timezone,
+  .list-stat,
+  .modal-header h2,
+  .profile-role,
+  .profile-bio,
+  .detail-item,
+  .detail-item strong,
+  .stats-card h4,
+  .skills-card h4,
+  .recent-activity-card h4,
+  .stat-row,
+  .activity-action,
+  .activity-item-name,
+  .activity-time,
+  .form-group label,
+  .stat-item .stat-number,
+  .stat-item .stat-label {
+    color: #f3f3f3 !important;
+  }
+
+  /* Profile name in modal */
+  .profile-right h3 {
+    color: #f3f3f3 !important;
+  }
+
+  /* Input elements and form controls */
+  .search-input,
+  .filter-select,
+  .form-input,
+  .form-select,
+  .form-textarea {
+    background: #232526 !important;
+    color: #f3f3f3 !important;
+    border-color: #444 !important;
+  }
+
+  .search-input:focus,
+  .filter-select:focus,
+  .form-input:focus,
+  .form-select:focus,
+  .form-textarea:focus {
+    border-color: #0056b3 !important;
+  }
+
+  .search-input::placeholder,
+  .form-input::placeholder,
+  .form-textarea::placeholder {
+    color: #aaa !important;
+  }
+
+  /* Buttons */
+  .invite-btn,
+  .send-btn {
+    background: #0056b3 !important;
+    color: #fff !important;
+    border-color: #0056b3 !important;
+  }
+
+  .invite-btn:hover,
+  .send-btn:hover:not(:disabled) {
+    background: #004494 !important;
+  }
+
+  .view-btn {
+    background: #232526 !important;
+    color: #f3f3f3 !important;
+    border-color: #444 !important;
+  }
+
+  .view-btn:hover {
+    background: #2a2d2e !important;
+  }
+
+  .view-btn.active {
+    background: #0056b3 !important;
+    color: #fff !important;
+    border-color: #0056b3 !important;
+  }
+
+  .cancel-btn {
+    background: #232526 !important;
+    color: #f3f3f3 !important;
+    border-color: #444 !important;
+  }
+
+  .cancel-btn:hover {
+    background: #2a2d2e !important;
+  }
+
+  .close-btn {
+    color: #f3f3f3 !important;
+  }
+
+  .close-btn:hover {
+    background: #2a2d2e !important;
+  }
+
+  /* Special colored elements */
+  .member-role,
+  .profile-role,
+  .contact-email,
+  .stat-value {
+    color: #4ea1ff !important;
+  }
+
+  .stat-number {
+    color: #4ea1ff !important;
+  }
+
+  /* Card hover effects */
+  .member-card:hover {
+    background: #232526 !important;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3) !important;
+  }
+
+  .stat-card:hover {
+    background: #232526 !important;
+  }
+
+  /* Skill tags and badges */
+  .skill-tag {
+    background: #232526 !important;
+    color: #f3f3f3 !important;
+    border-color: #444 !important;
+  }
+
+  .skill-tag.more {
+    background: #0056b3 !important;
+    color: #fff !important;
+    border-color: #0056b3 !important;
+  }
+
+  .skill-badge {
+    background: #232526 !important;
+    color: #f3f3f3 !important;
+    border-color: #444 !important;
+  }
+
+  /* Progress bars and workload elements */
+  .workload-bar {
+    background: #232526 !important;
+  }
+
+  .workload-fill {
+    /* Keep original workload colors for visibility */
+  }
+
+  /* Status indicators and avatars */
+  .member-avatar,
+  .large-avatar {
+    background: #0056b3 !important;
+    color: #fff !important;
+  }
+
+  /* Modal overlay */
+  .modal-overlay {
+    background: rgba(0, 0, 0, 0.7) !important;
+  }
+
+  /* Border separators */
+  .member-list-details {
+    border-top-color: #333 !important;
+  }
+
+  .modal-header {
+    border-bottom-color: #333 !important;
+  }
+
+  /* Icon backgrounds */
+  .stat-icon {
+    background: #232526 !important;
+    color: #f3f3f3 !important;
+  }
+
+  /* Search icon */
+  .search-icon {
+    color: #aaa !important;
+  }
+
+  /* Social links */
+  .social-link {
+    color: #4ea1ff !important;
+    border-color: #4ea1ff !important;
+  }
+
+  .social-link:hover {
+    background: #4ea1ff !important;
+    color: #fff !important;
+  }
+
+  /* Disabled states */
+  .send-btn:disabled {
+    background: #444 !important;
+    border-color: #444 !important;
+    color: #888 !important;
+  }
+
+  /* Card sections with different backgrounds */
+  .stats-card,
+  .skills-card,
+  .recent-activity-card {
+    background: #232526 !important;
+  }
+
+  .activity-item {
+    background: #2a2d2e !important;
+    border-color: #444 !important;
+  }
+
+  /* List view specific elements */
+  .list-stats .list-stat {
+    color: #aaa !important;
+  }
+
+  /* Empty states and secondary text */
+  .team-description,
+  .member-location,
+  .activity-time,
+  .contact-timezone {
+    color: #aaa !important;
+  }
+
+  /* Member stats in grid view */
+  .member-stats .stat-item .stat-number {
+    color: #4ea1ff !important;
+  }
+
+  .member-stats .stat-item .stat-label {
+    color: #aaa !important;
+  }
+
+  /* Workload percentage colors - preserve original logic but ensure visibility */
+  .workload-percentage[style*="color: #dc3545"] {
+    color: #ff6b6b !important;
+  }
+
+  .workload-percentage[style*="color: #ffc107"] {
+    color: #ffd93d !important;
+  }
+
+  .workload-percentage[style*="color: #007bff"] {
+    color: #4ea1ff !important;
+  }
+
+  .workload-percentage[style*="color: #28a745"] {
+    color: #51cf66 !important;
+  }
+
+  /* Stat value colors - preserve workload color logic */
+  .stat-value[style*="color: #dc3545"] {
+    color: #ff6b6b !important;
+  }
+
+  .stat-value[style*="color: #ffc107"] {
+    color: #ffd93d !important;
+  }
+
+  .stat-value[style*="color: #007bff"] {
+    color: #4ea1ff !important;
+  }
+
+  .stat-value[style*="color: #28a745"] {
+    color: #51cf66 !important;
   }
 }
 </style>

@@ -141,11 +141,42 @@ def project_sprints(request, project_id):
 def project_users(request, project_id):
     project = Project.objects.get(id=project_id)
     users = project.members.all()
-    print(f"Project {project_id} members: {[str(u) for u in users]}")
-    data = [
-        {'id': str(u.id), 'name': f"{u.first_name} {u.last_name}", 'email': u.email}
-        for u in users
-    ]
+    issues = Issue.objects.filter(project=project)
+    sprints = Sprint.objects.filter(project=project, status='active')
+    active_sprint = sprints.first() if sprints.exists() else None
+
+    data = []
+    for u in users:
+        assigned_issues = issues.filter(assignee=u).count()
+        completed_issues = issues.filter(assignee=u, status__iexact='done').count()
+        # Workload: percent of assigned issues that are not done
+        workload = 0
+        if assigned_issues:
+            open_issues = issues.filter(assignee=u).exclude(status__iexact='done').count()
+            workload = int((open_issues / assigned_issues) * 100)
+        # Current sprint: count of issues assigned in active sprint
+        current_sprint_issues = 0
+        if active_sprint:
+            current_sprint_issues = issues.filter(assignee=u, sprint=active_sprint).count()
+        data.append({
+            'id': str(u.id),
+            'name': f"{u.first_name} {u.last_name}",
+            'email': u.email,
+            'first_name': u.first_name,
+            'last_name': u.last_name,
+            'role': u.role,
+            'location': '',  # Add if you have this field
+            'timezone': '',  # Add if you have this field
+            'joined_at': '', # Add if you have this field
+            'assigned_issues': assigned_issues,
+            'completed_issues': completed_issues,
+            'workload': workload,
+            'current_sprint': current_sprint_issues,
+            'skills': [],    # Add if you have this field
+            'bio': '',       # Add if you have this field
+            'recent_activity': [], # Add if you want to implement
+            'social_links': {},    # Add if you want to implement
+        })
     return Response(data)
 
 @api_view(['GET'])
