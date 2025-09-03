@@ -51,6 +51,31 @@ const draggedIssue = ref(null)
 const showIssueModal = ref(false)
 const selectedIssue = ref(null)
 
+// Filters
+const currentUserId = ref('')
+const currentUserEmail = ref('')
+const selectedSprint = ref('all')
+const assignmentOrType = ref('all') // 'all' | 'unassigned' | 'assigned_me' | `type:${typeId}`
+
+const sprintOptions = computed(() => {
+  const opts = [{ value: 'all', label: 'All sprints' }]
+  const sorted = [...sprints.value].sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+  sorted.forEach(s => opts.push({ value: String(s.id), label: s.name }))
+  return opts
+})
+
+const assignmentTypeOptions = computed(() => {
+  const base = [
+    { value: 'all', label: 'All issues' },
+    { value: 'unassigned', label: 'Unassigned issues' },
+    { value: 'assigned_me', label: 'Assigned to me' },
+  ]
+  const types = [...issueTypes.value]
+    .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+    .map(t => ({ value: `type:${String(t.id)}`, label: `Type: ${t.name}` }))
+  return [...base, ...types]
+})
+
 // Computed properties
 const statusMap = {
   to_do: 'todo',
@@ -58,8 +83,31 @@ const statusMap = {
   done: 'done'
 }
 
+const filteredIssues = computed(() => {
+  return issues.value.filter(issue => {
+    // Sprint filter
+    if (selectedSprint.value !== 'all') {
+      if (!issue.sprint || String(issue.sprint) !== String(selectedSprint.value)) {
+        return false
+      }
+    }
+    // Assignment/type filter
+    if (assignmentOrType.value === 'unassigned') {
+      if (issue.assignee) return false
+    } else if (assignmentOrType.value === 'assigned_me') {
+      // Match by id if we have it; otherwise match by email if present on cached user
+      if (!currentUserId.value) return false
+      if (String(issue.assignee) !== String(currentUserId.value)) return false
+    } else if (assignmentOrType.value.startsWith('type:')) {
+      const typeId = assignmentOrType.value.split(':')[1]
+      if (String(issue.issue_type) !== String(typeId)) return false
+    }
+    return true
+  })
+})
+
 const getIssuesByStatus = (category) => {
-  return issues.value.filter(issue => issue.status === category)
+  return filteredIssues.value.filter(issue => issue.status === category)
 }
 
 const getTotalPoints = (status) => {
@@ -78,6 +126,17 @@ const fetchIssueTypes = async () => {
   const res = await axios.get('/api/issue-types/')
   issueTypes.value = res.data
   console.log('Fetched issue types:', issueTypes.value) 
+}
+
+const fetchSprintsList = async () => {
+  if (!currentProject.value?.id) {
+    sprints.value = []
+    return
+  }
+  const token = localStorage.getItem('token')
+  axios.defaults.headers.common['Authorization'] = `Token ${token}`
+  const res = await axios.get(`/api/projects/${currentProject.value.id}/sprints/`)
+  sprints.value = res.data
 }
 
 // Methods
@@ -212,6 +271,11 @@ const fetchUsers = async () => {
   axios.defaults.headers.common['Authorization'] = `Token ${token}`
   const res = await axios.get(`/api/projects/${currentProject.value.id}/users/`)
   users.value = res.data
+  // Try to resolve currentUserId via email if not set
+  if (!currentUserId.value && currentUserEmail.value) {
+    const me = users.value.find(u => u.email === currentUserEmail.value)
+    if (me) currentUserId.value = me.id
+  }
 }
 
 const fetchUserShort = async (userId) => {
@@ -229,12 +293,29 @@ onMounted(() => {
   fetchIssues()
   fetchUsers()
   fetchIssueTypes()
+  fetchSprintsList()
+  // current user id
+  const token = localStorage.getItem('token')
+  if (token) {
+    axios.defaults.headers.common['Authorization'] = `Token ${token}`
+    axios.get('/api/me/').then(r => {
+      // /api/me does not include id in serializer; use email
+      currentUserId.value = r.data.id || ''
+      currentUserEmail.value = r.data.email || ''
+      // If users list loaded, map email -> id
+      if (!currentUserId.value && users.value.length) {
+        const me = users.value.find(u => u.email === currentUserEmail.value)
+        if (me) currentUserId.value = me.id
+      }
+    }).catch(() => {})
+  }
 })
 watch(currentProject, () => {
   fetchColumns()
   fetchIssues()
   fetchUsers()
   fetchIssueTypes()
+  fetchSprintsList()
 })
 </script>
 
@@ -242,9 +323,17 @@ watch(currentProject, () => {
   <div class="dashboard-container">
     <!-- Header -->
     <div class="dashboard-header">
-      <div>
+      <div class="header-left">
         <h1>Sprint Board</h1>
         <p class="dashboard-subtitle">Drag and drop issues to update their status</p>
+        <div class="filters-row">
+          <select v-model="selectedSprint" class="filter-select">
+            <option v-for="opt in sprintOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+          </select>
+          <select v-model="assignmentOrType" class="filter-select">
+            <option v-for="opt in assignmentTypeOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+          </select>
+        </div>
       </div>
       
       <button class="add-column-btn" @click="showAddColumn = true">
@@ -433,6 +522,12 @@ watch(currentProject, () => {
   margin-bottom: 2rem;
 }
 
+.header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
 .dashboard-header h1 {
   margin: 0 0 0.5rem 0;
   color: #333;
@@ -441,6 +536,20 @@ watch(currentProject, () => {
 .dashboard-subtitle {
   color: #666;
   margin: 0;
+}
+
+.filters-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.filter-select {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: white;
+  color: #333;
 }
 
 .add-column-btn {
@@ -802,6 +911,11 @@ watch(currentProject, () => {
   .dashboard-container {
     background: #181a1b !important;
     color: #f3f3f3 !important;
+  }
+  .filter-select {
+    background: #232526 !important;
+    color: #f3f3f3 !important;
+    border-color: #444 !important;
   }
   
   .dashboard-header h1,
