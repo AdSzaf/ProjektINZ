@@ -15,6 +15,31 @@ from .serializers import (RegisterSerializer
                           , EpicCreateSerializer
                           , SprintSerializer
                           , IssueSerializer)
+# In-memory status store (no DB changes). Keys: project_id -> { user_id -> { 'status': str, 'updated_at': datetime } }
+ALLOWED_MEMBER_STATUSES = {'active', 'busy', 'away', 'offline'}
+MEMBER_STATUS_STORE = {}
+
+def _get_member_status(project_id, user_id, default='active'):
+    project_map = MEMBER_STATUS_STORE.get(str(project_id))
+    if not project_map:
+        return default
+    data = project_map.get(str(user_id))
+    if not data:
+        return default
+    status_value = data.get('status')
+    return status_value if status_value in ALLOWED_MEMBER_STATUSES else default
+
+def _set_member_status(project_id, user_id, status_value):
+    if status_value not in ALLOWED_MEMBER_STATUSES:
+        raise ValueError('Invalid status')
+    key = str(project_id)
+    if key not in MEMBER_STATUS_STORE:
+        MEMBER_STATUS_STORE[key] = {}
+    MEMBER_STATUS_STORE[key][str(user_id)] = {
+        'status': status_value,
+        'updated_at': timezone.now()
+    }
+
 
 
 @api_view(['POST'])
@@ -165,6 +190,7 @@ def project_users(request, project_id):
             'first_name': u.first_name,
             'last_name': u.last_name,
             'role': u.role,
+            'status': _get_member_status(project_id, u.id, default='active'),
             'location': '',  # Add if you have this field
             'timezone': '',  # Add if you have this field
             'joined_at': '', # Add if you have this field
@@ -178,6 +204,111 @@ def project_users(request, project_id):
             'social_links': {},    # Add if you want to implement
         })
     return Response(data)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def project_member_statuses(request, project_id):
+    # Return map of user_id -> status for given project
+    try:
+        Project.objects.get(id=project_id)
+    except Project.DoesNotExist:
+        return Response({'detail': 'Project not found.'}, status=status.HTTP_404_NOT_FOUND)
+    project_map = MEMBER_STATUS_STORE.get(str(project_id), {})
+    # Only include users that are members of the project
+    members = Project.objects.get(id=project_id).members.values_list('id', flat=True)
+    result = {}
+    for uid in members:
+        result[str(uid)] = _get_member_status(project_id, uid, default='active')
+    return Response(result)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def set_project_member_status(request, project_id, user_id):
+    # Allow setting status for a member; simple for localhost projects
+    status_value = (request.data.get('status') or '').strip().lower()
+    if status_value not in ALLOWED_MEMBER_STATUSES:
+        return Response({'detail': 'Invalid status.'}, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        project = Project.objects.get(id=project_id)
+    except Project.DoesNotExist:
+        return Response({'detail': 'Project not found.'}, status=status.HTTP_404_NOT_FOUND)
+    try:
+        user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        return Response({'detail': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
+    # Only allow users to update their own status
+    if str(request.user.id) != str(user.id):
+        return Response({'detail': 'You can only update your own status.'}, status=status.HTTP_403_FORBIDDEN)
+    # Ensure the user is a project member
+    if not project.members.filter(id=user.id).exists():
+        return Response({'detail': 'User is not a member of this project.'}, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        _set_member_status(project_id, user_id, status_value)
+    except ValueError:
+        return Response({'detail': 'Invalid status.'}, status=status.HTTP_400_BAD_REQUEST)
+    return Response({'detail': 'Status updated.', 'user': str(user_id), 'status': status_value})
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def project_invite(request, project_id):
+    """Invite/add an existing user (by email) to the project immediately.
+    Does not change models or handle email workflows. If the user exists, they are added.
+    """
+    email = request.data.get('email')
+    role = (request.data.get('role') or 'developer').strip().lower()
+    if not email:
+        return Response({'detail': 'Email is required.'}, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        project = Project.objects.get(id=project_id)
+    except Project.DoesNotExist:
+        return Response({'detail': 'Project not found.'}, status=status.HTTP_404_NOT_FOUND)
+    try:
+        user = User.objects.get(email__iexact=email)
+    except User.DoesNotExist:
+        return Response({'detail': 'User with this email was not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    # Map incoming roles to ProjectMembership choices
+    role_map = {
+        'product-manager': 'product_owner',
+        'product_manager': 'product_owner',
+        'product owner': 'product_owner',
+        'scrum-master': 'scrum_master',
+        'scrum_master': 'scrum_master',
+        'qa': 'tester',
+        'tester': 'tester',
+        'designer': 'designer',
+        'developer': 'developer',
+        # Fallback mappings
+        'devops': 'developer',
+        'admin': 'developer',
+    }
+    membership_role = role_map.get(role, 'developer')
+
+    from .models import ProjectMembership
+    membership, created = ProjectMembership.objects.get_or_create(
+        user=user,
+        project=project,
+        defaults={'role': membership_role}
+    )
+
+    # If already exists and a different valid role provided, update it
+    if not created and membership.role != membership_role and membership_role in {
+        'product_owner', 'scrum_master', 'developer', 'designer', 'tester'
+    }:
+        membership.role = membership_role
+        membership.save()
+
+    return Response({
+        'detail': 'Member added to project.' if created else 'Member already in project. Role updated.' if membership.role == membership_role else 'Member already in project.',
+        'added': created,
+        'user': {
+            'id': str(user.id),
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'email': user.email,
+        },
+        'role': membership.role,
+    }, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])

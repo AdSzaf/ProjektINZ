@@ -13,6 +13,20 @@ const showMemberDetails = ref(false)
 const selectedMember = ref(null)
 const projectStore = useProjectStore()
 const currentProject = computed(() => projectStore.selectedProject)
+const currentUserId = ref('')
+const currentUserEmail = ref('')
+
+// Invite request state
+const isInviting = ref(false)
+const inviteError = ref('')
+const inviteSuccess = ref('')
+
+// Member status update state
+const tempStatus = ref('active')
+const isUpdatingStatus = ref(false)
+const statusError = ref('')
+const statusSuccess = ref('')
+const showStatusModal = ref(false)
 
 // Filter options
 const roleOptions = [
@@ -69,9 +83,9 @@ const teamStats = computed(() => {
 const getStatusColor = (status) => {
   const colors = {
     active: '#28a745',
-    busy: '#ffc107',
-    away: '#6c757d',
-    offline: '#dc3545'
+    busy: '#dc3545',
+    away:  '#ffc107',
+    offline: '#6c757d'
   }
   return colors[status] || '#6c757d'
 }
@@ -86,6 +100,9 @@ const getWorkloadColor = (workload) => {
 const openMemberDetails = (member) => {
   selectedMember.value = member
   showMemberDetails.value = true
+  tempStatus.value = member.status || 'active'
+  statusError.value = ''
+  statusSuccess.value = ''
 }
 
 const closeMemberDetails = () => {
@@ -93,19 +110,102 @@ const closeMemberDetails = () => {
   selectedMember.value = null
 }
 
+const openStatusModal = (member) => {
+  // Only allow opening for your own card (match by id or email)
+  const isSelf = (currentUserId.value && member.id === currentUserId.value) ||
+                 (currentUserEmail.value && member.email === currentUserEmail.value)
+  if (!isSelf) return
+  tempStatus.value = member.status || 'active'
+  selectedMember.value = member
+  statusError.value = ''
+  statusSuccess.value = ''
+  showStatusModal.value = true
+}
+
+const closeStatusModal = () => {
+  showStatusModal.value = false
+}
+
 const openInviteModal = () => {
   showInviteModal.value = true
+  inviteError.value = ''
+  inviteSuccess.value = ''
 }
 
 const closeInviteModal = () => {
   showInviteModal.value = false
   inviteForm.value = { email: '', role: 'developer', message: '' }
+  isInviting.value = false
+  inviteError.value = ''
+  inviteSuccess.value = ''
 }
 
-const sendInvite = () => {
-  console.log('Sending invite:', inviteForm.value)
-  // Handle invite logic here
-  closeInviteModal()
+const sendInvite = async () => {
+  inviteError.value = ''
+  inviteSuccess.value = ''
+  // basic email validation
+  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (!emailPattern.test(inviteForm.value.email)) {
+    inviteError.value = 'Please enter a valid email address.'
+    return
+  }
+  if (!currentProject.value?.id) {
+    inviteError.value = 'No project selected.'
+    return
+  }
+  try {
+    isInviting.value = true
+    const token = localStorage.getItem('token')
+    axios.defaults.headers.common['Authorization'] = `Token ${token}`
+    // Backend to be implemented: accept { email, role, message }
+    await axios.post(`/api/projects/${currentProject.value.id}/invite/`, {
+      email: inviteForm.value.email,
+      role: inviteForm.value.role,
+      message: inviteForm.value.message,
+    })
+    inviteSuccess.value = 'Invitation sent successfully.'
+    // Refresh members in case backend adds immediately when existing user
+    await fetchTeamMembers()
+    // Optionally close after a short delay
+    setTimeout(() => {
+      closeInviteModal()
+    }, 800)
+  } catch (err) {
+    const msg = err?.response?.data?.detail || 'Failed to send invitation.'
+    inviteError.value = msg
+  } finally {
+    isInviting.value = false
+  }
+}
+
+const updateMemberStatus = async () => {
+  statusError.value = ''
+  statusSuccess.value = ''
+  if (!selectedMember.value || !currentProject.value?.id) return
+  const desired = tempStatus.value
+  if (!['active','busy','away','offline'].includes(desired)) {
+    statusError.value = 'Invalid status.'
+    return
+  }
+  try {
+    isUpdatingStatus.value = true
+    const token = localStorage.getItem('token')
+    axios.defaults.headers.common['Authorization'] = `Token ${token}`
+    await axios.post(`/api/projects/${currentProject.value.id}/member-statuses/${selectedMember.value.id}/`, {
+      status: desired,
+    })
+    // Update local state
+    const idx = teamMembers.value.findIndex(m => m.id === selectedMember.value.id)
+    if (idx !== -1) {
+      teamMembers.value[idx] = { ...teamMembers.value[idx], status: desired }
+    }
+    selectedMember.value = { ...selectedMember.value, status: desired }
+    statusSuccess.value = 'Status updated.'
+  } catch (err) {
+    statusError.value = err?.response?.data?.detail || 'Failed to update status.'
+  } finally {
+    isUpdatingStatus.value = false
+  }
 }
 
 const formatDate = (dateString) => {
@@ -121,6 +221,7 @@ const closeModals = (event) => {
   if (event.target.classList.contains('modal-overlay')) {
     showMemberDetails.value = false
     showInviteModal.value = false
+    showStatusModal.value = false
   }
 }
 
@@ -138,7 +239,7 @@ const fetchTeamMembers = async () => {
     avatar: (u.first_name?.[0] || '') + (u.last_name?.[0] || ''),
     role: u.role || 'developer',
     roleDisplay: u.role ? u.role.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Developer',
-    status: 'active', // You may want to add a real status field later
+    status: u.status || 'active',
     location: u.location || '',
     timezone: u.timezone || '',
     joinDate: u.joined_at || '',
@@ -152,10 +253,24 @@ const fetchTeamMembers = async () => {
     socialLinks: u.social_links || {}
   }))
   console.log('Fetched team members:', teamMembers.value)
+  // If we have the current user's email but not their id, match and set it
+  if (currentUserEmail.value && !currentUserId.value) {
+    const me = teamMembers.value.find(m => m.email === currentUserEmail.value)
+    if (me) currentUserId.value = me.id
+  }
 }
 
 onMounted(() => {
   fetchTeamMembers()
+  // Load current user id
+  const token = localStorage.getItem('token')
+  if (token) {
+    axios.defaults.headers.common['Authorization'] = `Token ${token}`
+    axios.get('/api/me/').then(r => {
+      currentUserId.value = r.data.id || ''
+      currentUserEmail.value = r.data.email || ''
+    }).catch(() => {})
+  }
 })
 
 watch(currentProject, (newVal) => {
@@ -265,7 +380,7 @@ watch(currentProject, (newVal) => {
         @click="openMemberDetails(member)"
       >
         <div class="member-header">
-          <div class="member-avatar-container">
+          <div class="member-avatar-container" @click.stop="openStatusModal(member)" :title="member.id === currentUserId ? 'Click to change your status' : ''">
             <div class="member-avatar">{{ member.avatar }}</div>
             <div 
               class="status-indicator" 
@@ -346,7 +461,16 @@ watch(currentProject, (newVal) => {
       <div class="modal-content member-modal">
         <div class="modal-header">
           <h2>Team Member Details</h2>
-          <button class="close-btn" @click="closeMemberDetails">×</button>
+          <div class="header-actions">
+            <button 
+              v-if="selectedMember && selectedMember.id === currentUserId"
+              class="send-btn edit-status-btn" 
+              @click.stop="openStatusModal(selectedMember)"
+            >
+              Edit Status
+            </button>
+            <button class="close-btn" @click="closeMemberDetails">×</button>
+          </div>
         </div>
         
         <div v-if="selectedMember" class="member-details-content">
@@ -463,6 +587,8 @@ watch(currentProject, (newVal) => {
         </div>
         
         <div class="invite-form">
+          <div v-if="inviteError" class="alert error">{{ inviteError }}</div>
+          <div v-if="inviteSuccess" class="alert success">{{ inviteSuccess }}</div>
           <div class="form-group">
             <label for="invite-email">Email Address</label>
             <input 
@@ -498,10 +624,39 @@ watch(currentProject, (newVal) => {
           
           <div class="form-actions">
             <button class="cancel-btn" @click="closeInviteModal">Cancel</button>
-            <button class="send-btn" @click="sendInvite" :disabled="!inviteForm.email">
-              Send Invitation
+            <button class="send-btn" @click="sendInvite" :disabled="isInviting || !inviteForm.email">
+              {{ isInviting ? 'Sending…' : 'Send Invitation' }}
             </button>
           </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Status Modal -->
+  <div v-if="showStatusModal" class="modal-overlay" @click="closeModals">
+    <div class="modal-content invite-modal" @click.stop>
+      <div class="modal-header">
+        <h2>Update Status</h2>
+        <button class="close-btn" @click="closeStatusModal">×</button>
+      </div>
+      <div class="invite-form">
+        <div v-if="statusError" class="alert error">{{ statusError }}</div>
+        <div v-if="statusSuccess" class="alert success">{{ statusSuccess }}</div>
+        <div class="form-group">
+          <label for="status-select">Your status</label>
+          <select id="status-select" v-model="tempStatus" class="form-select">
+            <option value="active">Active</option>
+            <option value="busy">Busy</option>
+            <option value="away">Away</option>
+            <option value="offline">Offline</option>
+          </select>
+        </div>
+        <div class="form-actions">
+          <button class="cancel-btn" @click="closeStatusModal">Cancel</button>
+          <button class="send-btn" @click="updateMemberStatus" :disabled="isUpdatingStatus">
+            {{ isUpdatingStatus ? 'Updating…' : 'Save' }}
+          </button>
         </div>
       </div>
     </div>
@@ -1116,6 +1271,23 @@ watch(currentProject, (newVal) => {
   color: #333;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.edit-status-btn {
+  padding: 0.5rem 0.9rem;
+}
+
+.status-controls {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
 .activity-list {
   display: flex;
   flex-direction: column;
@@ -1228,6 +1400,25 @@ watch(currentProject, (newVal) => {
   background: #6c757d;
   border-color: #6c757d;
   cursor: not-allowed;
+}
+
+/* Alerts */
+.alert {
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+.alert.error {
+  background: #ffe3e3;
+  border: 1px solid #ffc9c9;
+  color: #c92a2a;
+}
+
+.alert.success {
+  background: #e6fcf5;
+  border: 1px solid #c3fae8;
+  color: #087f5b;
 }
 
 /* Responsive Design */
@@ -1500,9 +1691,6 @@ watch(currentProject, (newVal) => {
     background: #232526 !important;
   }
 
-  .workload-fill {
-    /* Keep original workload colors for visibility */
-  }
 
   /* Status indicators and avatars */
   .member-avatar,
