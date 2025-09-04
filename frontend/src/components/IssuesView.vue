@@ -1,7 +1,8 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useProjectStore } from '../stores/projectStore'
 import AddIssueView from './AddIssueView.vue'
+import axios from 'axios'
 
 // Data
 const showFilters = ref(false)
@@ -21,74 +22,17 @@ const pageSize = ref(25)
 const sortField = ref('created')
 const sortDirection = ref('desc')
 
-// Team members
-const teamMembers = ref([
-  { id: 1, name: 'Alice Johnson', avatar: 'AJ' },
-  { id: 2, name: 'Bob Smith', avatar: 'BS' },
-  { id: 3, name: 'Charlie Brown', avatar: 'CB' },
-  { id: 4, name: 'Diana Prince', avatar: 'DP' },
-  { id: 5, name: 'Eve Wilson', avatar: 'EW' }
-])
+// Team members (fetched from backend)
+const teamMembers = ref([])
 
-// Sample issues data
-const totalIssues = ref([
-  {
-    id: 1, key: 'AP-143', title: 'Implement user authentication system',
-    description: 'Create a secure login system with JWT tokens and role-based access control.',
-    type: 'Story', status: 'todo', priority: 'High', storyPoints: 8,
-    assignee: { id: 1, name: 'Alice Johnson', avatar: 'AJ' },
-    created: '2024-01-15', labels: ['security', 'auth']
-  },
-  {
-    id: 2, key: 'AP-144', title: 'Fix navigation menu responsiveness',
-    description: 'The navigation menu breaks on mobile devices and needs responsive design fixes.',
-    type: 'Bug', status: 'inprogress', priority: 'Critical', storyPoints: 3,
-    assignee: { id: 2, name: 'Bob Smith', avatar: 'BS' },
-    created: '2024-01-16', labels: ['ui', 'responsive']
-  },
-  {
-    id: 3, key: 'AP-145', title: 'Add dark mode toggle',
-    description: 'Implement a dark mode theme switcher in the user preferences.',
-    type: 'Task', status: 'review', priority: 'Medium', storyPoints: 5,
-    assignee: { id: 3, name: 'Charlie Brown', avatar: 'CB' },
-    created: '2024-01-17', labels: ['ui', 'theme']
-  },
-  {
-    id: 4, key: 'AP-146', title: 'Database performance optimization',
-    description: 'Optimize slow queries and add proper indexing to improve database performance.',
-    type: 'Story', status: 'done', priority: 'High', storyPoints: 13,
-    assignee: { id: 4, name: 'Diana Prince', avatar: 'DP' },
-    created: '2024-01-18', labels: ['performance', 'database']
-  },
-  {
-    id: 5, key: 'AP-147', title: 'Update user profile page',
-    description: 'Redesign the user profile page with better UX and additional fields.',
-    type: 'Story', status: 'todo', priority: 'Medium', storyPoints: 8,
-    assignee: null,
-    created: '2024-01-19', labels: ['ui', 'profile']
-  },
-  {
-    id: 6, key: 'AP-148', title: 'Fix email notification bug',
-    description: 'Users are not receiving email notifications for issue assignments.',
-    type: 'Bug', status: 'done', priority: 'High', storyPoints: 2,
-    assignee: { id: 5, name: 'Eve Wilson', avatar: 'EW' },
-    created: '2024-01-20', labels: ['bug', 'notifications']
-  },
-  {
-    id: 7, key: 'AP-149', title: 'Implement API rate limiting',
-    description: 'Add rate limiting to prevent API abuse and improve security.',
-    type: 'Epic', status: 'todo', priority: 'Low', storyPoints: 21,
-    assignee: { id: 1, name: 'Alice Johnson', avatar: 'AJ' },
-    created: '2024-01-21', labels: ['api', 'security']
-  },
-  {
-    id: 8, key: 'AP-150', title: 'Create user onboarding flow',
-    description: 'Design and implement a guided onboarding process for new users.',
-    type: 'Story', status: 'inprogress', priority: 'Medium', storyPoints: 13,
-    assignee: { id: 2, name: 'Bob Smith', avatar: 'BS' },
-    created: '2024-01-22', labels: ['onboarding', 'ux']
-  }
-])
+// Issues fetched from backend
+const totalIssues = ref([])
+
+// Caches for lookups
+const issueTypes = ref([])
+const issueTypeById = ref({})
+const projectUsers = ref([])
+const userById = ref({})
 
 // Filters
 const filters = ref({
@@ -328,7 +272,10 @@ const getStatusDisplay = (status) => {
 }
 
 const formatDate = (dateString) => {
-  return new Date(dateString).toLocaleDateString()
+  if (!dateString) return '-'
+  const d = new Date(dateString)
+  if (isNaN(d.getTime())) return '-'
+  return d.toLocaleDateString()
 }
 
 const getLabelColor = (label) => {
@@ -353,7 +300,83 @@ const getLabelColor = (label) => {
 const onIssueCreated = (issueData) => {
   // Optionally refresh issues or show a toast
   showAddIssueModal.value = false
+  fetchIssues()
 }
+
+// Backend integrations
+const fetchIssueTypes = async () => {
+  const token = localStorage.getItem('token')
+  axios.defaults.headers.common['Authorization'] = `Token ${token}`
+  const res = await axios.get('/api/issue-types/')
+  issueTypes.value = res.data
+  const map = {}
+  res.data.forEach(t => { map[t.id] = t })
+  issueTypeById.value = map
+}
+
+const fetchProjectUsers = async () => {
+  if (!currentProject.value?.id) return
+  const token = localStorage.getItem('token')
+  axios.defaults.headers.common['Authorization'] = `Token ${token}`
+  const res = await axios.get(`/api/projects/${currentProject.value.id}/users/`)
+  projectUsers.value = res.data
+  teamMembers.value = res.data.map(u => ({
+    id: u.id,
+    name: (u.first_name || u.last_name) ? `${u.first_name || ''} ${u.last_name || ''}`.trim() : (u.email || 'User'),
+    avatar: ((u.first_name?.[0] || '') + (u.last_name?.[0] || '')).toUpperCase() || 'U'
+  }))
+  const map = {}
+  teamMembers.value.forEach(u => { map[u.id] = u })
+  userById.value = map
+}
+
+const normalizeStatus = (backendStatus) => {
+  const s = String(backendStatus || '').toLowerCase()
+  if (s === 'to_do' || s === 'todo') return 'todo'
+  if (s === 'in_progress' || s === 'inprogress') return 'inprogress'
+  if (s === 'done') return 'done'
+  return s || 'todo'
+}
+
+const toTitleCase = (str) => str ? str.charAt(0).toUpperCase() + str.slice(1) : ''
+
+const transformIssue = (raw) => {
+  const typeObj = issueTypeById.value[String(raw.issue_type)] || {}
+  const assignee = raw.assignee ? userById.value[String(raw.assignee)] : null
+  return {
+    id: raw.id,
+    key: raw.key,
+    title: raw.title,
+    description: raw.description,
+    type: typeObj.name || 'Task',
+    status: normalizeStatus(raw.status),
+    priority: toTitleCase(raw.priority || 'Medium'),
+    storyPoints: raw.story_points ?? null,
+    assignee: assignee ? { id: assignee.id, name: assignee.name, avatar: assignee.avatar } : null,
+    created: null,
+    labels: []
+  }
+}
+
+const fetchIssues = async () => {
+  if (!currentProject.value?.id) return
+  const token = localStorage.getItem('token')
+  axios.defaults.headers.common['Authorization'] = `Token ${token}`
+  const res = await axios.get(`/api/projects/${currentProject.value.id}/issues/`)
+  totalIssues.value = res.data.map(transformIssue)
+}
+
+onMounted(async () => {
+  await fetchIssueTypes()
+  await fetchProjectUsers()
+  await fetchIssues()
+})
+
+watch(currentProject, async () => {
+  await fetchIssueTypes()
+  await fetchProjectUsers()
+  await fetchIssues()
+})
 
 </script>
 
@@ -1449,6 +1472,412 @@ const onIssueCreated = (issueData) => {
   .issue-modal {
     width: 95%;
     margin: 20px;
+  }
+}
+
+/* Add this to your existing <style scoped> section */
+
+@media (prefers-color-scheme: dark) {
+  /* Container */
+  .issues-container {
+    background: #0d1117;
+    color: #c9d1d9;
+  }
+
+  /* Header Styles */
+  .issues-header {
+    background: #161b22 !important;
+    border-color: #30363d !important;
+    color: #c9d1d9 !important;
+  }
+
+  .header-title h1 {
+    color: #f0f6fc !important;
+  }
+
+  .issues-count {
+    color: #8b949e !important;
+  }
+
+  .action-btn {
+    background: #21262d !important;
+    border-color: #30363d !important;
+    color: #c9d1d9 !important;
+  }
+
+  .action-btn:hover {
+    background: #30363d !important;
+    border-color: #484f58 !important;
+  }
+
+  .action-btn.primary {
+    background: #238636 !important;
+    border-color: #238636 !important;
+    color: #ffffff !important;
+  }
+
+  .action-btn.primary:hover {
+    background: #2ea043 !important;
+    border-color: #2ea043 !important;
+  }
+
+  .filter-count {
+    background: #da3633 !important;
+    color: #ffffff !important;
+  }
+
+  /* Filters Panel */
+  .filters-panel {
+    background: #161b22 !important;
+    border-color: #30363d !important;
+  }
+
+  .filter-group label {
+    color: #f0f6fc !important;
+  }
+
+  .filter-group input,
+  .filter-group select {
+    background: #0d1117 !important;
+    border-color: #30363d !important;
+    color: #c9d1d9 !important;
+  }
+
+  .filter-group input:focus,
+  .filter-group select:focus {
+    border-color: #1f6feb !important;
+    box-shadow: 0 0 0 3px rgba(31, 111, 235, 0.3) !important;
+  }
+
+  .clear-btn, .save-btn {
+    background: #21262d !important;
+    border-color: #30363d !important;
+    color: #c9d1d9 !important;
+  }
+
+  .clear-btn:hover {
+    background: #30363d !important;
+  }
+
+  .save-btn {
+    background: #1f6feb !important;
+    border-color: #1f6feb !important;
+    color: #ffffff !important;
+  }
+
+  .save-btn:hover {
+    background: #1a5ee8 !important;
+  }
+
+  /* Bulk Actions Bar */
+  .bulk-actions-bar {
+    background: #1c2128 !important;
+    border-color: #373e47 !important;
+  }
+
+  .bulk-info {
+    color: #d29922 !important;
+  }
+
+  .bulk-select {
+    background: #0d1117 !important;
+    border-color: #30363d !important;
+    color: #c9d1d9 !important;
+  }
+
+  .apply-btn {
+    background: #238636 !important;
+    border-color: #238636 !important;
+    color: #ffffff !important;
+  }
+
+  .apply-btn:hover:not(:disabled) {
+    background: #2ea043 !important;
+  }
+
+  .cancel-btn {
+    background: #21262d !important;
+    border-color: #30363d !important;
+    color: #c9d1d9 !important;
+  }
+
+  .cancel-btn:hover {
+    background: #30363d !important;
+  }
+
+  /* Issues Table */
+  .issues-table-container {
+    background: #161b22 !important;
+    border-color: #30363d !important;
+  }
+
+  .issues-table th {
+    background: #21262d !important;
+    border-color: #30363d !important;
+    color: #f0f6fc !important;
+  }
+
+  .issues-table th.sortable:hover {
+    background: #30363d !important;
+  }
+
+  .sort-indicator {
+    color: #58a6ff !important;
+  }
+
+  .issues-table td {
+    border-color: #30363d !important;
+  }
+
+  .issue-row:hover {
+    background: #21262d !important;
+  }
+
+  .issue-row.selected {
+    background: #0c2d6b !important;
+  }
+
+  .issue-row.high-priority {
+    border-left-color: #f85149 !important;
+  }
+
+  /* Table Cell Styles */
+  .select-cell input[type="checkbox"] {
+    accent-color: #1f6feb;
+  }
+
+  .issue-key {
+    color: #58a6ff !important;
+  }
+
+  .issue-key:hover {
+    color: #79c0ff !important;
+  }
+
+  .issue-title {
+    color: #c9d1d9 !important;
+  }
+
+  .issue-title:hover {
+    color: #58a6ff !important;
+  }
+
+  /* Badge Styles - Dark Mode Updates */
+  .type-badge.story { 
+    background: #1a2332 !important; 
+    color: #79c0ff !important; 
+  }
+  
+  .type-badge.bug { 
+    background: #2d1b20 !important; 
+    color: #ff7b72 !important; 
+  }
+  
+  .type-badge.task { 
+    background: #1b2718 !important; 
+    color: #7ee787 !important; 
+  }
+  
+  .type-badge.epic { 
+    background: #2b1a2e !important; 
+    color: #d2a8ff !important; 
+  }
+
+  /* Status Badges */
+  .status-badge.status-todo { 
+    background: #21262d !important; 
+    color: #8b949e !important; 
+  }
+  
+  .status-badge.status-progress { 
+    background: #2d2408 !important; 
+    color: #f0cc81 !important; 
+  }
+  
+  .status-badge.status-review { 
+    background: #0a2540 !important; 
+    color: #79c0ff !important; 
+  }
+  
+  .status-badge.status-done { 
+    background: #1b2718 !important; 
+    color: #7ee787 !important; 
+  }
+
+  /* Priority Badges */
+  .priority-badge.critical { 
+    background: #2d1b20 !important; 
+    color: #ff7b72 !important; 
+  }
+  
+  .priority-badge.high { 
+    background: #2d1e0a !important; 
+    color: #ffa657 !important; 
+  }
+  
+  .priority-badge.medium { 
+    background: #2d2408 !important; 
+    color: #f0cc81 !important; 
+  }
+  
+  .priority-badge.low { 
+    background: #1a2332 !important; 
+    color: #79c0ff !important; 
+  }
+
+  /* Assignee Styles */
+  .assignee-avatar {
+    background: #1f6feb !important;
+    color: #ffffff !important;
+  }
+
+  .assignee-name {
+    color: #c9d1d9 !important;
+  }
+
+  .unassigned {
+    color: #8b949e !important;
+  }
+
+  /* Points and Date */
+  .story-points {
+    background: #21262d !important;
+    border-color: #30363d !important;
+    color: #c9d1d9 !important;
+  }
+
+  .no-points {
+    color: #8b949e !important;
+  }
+
+  .created-date {
+    color: #8b949e !important;
+  }
+
+  /* Actions */
+  .action-icon:hover {
+    background: #30363d !important;
+  }
+
+  /* Pagination */
+  .pagination-container {
+    background: #161b22 !important;
+    border-color: #30363d !important;
+  }
+
+  .pagination-info {
+    color: #8b949e !important;
+  }
+
+  .page-size-select {
+    background: #0d1117 !important;
+    border-color: #30363d !important;
+    color: #c9d1d9 !important;
+  }
+
+  .page-btn {
+    background: #21262d !important;
+    border-color: #30363d !important;
+    color: #c9d1d9 !important;
+  }
+
+  .page-btn:hover:not(:disabled) {
+    background: #30363d !important;
+  }
+
+  .page-info {
+    color: #c9d1d9 !important;
+  }
+
+  /* Modal Styles */
+  .modal-overlay {
+    background: rgba(1, 4, 9, 0.8) !important;
+  }
+
+  .issue-modal {
+    background: #161b22 !important;
+    border-color: #30363d !important;
+    box-shadow: 0 25px 50px -12px rgba(1, 4, 9, 0.4) !important;
+  }
+
+  .modal-header {
+    border-color: #30363d !important;
+  }
+
+  .modal-header h2 {
+    color: #f0f6fc !important;
+  }
+
+  .close-btn {
+    color: #8b949e !important;
+  }
+
+  .close-btn:hover {
+    background: #30363d !important;
+    color: #c9d1d9 !important;
+  }
+
+  .detail-item label {
+    color: #8b949e !important;
+  }
+
+  .description-section label {
+    color: #8b949e !important;
+  }
+
+  .description-text {
+    background: #0d1117 !important;
+    border-color: #30363d !important;
+    color: #c9d1d9 !important;
+  }
+
+  .modal-actions {
+    border-color: #30363d !important;
+  }
+
+  .modal-actions .action-btn.danger {
+    background: #da3633 !important;
+    border-color: #da3633 !important;
+    color: #ffffff !important;
+  }
+
+  .modal-actions .action-btn.danger:hover {
+    background: #f85149 !important;
+    border-color: #f85149 !important;
+  }
+
+  /* Label colors for dark mode */
+  .label {
+    opacity: 0.9;
+  }
+
+  /* Scrollbar styling for dark mode */
+  .issues-table-container::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .issues-table-container::-webkit-scrollbar-track {
+    background: #21262d;
+  }
+
+  .issues-table-container::-webkit-scrollbar-thumb {
+    background: #484f58;
+    border-radius: 4px;
+  }
+
+  .issues-table-container::-webkit-scrollbar-thumb:hover {
+    background: #6e7681;
+  }
+
+  /* Focus states for better accessibility in dark mode */
+  .issues-table th.sortable:focus {
+    outline: 2px solid #58a6ff;
+    outline-offset: 2px;
+  }
+
+  .issue-row:focus-within {
+    outline: 1px solid #30363d;
   }
 }
 </style>

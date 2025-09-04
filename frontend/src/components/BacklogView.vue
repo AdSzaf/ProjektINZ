@@ -39,7 +39,17 @@ const dragState = ref({
 
 // Computed properties
 const filteredBacklogIssues = computed(() => {
-  let filtered = backlogIssues.value.filter(issue => !issue.sprint) 
+  // Build map for sprint status lookups
+  const sprintById = new Map(sprints.value.map(s => [s.id, s]))
+  // Include:
+  // - issues with no sprint
+  // - issues whose sprint is completed AND issue is not done
+  let filtered = backlogIssues.value.filter(issue => {
+    if (!issue.sprint) return true
+    const sprint = sprintById.get(issue.sprint)
+    const isDone = String(issue.status || '').toLowerCase() === 'done'
+    return sprint && sprint.status === 'completed' && !isDone
+  }) 
 
   if (selectedEpic.value) {
     filtered = filtered.filter(issue => issue.epic?.id === parseInt(selectedEpic.value))
@@ -60,6 +70,34 @@ const filteredBacklogIssues = computed(() => {
 
   return filtered
 })
+
+// Sprints that can be planned into (exclude completed)
+const plannableSprints = computed(() => {
+  return sprints.value.filter(s => s.status !== 'completed')
+})
+
+// Helpers
+const getSprintById = (sid) => sprints.value.find(s => s.id === sid)
+const isIssueFromCompletedSprint = (issue) => {
+  if (!issue.sprint) return false
+  const s = getSprintById(issue.sprint)
+  const isDone = String(issue.status || '').toLowerCase() === 'done'
+  return !!s && s.status === 'completed' && !isDone
+}
+
+const reassignIssueSprint = async (issueId, newSprintId) => {
+  try {
+    const token = localStorage.getItem('token')
+    await axios.patch(`/api/issues/${issueId}/`, {
+      sprint: newSprintId || null
+    }, {
+      headers: { Authorization: `Token ${token}` }
+    })
+    await fetchIssues()
+  } catch (e) {
+    console.error('Failed to reassign sprint:', e)
+  }
+}
 
 const totalStoryPoints = computed(() => {
   return filteredBacklogIssues.value.reduce((total, issue) => total + (issue.storyPoints || 0), 0)
@@ -392,10 +430,10 @@ watch(currentProject, () => {
 
     <div class="backlog-content">
       <!-- Sprint Planning Section -->
-      <div class="sprint-planning" v-if="sprints.length > 0">
+      <div class="sprint-planning" v-if="plannableSprints.length > 0">
         <h3>Sprint Planning</h3>
         <div 
-          v-for="sprint in sprints" 
+          v-for="sprint in plannableSprints" 
           :key="sprint.id"
           class="sprint-container"
           :class="{ 
@@ -566,6 +604,18 @@ watch(currentProject, () => {
                   {{ issue.storyPoints }} SP
                 </span>
                 <span class="issue-status">{{ issue.status }}</span>
+                <span v-if="isIssueFromCompletedSprint(issue)" class="origin-sprint-tag">
+                  🏁 From {{ getSprintById(issue.sprint)?.name }}
+                </span>
+              </div>
+              <div v-if="isIssueFromCompletedSprint(issue)" class="reassign-row">
+                <label class="reassign-label">Reassign to sprint:</label>
+                <select class="reassign-select" @click.stop @change="reassignIssueSprint(issue.id, $event.target.value || null)">
+                  <option value="">Backlog</option>
+                  <option v-for="sp in plannableSprints" :key="sp.id" :value="sp.id">
+                    {{ sp.name }}
+                  </option>
+                </select>
               </div>
             </div>
           </div>
