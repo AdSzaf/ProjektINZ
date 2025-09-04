@@ -12,6 +12,7 @@ import MembersView from '../components/MembersView.vue'
 import SettingsView from '../components/SettingsView.vue'
 import CreateProjectView from '../components/CreateProjectView.vue'
 import EpicsView from '../components/EpicsView.vue'
+import SprintsView from '../components/SprintsView.vue'
 // import other views as needed
 
 const routes = [
@@ -30,6 +31,7 @@ const routes = [
       { path: 'settings', component: SettingsView },
       { path: 'create-project', component: CreateProjectView },
       { path: 'epics', component: EpicsView },
+      { path: 'sprints', component: SprintsView, alias: '/Sprints' },
       // Add more child routes for other sidebar options
       // { path: 'backlog', component: BacklogView },
       // { path: 'sprint', component: SprintView },
