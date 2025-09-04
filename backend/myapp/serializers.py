@@ -107,7 +107,7 @@ class IssueSerializer(serializers.ModelSerializer):
             'id', 'key', 'title', 'description', 'project', 'issue_type', 'epic', 'sprint',
             'reporter', 'assignee', 'priority', 'story_points',
             'original_estimate', 'remaining_estimate', 'status',
-            'resolved_at',
+            'resolved_at', 'created_at',
         ]
         read_only_fields = ['resolved_at']
 

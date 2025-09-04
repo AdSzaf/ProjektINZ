@@ -387,7 +387,7 @@ def add_workflow_status(request, project_id):
         'order': status.order
     }, status=201)
 
-@api_view(['GET', 'PATCH'])
+@api_view(['GET', 'PATCH', 'DELETE'])
 @permission_classes([IsAuthenticated])
 def update_issue(request, issue_id):
     try:
@@ -403,6 +403,9 @@ def update_issue(request, issue_id):
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    elif request.method == 'DELETE':
+        issue.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 @api_view(['DELETE'])
 @permission_classes([IsAuthenticated])

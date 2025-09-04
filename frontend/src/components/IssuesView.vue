@@ -59,6 +59,12 @@ const activeFiltersCount = computed(() => {
 const filteredIssues = computed(() => {
   let filtered = [...totalIssues.value]
 
+  // Sanitize multi-selects: ignore empty ("All ...") values
+  const selectedStatuses = (filters.value.status || []).filter(v => v)
+  const selectedTypes = (filters.value.type || []).filter(v => v)
+  const selectedAssignees = (filters.value.assignee || []).filter(v => v)
+  const selectedPriorities = (filters.value.priority || []).filter(v => v)
+
   // Search filter
   if (filters.value.search) {
     const search = filters.value.search.toLowerCase()
@@ -70,28 +76,28 @@ const filteredIssues = computed(() => {
   }
 
   // Status filter
-  if (filters.value.status.length) {
-    filtered = filtered.filter(issue => filters.value.status.includes(issue.status))
+  if (selectedStatuses.length) {
+    filtered = filtered.filter(issue => selectedStatuses.includes(issue.status))
   }
 
   // Type filter
-  if (filters.value.type.length) {
-    filtered = filtered.filter(issue => filters.value.type.includes(issue.type))
+  if (selectedTypes.length) {
+    filtered = filtered.filter(issue => selectedTypes.includes(issue.type))
   }
 
   // Assignee filter
-  if (filters.value.assignee.length) {
+  if (selectedAssignees.length) {
     filtered = filtered.filter(issue => {
-      if (filters.value.assignee.includes('unassigned')) {
-        return !issue.assignee || filters.value.assignee.includes(issue.assignee?.id)
+      if (selectedAssignees.includes('unassigned')) {
+        return !issue.assignee || selectedAssignees.includes(issue.assignee?.id)
       }
-      return issue.assignee && filters.value.assignee.includes(issue.assignee.id)
+      return issue.assignee && selectedAssignees.includes(issue.assignee.id)
     })
   }
 
   // Priority filter
-  if (filters.value.priority.length) {
-    filtered = filtered.filter(issue => filters.value.priority.includes(issue.priority))
+  if (selectedPriorities.length) {
+    filtered = filtered.filter(issue => selectedPriorities.includes(issue.priority))
   }
 
   // Sort
@@ -215,18 +221,56 @@ const closeIssueModal = () => {
   selectedIssueDetails.value = null
 }
 
-const editIssue = (issue) => {
-  console.log('Editing issue:', issue.key)
-  // Implement edit logic
+// Edit Issue
+const isEditModalOpen = ref(false)
+const editIssueData = ref(null)
+
+const editIssue = async (issue) => {
+  try {
+    const token = localStorage.getItem('token')
+    axios.defaults.headers.common['Authorization'] = `Token ${token}`
+    // Fetch latest full issue payload compatible with AddIssueView
+    const res = await axios.get(`/api/issues/${issue.id}/`)
+    editIssueData.value = res.data
+    isEditModalOpen.value = true
+  } catch (e) {
+    console.error('Failed to load issue for edit:', e)
+  }
 }
 
-const deleteIssue = (issue) => {
-  if (confirm(`Are you sure you want to delete ${issue.key}?`)) {
-    const index = totalIssues.value.findIndex(i => i.id === issue.id)
-    if (index > -1) {
-      totalIssues.value.splice(index, 1)
-    }
+const handleIssueEdited = async () => {
+  isEditModalOpen.value = false
+  editIssueData.value = null
+  await fetchIssues()
+}
+
+// Delete Issue with confirmation modal
+const isDeleteModalOpen = ref(false)
+const issuePendingDelete = ref(null)
+
+const requestDeleteIssue = (issue) => {
+  issuePendingDelete.value = issue
+  isDeleteModalOpen.value = true
+}
+
+const cancelDeleteIssue = () => {
+  issuePendingDelete.value = null
+  isDeleteModalOpen.value = false
+}
+
+const confirmDeleteIssue = async () => {
+  if (!issuePendingDelete.value) return
+  try {
+    const token = localStorage.getItem('token')
+    axios.defaults.headers.common['Authorization'] = `Token ${token}`
+    await axios.delete(`/api/issues/${issuePendingDelete.value.id}/`)
+    // Remove locally and refresh
+    totalIssues.value = totalIssues.value.filter(i => i.id !== issuePendingDelete.value.id)
     selectedIssueDetails.value = null
+  } catch (e) {
+    console.error('Failed to delete issue:', e)
+  } finally {
+    cancelDeleteIssue()
   }
 }
 
@@ -353,7 +397,7 @@ const transformIssue = (raw) => {
     priority: toTitleCase(raw.priority || 'Medium'),
     storyPoints: raw.story_points ?? null,
     assignee: assignee ? { id: assignee.id, name: assignee.name, avatar: assignee.avatar } : null,
-    created: null,
+    created: raw.created_at || null,
     labels: []
   }
 }
@@ -642,7 +686,7 @@ watch(currentProject, async () => {
                 <button class="action-icon" @click.stop="editIssue(issue)" title="Edit">
                   ✏️
                 </button>
-                <button class="action-icon" @click.stop="deleteIssue(issue)" title="Delete">
+                <button class="action-icon" @click.stop="requestDeleteIssue(issue)" title="Delete">
                   🗑️
                 </button>
               </div>
@@ -770,10 +814,36 @@ watch(currentProject, async () => {
     </div>
   </div>
   <AddIssueView
-  :showModal="showAddIssueModal"
-  @close="showAddIssueModal = false"
-  @save="onIssueCreated"
-/>
+    :showModal="showAddIssueModal"
+    @close="showAddIssueModal = false"
+    @save="onIssueCreated"
+  />
+
+  <!-- Edit Issue Modal reuse -->
+  <AddIssueView
+    :showModal="isEditModalOpen"
+    mode="edit"
+    :issue="editIssueData"
+    @close="() => { isEditModalOpen = false; editIssueData = null }"
+    @save="handleIssueEdited"
+  />
+
+  <!-- Delete Confirmation Modal -->
+  <div v-if="isDeleteModalOpen" class="modal-overlay" @click="cancelDeleteIssue">
+    <div class="issue-modal" @click.stop>
+      <div class="modal-header">
+        <h2>Delete Issue</h2>
+        <button class="close-btn" @click="cancelDeleteIssue">×</button>
+      </div>
+      <div class="modal-content">
+        <p>Are you sure you want to delete <strong>{{ issuePendingDelete?.key }}</strong>? This action cannot be undone.</p>
+      </div>
+      <div class="modal-actions">
+        <button class="action-btn" @click="cancelDeleteIssue">Cancel</button>
+        <button class="action-btn danger" @click="confirmDeleteIssue">Delete</button>
+      </div>
+    </div>
+  </div>
 </template>
 
 <style scoped>
