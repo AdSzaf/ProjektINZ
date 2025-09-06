@@ -621,4 +621,340 @@ onMounted(fetchProfile)
     flex-direction: column;
   }
 }
+
+/* Add this to your existing <style scoped> section */
+
+@media (prefers-color-scheme: dark) {
+  /* Settings Page */
+  .settings-page {
+    background: #0d1117;
+    color: #c9d1d9;
+  }
+
+  /* Header */
+  .settings-header h1 {
+    color: #f0f6fc !important;
+  }
+
+  .settings-description {
+    color: #8b949e !important;
+  }
+
+  /* Section Headers */
+  .settings-section h2 {
+    color: #f0f6fc !important;
+  }
+
+  /* Settings Cards */
+  .settings-card {
+    background: #161b22 !important;
+    border-color: #30363d !important;
+    box-shadow: 0 4px 8px rgba(1, 4, 9, 0.3) !important;
+    transition: all 0.3s ease;
+  }
+
+  .settings-card:hover {
+    border-color: #484f58 !important;
+    box-shadow: 0 8px 16px rgba(1, 4, 9, 0.4) !important;
+    transform: translateY(-2px);
+  }
+
+  /* Form Elements */
+  .form-group label {
+    color: #f0f6fc !important;
+  }
+
+  .form-group input,
+  .form-group select {
+    background: #0d1117 !important;
+    border-color: #30363d !important;
+    color: #c9d1d9 !important;
+  }
+
+  .form-group input:focus,
+  .form-group select:focus {
+    border-color: #1f6feb !important;
+    box-shadow: 0 0 0 2px rgba(31, 111, 235, 0.3) !important;
+  }
+
+  .form-group input:hover,
+  .form-group select:hover {
+    border-color: #484f58 !important;
+  }
+
+  /* Checkbox Groups */
+  .checkbox-group input[type="checkbox"] {
+    accent-color: #1f6feb;
+  }
+
+  .checkbox-group label {
+    color: #c9d1d9 !important;
+  }
+
+  .checkbox-group:hover label {
+    color: #f0f6fc !important;
+  }
+
+  /* Help Text */
+  .help-text {
+    color: #8b949e !important;
+  }
+
+  /* Form Actions */
+  .form-actions {
+    border-color: #30363d !important;
+  }
+
+  /* Buttons */
+  .btn-primary {
+    background: #238636 !important;
+    color: #ffffff !important;
+    border: 1px solid #238636;
+  }
+
+  .btn-primary:hover {
+    background: #2ea043 !important;
+    border-color: #2ea043;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(35, 134, 54, 0.3);
+  }
+
+  .btn-secondary {
+    background: #21262d !important;
+    color: #c9d1d9 !important;
+    border-color: #30363d !important;
+  }
+
+  .btn-secondary:hover {
+    background: #30363d !important;
+    border-color: #484f58 !important;
+    transform: translateY(-1px);
+  }
+
+  .btn-danger {
+    background: #da3633 !important;
+    color: #ffffff !important;
+    border: 1px solid #da3633;
+  }
+
+  .btn-danger:hover {
+    background: #f85149 !important;
+    border-color: #f85149;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(218, 54, 51, 0.3);
+  }
+
+  /* Danger Zone */
+  .danger-zone {
+    background: #2d1b20 !important;
+    border-color: #da3633 !important;
+  }
+
+  .danger-zone h3 {
+    color: #ff7b72 !important;
+  }
+
+  .danger-zone p {
+    color: #c9d1d9 !important;
+  }
+
+  /* Modal */
+  .modal-overlay {
+    background: rgba(1, 4, 9, 0.8) !important;
+    backdrop-filter: blur(4px);
+  }
+
+  .modal {
+    background: #161b22 !important;
+    border: 1px solid #30363d;
+    box-shadow: 0 25px 50px -12px rgba(1, 4, 9, 0.4) !important;
+  }
+
+  .modal h3 {
+    color: #f0f6fc !important;
+  }
+
+  .modal p {
+    color: #8b949e !important;
+  }
+
+  /* Toast */
+  .toast {
+    background: #238636 !important;
+    color: #ffffff !important;
+    border: 1px solid #2ea043;
+    box-shadow: 0 8px 16px rgba(35, 134, 54, 0.3) !important;
+  }
+
+  .toast.error {
+    background: #da3633 !important;
+    border-color: #f85149;
+  }
+
+  .toast.warning {
+    background: #d29922 !important;
+    border-color: #f0cc81;
+    color: #0d1117 !important;
+  }
+
+  .toast.info {
+    background: #1f6feb !important;
+    border-color: #58a6ff;
+  }
+
+  /* Enhanced interactions */
+  .form-group input,
+  .form-group select {
+    transition: all 0.2s ease;
+  }
+
+  .form-group input:focus,
+  .form-group select:focus {
+    transform: scale(1.01);
+  }
+
+  /* Button focus states for accessibility */
+  .btn-primary:focus,
+  .btn-secondary:focus,
+  .btn-danger:focus {
+    outline: 2px solid #58a6ff;
+    outline-offset: 2px;
+  }
+
+  .btn-primary:active,
+  .btn-secondary:active,
+  .btn-danger:active {
+    transform: translateY(0);
+  }
+
+  /* Improved visual hierarchy */
+  .settings-card {
+    background: linear-gradient(135deg, #161b22 0%, #0d1117 100%) !important;
+  }
+
+  /* Form group enhancements */
+  .form-group {
+    transition: all 0.2s ease;
+  }
+
+  .form-group:hover label {
+    color: #58a6ff !important;
+  }
+
+  /* Input placeholder styling */
+  .form-group input::placeholder,
+  .form-group select::placeholder {
+    color: #6e7681 !important;
+  }
+
+  /* Custom scrollbar for settings page */
+  .settings-page::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .settings-page::-webkit-scrollbar-track {
+    background: #0d1117;
+  }
+
+  .settings-page::-webkit-scrollbar-thumb {
+    background: #484f58;
+    border-radius: 4px;
+  }
+
+  .settings-page::-webkit-scrollbar-thumb:hover {
+    background: #6e7681;
+  }
+
+  /* Modal animations enhancement */
+  .modal {
+    animation: modalFadeIn 0.3s ease;
+  }
+
+  @keyframes modalFadeIn {
+    from {
+      opacity: 0;
+      transform: scale(0.9) translateY(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+  }
+
+  /* Toast variants for different types */
+  .toast {
+    animation: slideInRight 0.3s ease;
+  }
+
+  @keyframes slideInRight {
+    from {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+
+  /* Settings section spacing improvements */
+  .settings-container {
+    gap: 2.5rem;
+  }
+
+  /* Form validation states */
+  .form-group input.error {
+    border-color: #da3633 !important;
+    box-shadow: 0 0 0 2px rgba(218, 54, 51, 0.3) !important;
+  }
+
+  .form-group input.success {
+    border-color: #238636 !important;
+    box-shadow: 0 0 0 2px rgba(35, 134, 54, 0.3) !important;
+  }
+
+  /* Improved danger zone styling */
+  .danger-zone {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .danger-zone::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(218, 54, 51, 0.6), transparent);
+    animation: dangerShimmer 3s infinite;
+  }
+
+  @keyframes dangerShimmer {
+    0% { left: -100%; }
+    100% { left: 100%; }
+  }
+
+  /* Card hover state improvements */
+  .settings-card {
+    position: relative;
+  }
+
+  .settings-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(88, 166, 255, 0.05);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+  }
+
+  .settings-card:hover::before {
+    opacity: 1;
+  }
+}
 </style>

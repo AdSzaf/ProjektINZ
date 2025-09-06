@@ -545,4 +545,326 @@ watch(currentProject, () => {
     justify-content: space-between;
   }
 }
+
+/* Add this to your existing <style scoped> section */
+
+@media (prefers-color-scheme: dark) {
+  /* Page Header */
+  .page-header h1 {
+    color: #f0f6fc !important;
+  }
+
+  .page-description {
+    color: #8b949e !important;
+  }
+
+  /* Buttons */
+  .btn-primary {
+    background: #238636 !important;
+    color: #ffffff !important;
+  }
+
+  .btn-primary:hover {
+    background: #2ea043 !important;
+  }
+
+  .btn-secondary {
+    background: #21262d !important;
+    color: #c9d1d9 !important;
+    border-color: #30363d !important;
+  }
+
+  .btn-secondary:hover {
+    background: #30363d !important;
+  }
+
+  .btn-link {
+    color: #58a6ff !important;
+  }
+
+  .btn-link:hover {
+    color: #79c0ff !important;
+  }
+
+  /* Epic Cards */
+  .epic-card {
+    background: #161b22 !important;
+    border-color: #30363d !important;
+    box-shadow: 0 2px 4px rgba(1, 4, 9, 0.3);
+  }
+
+  .epic-card:hover {
+    box-shadow: 0 8px 16px rgba(1, 4, 9, 0.4) !important;
+  }
+
+  .epic-card.status-completed {
+    border-left-color: #238636 !important;
+  }
+
+  .epic-card.status-in-progress {
+    border-left-color: #58a6ff !important;
+  }
+
+  .epic-card.status-planning {
+    border-left-color: #d29922 !important;
+  }
+
+  .epic-card.status-todo {
+    border-left-color: #6e7681 !important;
+  }
+
+  /* Epic Header */
+  .epic-header {
+    background: #0d1117 !important;
+    border-color: #30363d !important;
+  }
+
+  .epic-key {
+    background: #58a6ff !important;
+    color: #ffffff !important;
+  }
+
+  .epic-title {
+    color: #f0f6fc !important;
+  }
+
+  /* Epic Status Badges */
+  .epic-status.status-completed {
+    background: #1b2718 !important;
+    color: #7ee787 !important;
+  }
+
+  .epic-status.status-in-progress {
+    background: #1a2332 !important;
+    color: #79c0ff !important;
+  }
+
+  .epic-status.status-planning {
+    background: #2d2408 !important;
+    color: #f0cc81 !important;
+  }
+
+  .epic-status.status-todo {
+    background: #21262d !important;
+    color: #8b949e !important;
+  }
+
+  /* Progress Bar */
+  .progress-bar {
+    background: #21262d !important;
+    border: 1px solid #30363d;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    background: #238636 !important;
+    box-shadow: 0 2px 4px rgba(35, 134, 54, 0.4);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .progress-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    animation: shimmer 2s infinite;
+  }
+
+  .progress-text {
+    color: #8b949e !important;
+  }
+
+  /* Epic Issues Section */
+  .epic-issues {
+    background: #161b22 !important;
+  }
+
+  .issues-count {
+    color: #8b949e !important;
+  }
+
+  /* Issue Items */
+  .issue-item {
+    background: #0d1117 !important;
+    border: 1px solid #21262d;
+    transition: all 0.2s ease;
+  }
+
+  .issue-item:hover {
+    background: #21262d !important;
+    border-color: #30363d !important;
+    transform: translateX(4px);
+  }
+
+  .issue-item.issue-task {
+    border-left-color: #58a6ff !important;
+  }
+
+  .issue-item.issue-bug {
+    border-left-color: #ff7b72 !important;
+  }
+
+  .issue-item.issue-subtask {
+    border-left-color: #7ee787 !important;
+  }
+
+  .issue-key {
+    color: #8b949e !important;
+  }
+
+  .issue-title {
+    color: #c9d1d9 !important;
+  }
+
+  /* Issue Status Badges */
+  .issue-status.status-done {
+    background: #1b2718 !important;
+    color: #7ee787 !important;
+  }
+
+  .issue-status.status-in-progress {
+    background: #1a2332 !important;
+    color: #79c0ff !important;
+  }
+
+  .issue-status.status-to-do {
+    background: #21262d !important;
+    color: #8b949e !important;
+  }
+
+  /* Issues Summary */
+  .issues-summary {
+    background: #0d1117 !important;
+    border: 1px solid #30363d;
+  }
+
+  .type-count {
+    background: #21262d !important;
+    color: #c9d1d9 !important;
+    border: 1px solid #30363d;
+  }
+
+  /* Enhanced interactions and animations */
+  .epic-card {
+    transition: all 0.3s ease;
+    backdrop-filter: blur(8px);
+  }
+
+  .epic-card:hover {
+    border-color: #484f58 !important;
+    transform: translateY(-4px) !important;
+  }
+
+  .issue-item {
+    position: relative;
+  }
+
+  .issue-item:hover .issue-title {
+    color: #f0f6fc !important;
+  }
+
+  .issue-item:hover .issue-key {
+    color: #58a6ff !important;
+  }
+
+  /* Type icons with better visibility */
+  .issue-type {
+    filter: brightness(1.2);
+    text-shadow: 0 0 4px rgba(255, 255, 255, 0.3);
+  }
+
+  /* Progress animation */
+  @keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+
+  /* Epic key hover effect */
+  .epic-key {
+    transition: all 0.2s ease;
+  }
+
+  .epic-card:hover .epic-key {
+    background: #79c0ff !important;
+    transform: scale(1.05);
+  }
+
+  /* Status badges hover effects */
+  .epic-status, .issue-status {
+    transition: all 0.2s ease;
+  }
+
+  .epic-status:hover, .issue-status:hover {
+    transform: scale(1.05);
+    filter: brightness(1.1);
+  }
+
+  /* Button focus states for accessibility */
+  .btn-primary:focus,
+  .btn-secondary:focus,
+  .btn-link:focus {
+    outline: 2px solid #58a6ff;
+    outline-offset: 2px;
+  }
+
+  /* Card focus states */
+  .epic-card:focus-within {
+    outline: 2px solid #58a6ff;
+    outline-offset: 2px;
+  }
+
+  /* Improved contrast for better readability */
+  .epic-header {
+    border-bottom: 1px solid #30363d !important;
+  }
+
+  /* Type count badges enhancement */
+  .type-count {
+    transition: all 0.2s ease;
+  }
+
+  .type-count:hover {
+    background: #30363d !important;
+    transform: scale(1.05);
+  }
+
+  /* Subtle gradient backgrounds */
+  .epic-card {
+    background: linear-gradient(135deg, #161b22 0%, #0d1117 100%) !important;
+  }
+
+  .epic-header {
+    background: linear-gradient(135deg, #0d1117 0%, #161b22 100%) !important;
+  }
+
+  .issue-item {
+    background: linear-gradient(135deg, #0d1117 0%, #161b22 100%) !important;
+  }
+
+  .issues-summary {
+    background: linear-gradient(135deg, #0d1117 0%, #161b22 100%) !important;
+  }
+
+  /* Enhanced scrollbar styling */
+  .epics-view::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .epics-view::-webkit-scrollbar-track {
+    background: #0d1117;
+  }
+
+  .epics-view::-webkit-scrollbar-thumb {
+    background: #484f58;
+    border-radius: 4px;
+  }
+
+  .epics-view::-webkit-scrollbar-thumb:hover {
+    background: #6e7681;
+  }
+}
 </style>
