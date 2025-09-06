@@ -578,3 +578,119 @@ def auto_complete_sprints(request):
         sprint.save()
         updated += 1
     return Response({'updated': updated})
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def project_dashboard(request, project_id):
+    """Get comprehensive dashboard data for a project"""
+    try:
+        project = Project.objects.get(id=project_id)
+    except Project.DoesNotExist:
+        return Response({'detail': 'Project not found.'}, status=status.HTTP_404_NOT_FOUND)
+    
+    # Get active sprint
+    active_sprint = Sprint.objects.filter(project=project, status='active').first()
+    
+    # Get all issues for the project
+    issues = Issue.objects.filter(project=project)
+    
+    # Calculate sprint progress
+    sprint_progress = 0
+    active_sprint_name = "No Active Sprint"
+    if active_sprint:
+        active_sprint_name = active_sprint.name
+        sprint_issues = issues.filter(sprint=active_sprint)
+        total_issues = sprint_issues.count()
+        if total_issues > 0:
+            completed_issues = sprint_issues.filter(status__iexact='done').count()
+            sprint_progress = int((completed_issues / total_issues) * 100)
+    
+    # Calculate issue statistics
+    open_issues = issues.exclude(status__iexact='done').count()
+    in_progress = issues.filter(status__iexact='in_progress').count()
+    completed = issues.filter(status__iexact='done').count()
+    
+    # Calculate velocity (average story points completed in last 3 sprints)
+    completed_sprints = Sprint.objects.filter(project=project, status='completed').order_by('-end_date')[:3]
+    velocity = 0
+    if completed_sprints:
+        total_completed_points = 0
+        for sprint in completed_sprints:
+            sprint_issues = issues.filter(sprint=sprint, status__iexact='done')
+            sprint_points = sum(issue.story_points or 0 for issue in sprint_issues)
+            total_completed_points += sprint_points
+        velocity = int(total_completed_points / len(completed_sprints))
+    
+    # Get recent activity (last 10 issues created/updated)
+    recent_issues = issues.order_by('-updated_at')[:10]
+    recent_activity = []
+    for issue in recent_issues:
+        # Determine action based on status
+        if issue.status.lower() == 'done' and issue.resolved_at:
+            action = 'completed'
+            time_ago = timezone.now() - issue.resolved_at
+        else:
+            action = 'updated'
+            time_ago = timezone.now() - issue.updated_at
+        
+        # Format time ago
+        if time_ago.days > 0:
+            time_str = f"{time_ago.days} day{'s' if time_ago.days > 1 else ''} ago"
+        elif time_ago.seconds > 3600:
+            hours = time_ago.seconds // 3600
+            time_str = f"{hours} hour{'s' if hours > 1 else ''} ago"
+        else:
+            minutes = time_ago.seconds // 60
+            time_str = f"{minutes} minute{'s' if minutes > 1 else ''} ago" if minutes > 0 else "just now"
+        
+        # Get assignee name
+        assignee_name = "Unassigned"
+        if issue.assignee:
+            assignee_name = f"{issue.assignee.first_name} {issue.assignee.last_name}".strip()
+            if not assignee_name:
+                assignee_name = issue.assignee.username
+        
+        recent_activity.append({
+            'user': assignee_name,
+            'action': action,
+            'item': f"{issue.key}: {issue.title}",
+            'time': time_str
+        })
+    
+    # Get project members for team info
+    members = project.members.all()
+    team_size = members.count()
+    
+    # Get upcoming deadlines (issues due soon)
+    upcoming_deadlines = []
+    if active_sprint:
+        # Issues in active sprint that are not done
+        upcoming_issues = issues.filter(sprint=active_sprint).exclude(status__iexact='done')[:5]
+        for issue in upcoming_issues:
+            upcoming_deadlines.append({
+                'key': issue.key,
+                'title': issue.title,
+                'assignee': f"{issue.assignee.first_name} {issue.assignee.last_name}".strip() if issue.assignee else "Unassigned",
+                'priority': issue.priority,
+                'story_points': issue.story_points
+            })
+    
+    dashboard_data = {
+        'activeSprintName': active_sprint_name,
+        'sprintProgress': sprint_progress,
+        'openIssues': open_issues,
+        'inProgress': in_progress,
+        'completed': completed,
+        'velocity': velocity,
+        'teamSize': team_size,
+        'recentActivity': recent_activity,
+        'upcomingDeadlines': upcoming_deadlines,
+        'projectInfo': {
+            'name': project.name,
+            'key': project.key,
+            'methodology': project.methodology,
+            'status': project.status
+        }
+    }
+    
+    return Response(dashboard_data)
