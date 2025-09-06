@@ -393,6 +393,7 @@ onUnmounted(() => {
 .home-view {
   min-height: 100vh;
   background: #f8f9fa;
+  padding-bottom: 3rem; 
 }
 
 .dashboard-header {
