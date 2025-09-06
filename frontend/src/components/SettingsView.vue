@@ -387,6 +387,7 @@ onMounted(fetchProfile)
 .settings-page {
   max-width: 800px;
   margin: 0 auto;
+  padding-bottom: 3rem;
 }
 
 .settings-header {
