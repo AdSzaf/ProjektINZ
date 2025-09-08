@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.authtoken.models import Token
 from rest_framework.permissions import IsAuthenticated
-from .models import Project, IssueType, Epic, Sprint, User, Issue, WorkflowStatus
+from .models import Organization, Project, IssueType, Epic, Sprint, User, Issue, WorkflowStatus
 from datetime import timedelta
 from django.utils import timezone
 from django.contrib.auth import get_user_model
@@ -40,14 +40,25 @@ def _set_member_status(project_id, user_id, status_value):
         'updated_at': timezone.now()
     }
 
-
+def user_can_access_project(user, project):
+    # If project has an org, user must be a member of that org
+    if project.organization:
+        return project.organization.members.filter(id=user.id).exists()
+    # If no org, user must be a project member
+    return project.members.filter(id=user.id).exists()
 
 @api_view(['POST'])
 def register_user(request):
-    """Register a new user"""
     serializer = RegisterSerializer(data=request.data)
     if serializer.is_valid():
         user = serializer.save()
+        org_name_or_code = request.data.get('organization')
+        if org_name_or_code:
+            # Try to find org by name or invite code
+            org = Organization.objects.filter(name__iexact=org_name_or_code).first()
+            if org:
+                org.members.add(user)
+            # Optionally: handle invite codes, create org if not found, etc.
         token, created = Token.objects.get_or_create(user=user)
         return Response({'token': token.key}, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -138,33 +149,56 @@ def global_issue_types(request):
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def project_epics(request, project_id):
+    try:
+        project = Project.objects.get(id=project_id)
+    except Project.DoesNotExist:
+        return Response({'detail': 'Project not found.'}, status=status.HTTP_404_NOT_FOUND)
+    if not user_can_access_project(request.user, project):
+        return Response({'detail': 'Forbidden'}, status=status.HTTP_403_FORBIDDEN)
     if request.method == 'GET':
-        epics = Epic.objects.filter(project_id=project_id)
+        epics = Epic.objects.filter(project=project)
         serializer = EpicCreateSerializer(epics, many=True)
         return Response(serializer.data)
     elif request.method == 'POST':
         data = request.data.copy()
-        data['project'] = project_id
+        data['project'] = str(project.id)
         serializer = EpicCreateSerializer(data=data)
         if serializer.is_valid():
             epic = serializer.save()
             return Response(EpicCreateSerializer(epic).data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def project_sprints(request, project_id):
-    sprints = Sprint.objects.filter(project_id=project_id)
-    data = [
-        {'id': str(s.id), 'name': s.name, 'status': s.status}
-        for s in sprints
-    ]
-    return Response(data)
+    try:
+        project = Project.objects.get(id=project_id)
+    except Project.DoesNotExist:
+        return Response({'detail': 'Project not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    if not user_can_access_project(request.user, project):
+        return Response({'detail': 'Forbidden'}, status=status.HTTP_403_FORBIDDEN)
+
+    status_filter = request.GET.get('status')
+    sprints = Sprint.objects.filter(project=project)
+    if status_filter:
+        sprints = sprints.filter(status=status_filter)
+    serializer = SprintSerializer(sprints, many=True)
+    return Response(serializer.data)
+
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def project_users(request, project_id):
-    project = Project.objects.get(id=project_id)
+    try:
+        project = Project.objects.get(id=project_id)
+    except Project.DoesNotExist:
+        return Response({'detail': 'Project not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    if not user_can_access_project(request.user, project):
+        return Response({'detail': 'Forbidden'}, status=status.HTTP_403_FORBIDDEN)
+
     users = project.members.all()
     issues = Issue.objects.filter(project=project)
     sprints = Sprint.objects.filter(project=project, status='active')
@@ -174,12 +208,10 @@ def project_users(request, project_id):
     for u in users:
         assigned_issues = issues.filter(assignee=u).count()
         completed_issues = issues.filter(assignee=u, status__iexact='done').count()
-        # Workload: percent of assigned issues that are not done
         workload = 0
         if assigned_issues:
             open_issues = issues.filter(assignee=u).exclude(status__iexact='done').count()
             workload = int((open_issues / assigned_issues) * 100)
-        # Current sprint: count of issues assigned in active sprint
         current_sprint_issues = 0
         if active_sprint:
             current_sprint_issues = issues.filter(assignee=u, sprint=active_sprint).count()
@@ -191,83 +223,95 @@ def project_users(request, project_id):
             'last_name': u.last_name,
             'role': u.role,
             'status': _get_member_status(project_id, u.id, default='active'),
-            'location': '',  # Add if you have this field
-            'timezone': '',  # Add if you have this field
-            'joined_at': '', # Add if you have this field
+            'location': '',
+            'timezone': '',
+            'joined_at': '',
             'assigned_issues': assigned_issues,
             'completed_issues': completed_issues,
             'workload': workload,
             'current_sprint': current_sprint_issues,
-            'skills': [],    # Add if you have this field
-            'bio': '',       # Add if you have this field
-            'recent_activity': [], # Add if you want to implement
-            'social_links': {},    # Add if you want to implement
+            'skills': [],
+            'bio': '',
+            'recent_activity': [],
+            'social_links': {},
         })
     return Response(data)
+
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def project_member_statuses(request, project_id):
-    # Return map of user_id -> status for given project
     try:
-        Project.objects.get(id=project_id)
+        project = Project.objects.get(id=project_id)
     except Project.DoesNotExist:
         return Response({'detail': 'Project not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    if not user_can_access_project(request.user, project):
+        return Response({'detail': 'Forbidden'}, status=status.HTTP_403_FORBIDDEN)
+
     project_map = MEMBER_STATUS_STORE.get(str(project_id), {})
-    # Only include users that are members of the project
-    members = Project.objects.get(id=project_id).members.values_list('id', flat=True)
+    members = project.members.values_list('id', flat=True)
     result = {}
     for uid in members:
         result[str(uid)] = _get_member_status(project_id, uid, default='active')
     return Response(result)
 
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def set_project_member_status(request, project_id, user_id):
-    # Allow setting status for a member; simple for localhost projects
-    status_value = (request.data.get('status') or '').strip().lower()
-    if status_value not in ALLOWED_MEMBER_STATUSES:
-        return Response({'detail': 'Invalid status.'}, status=status.HTTP_400_BAD_REQUEST)
     try:
         project = Project.objects.get(id=project_id)
     except Project.DoesNotExist:
         return Response({'detail': 'Project not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    if not user_can_access_project(request.user, project):
+        return Response({'detail': 'Forbidden'}, status=status.HTTP_403_FORBIDDEN)
+
     try:
         user = User.objects.get(id=user_id)
     except User.DoesNotExist:
         return Response({'detail': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
-    # Only allow users to update their own status
+
+    status_value = (request.data.get('status') or '').strip().lower()
+    if status_value not in ALLOWED_MEMBER_STATUSES:
+        return Response({'detail': 'Invalid status.'}, status=status.HTTP_400_BAD_REQUEST)
+
     if str(request.user.id) != str(user.id):
         return Response({'detail': 'You can only update your own status.'}, status=status.HTTP_403_FORBIDDEN)
-    # Ensure the user is a project member
+
     if not project.members.filter(id=user.id).exists():
         return Response({'detail': 'User is not a member of this project.'}, status=status.HTTP_400_BAD_REQUEST)
+
     try:
         _set_member_status(project_id, user_id, status_value)
     except ValueError:
         return Response({'detail': 'Invalid status.'}, status=status.HTTP_400_BAD_REQUEST)
+
     return Response({'detail': 'Status updated.', 'user': str(user_id), 'status': status_value})
+
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def project_invite(request, project_id):
-    """Invite/add an existing user (by email) to the project immediately.
-    Does not change models or handle email workflows. If the user exists, they are added.
-    """
-    email = request.data.get('email')
-    role = (request.data.get('role') or 'developer').strip().lower()
-    if not email:
-        return Response({'detail': 'Email is required.'}, status=status.HTTP_400_BAD_REQUEST)
     try:
         project = Project.objects.get(id=project_id)
     except Project.DoesNotExist:
         return Response({'detail': 'Project not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    if not user_can_access_project(request.user, project):
+        return Response({'detail': 'Forbidden'}, status=status.HTTP_403_FORBIDDEN)
+
+    email = request.data.get('email')
+    role = (request.data.get('role') or 'developer').strip().lower()
+    if not email:
+        return Response({'detail': 'Email is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
     try:
         user = User.objects.get(email__iexact=email)
     except User.DoesNotExist:
         return Response({'detail': 'User with this email was not found.'}, status=status.HTTP_404_NOT_FOUND)
 
-    # Map incoming roles to ProjectMembership choices
     role_map = {
         'product-manager': 'product_owner',
         'product_manager': 'product_owner',
@@ -278,7 +322,6 @@ def project_invite(request, project_id):
         'tester': 'tester',
         'designer': 'designer',
         'developer': 'developer',
-        # Fallback mappings
         'devops': 'developer',
         'admin': 'developer',
     }
@@ -291,7 +334,6 @@ def project_invite(request, project_id):
         defaults={'role': membership_role}
     )
 
-    # If already exists and a different valid role provided, update it
     if not created and membership.role != membership_role and membership_role in {
         'product_owner', 'scrum_master', 'developer', 'designer', 'tester'
     }:
@@ -313,7 +355,15 @@ def project_invite(request, project_id):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def project_issues(request, project_id):
-    issues = Issue.objects.filter(project_id=project_id)
+    try:
+        project = Project.objects.get(id=project_id)
+    except Project.DoesNotExist:
+        return Response({'detail': 'Project not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    if not user_can_access_project(request.user, project):
+        return Response({'detail': 'Forbidden'}, status=status.HTTP_403_FORBIDDEN)
+
+    issues = Issue.objects.filter(project=project)
     serializer = IssueSerializer(issues, many=True)
     print("ISSUES SENT TO FRONTEND:", serializer.data)
     return Response(serializer.data)
@@ -325,13 +375,15 @@ def update_issue_status(request, issue_id):
         issue = Issue.objects.get(id=issue_id)
     except Issue.DoesNotExist:
         return Response({'detail': 'Issue not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    if not user_can_access_project(request.user, issue.project):
+        return Response({'detail': 'Forbidden'}, status=status.HTTP_403_FORBIDDEN)
+
     status_value = request.data.get('status')
-    # Allow any status that exists in WorkflowStatus for this project
     valid_statuses = WorkflowStatus.objects.filter(project=issue.project).values_list('category', flat=True)
-    print(valid_statuses)
     if status_value not in valid_statuses:
         return Response({'detail': 'Invalid status.'}, status=status.HTTP_400_BAD_REQUEST)
-     # Set resolved_at if moving to 'done', clear if moving out of 'done'
+
     if status_value == 'done' and issue.status != 'done':
         issue.resolved_at = timezone.now()
     elif status_value != 'done':
@@ -344,18 +396,25 @@ def update_issue_status(request, issue_id):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def project_workflow_statuses(request, project_id):
-    statuses = WorkflowStatus.objects.filter(project_id=project_id).order_by('order')
+    try:
+        project = Project.objects.get(id=project_id)
+    except Project.DoesNotExist:
+        return Response({'detail': 'Project not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    if not user_can_access_project(request.user, project):
+        return Response({'detail': 'Forbidden'}, status=status.HTTP_403_FORBIDDEN)
+
+    statuses = WorkflowStatus.objects.filter(project=project).order_by('order')
     if not statuses.exists():
-        # Create default columns if none exist
         WorkflowStatus.objects.bulk_create([
-            WorkflowStatus(name='To Do', project_id=project_id, category='to_do', color='#6c757d', order=0),
-            WorkflowStatus(name='In Progress', project_id=project_id, category='in_progress', color='#ffc107', order=1),
-            WorkflowStatus(name='Done', project_id=project_id, category='done', color='#28a745', order=2),
+            WorkflowStatus(name='To Do', project=project, category='to_do', color='#6c757d', order=0),
+            WorkflowStatus(name='In Progress', project=project, category='in_progress', color='#ffc107', order=1),
+            WorkflowStatus(name='Done', project=project, category='done', color='#28a745', order=2),
         ])
-        statuses = WorkflowStatus.objects.filter(project_id=project_id).order_by('order')
+        statuses = WorkflowStatus.objects.filter(project=project).order_by('order')
     data = [
         {
-            'id': s.category,  # Use category as the column id for consistency
+            'id': s.category,
             'name': s.name,
             'category': s.category,
             'color': s.color,
@@ -365,27 +424,57 @@ def project_workflow_statuses(request, project_id):
     ]
     return Response(data)
 
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def add_workflow_status(request, project_id):
+    try:
+        project = Project.objects.get(id=project_id)
+    except Project.DoesNotExist:
+        return Response({'detail': 'Project not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    if not user_can_access_project(request.user, project):
+        return Response({'detail': 'Forbidden'}, status=status.HTTP_403_FORBIDDEN)
+
     name = request.data.get('name')
     color = request.data.get('color', '#6f42c1')
-    order = WorkflowStatus.objects.filter(project_id=project_id).count()
+    order = WorkflowStatus.objects.filter(project=project).count()
     category = name.lower().replace(' ', '_')
-    status = WorkflowStatus.objects.create(
+    status_obj = WorkflowStatus.objects.create(
         name=name,
-        project_id=project_id,
+        project=project,
         category=category,
         color=color,
         order=order
     )
     return Response({
-        'id': status.id,
-        'name': status.name,
-        'category': status.category,
-        'color': status.color,
-        'order': status.order
+        'id': status_obj.id,
+        'name': status_obj.name,
+        'category': status_obj.category,
+        'color': status_obj.color,
+        'order': status_obj.order
     }, status=201)
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_workflow_status(request, project_id, category):
+    try:
+        project = Project.objects.get(id=project_id)
+    except Project.DoesNotExist:
+        return Response({'detail': 'Project not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    if not user_can_access_project(request.user, project):
+        return Response({'detail': 'Forbidden'}, status=status.HTTP_403_FORBIDDEN)
+
+    try:
+        status_obj = WorkflowStatus.objects.get(project=project, category=category)
+    except WorkflowStatus.DoesNotExist:
+        return Response({'detail': 'Column not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    Issue.objects.filter(project=project, status=category).delete()
+    status_obj.delete()
+    return Response({'detail': 'Column and its issues deleted.'}, status=status.HTTP_204_NO_CONTENT)
 
 @api_view(['GET', 'PATCH', 'DELETE'])
 @permission_classes([IsAuthenticated])
@@ -394,6 +483,9 @@ def update_issue(request, issue_id):
         issue = Issue.objects.get(id=issue_id)
     except Issue.DoesNotExist:
         return Response({'detail': 'Issue not found.'}, status=status.HTTP_404_NOT_FOUND)
+    project = issue.project
+    if not user_can_access_project(request.user, project):
+        return Response({'detail': 'Forbidden'}, status=403)
     if request.method == 'GET':
         serializer = IssueCreateSerializer(issue)
         return Response(serializer.data)
@@ -406,18 +498,6 @@ def update_issue(request, issue_id):
     elif request.method == 'DELETE':
         issue.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
-
-@api_view(['DELETE'])
-@permission_classes([IsAuthenticated])
-def delete_workflow_status(request, project_id, category):
-    try:
-        status_obj = WorkflowStatus.objects.get(project_id=project_id, category=category)
-    except WorkflowStatus.DoesNotExist:
-        return Response({'detail': 'Column not found.'}, status=status.HTTP_404_NOT_FOUND)
-    # Delete all issues in this column/status
-    Issue.objects.filter(project_id=project_id, status=category).delete()
-    status_obj.delete()
-    return Response({'detail': 'Column and its issues deleted.'}, status=status.HTTP_204_NO_CONTENT)
 
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
@@ -445,6 +525,10 @@ def update_sprint(request, sprint_id):
         sprint = Sprint.objects.get(id=sprint_id)
     except Sprint.DoesNotExist:
         return Response({'detail': 'Sprint not found.'}, status=status.HTTP_404_NOT_FOUND)
+    project = sprint.project
+    if not user_can_access_project(request.user, project):
+        return Response({'detail': 'Forbidden'}, status=403)
+    
     serializer = SprintSerializer(sprint, data=request.data, partial=True)
     if serializer.is_valid():
         serializer.save()
@@ -488,7 +572,14 @@ def update_user_settings(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def sprint_burndown(request, sprint_id):
-    sprint = Sprint.objects.get(id=sprint_id)
+    try:
+        sprint = Sprint.objects.get(id=sprint_id)
+    except Sprint.DoesNotExist:
+        return Response({'detail': 'Sprint not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    project = sprint.project
+    if not user_can_access_project(request.user, project):
+        return Response({'detail': 'Forbidden'}, status=403)
     issues = Issue.objects.filter(sprint=sprint)
     total_points = sum(i.story_points or 0 for i in issues)
     days = (sprint.end_date.date() - sprint.start_date.date()).days + 1
@@ -516,6 +607,14 @@ def sprint_burndown(request, sprint_id):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def project_velocity(request, project_id):
+    try:
+        project = Project.objects.get(id=project_id)
+    except Project.DoesNotExist:
+        return Response({'detail': 'Project not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    if not user_can_access_project(request.user, project):
+        return Response({'detail': 'Forbidden'}, status=403)
+    
     sprints = Sprint.objects.filter(project_id=project_id).order_by('-start_date')[:6][::-1]
     data = []
     for sprint in sprints:
@@ -532,7 +631,15 @@ def project_velocity(request, project_id):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def sprint_breakdown(request, sprint_id):
-    sprint = Sprint.objects.get(id=sprint_id)
+    try:
+        sprint = Sprint.objects.get(id=sprint_id)
+    except Sprint.DoesNotExist:
+        return Response({'detail': 'Sprint not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    project = sprint.project
+    if not user_can_access_project(request.user, project):
+        return Response({'detail': 'Forbidden'}, status=403)
+    
     issues = Issue.objects.filter(sprint=sprint)
     # By status
     status_map = {s.category: s for s in WorkflowStatus.objects.filter(project=sprint.project)}
@@ -551,7 +658,15 @@ def sprint_breakdown(request, sprint_id):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def sprint_team_performance(request, sprint_id):
-    sprint = Sprint.objects.get(id=sprint_id)
+    try:
+        sprint = Sprint.objects.get(id=sprint_id)
+    except Sprint.DoesNotExist:
+        return Response({'detail': 'Sprint not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    project = sprint.project
+    if not user_can_access_project(request.user, project):
+        return Response({'detail': 'Forbidden'}, status=403)
+    
     issues = Issue.objects.filter(sprint=sprint)
     members = sprint.project.members.all()
     data = []
@@ -587,6 +702,9 @@ def project_dashboard(request, project_id):
         project = Project.objects.get(id=project_id)
     except Project.DoesNotExist:
         return Response({'detail': 'Project not found.'}, status=status.HTTP_404_NOT_FOUND)
+    
+    if not user_can_access_project(request.user, project):
+        return Response({'detail': 'Forbidden'}, status=403)
     
     # Get active sprint
     active_sprint = Sprint.objects.filter(project=project, status='active').first()

@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import axios from 'axios'
 
 const router = useRouter()
+const organization = ref('') // org id or invite code
 
 // Form fields
 const firstName = ref('')
@@ -86,6 +87,7 @@ const handleRegister = async () => {
     email: email.value.trim(),
     role: role.value,
     password: password.value,
+    organization: organization.value.trim() || null,
     // Optionally: organization_name: orgName.value
   }
 
@@ -146,6 +148,17 @@ const goToLogin = () => {
             :class="{ 'error': email && !isEmailValid }"
           />
           <span v-if="email && !isEmailValid" class="error-text">Invalid email format</span>
+        </div>
+
+        <!-- Organization (optional) -->
+        <div class="form-group">
+          <label for="organization">Organization (optional)</label>
+          <input
+            type="text"
+            id="organization"
+            v-model="organization"
+            placeholder="Enter organization name or invite code"
+          />
         </div>
 
         <!-- Role Selection -->
