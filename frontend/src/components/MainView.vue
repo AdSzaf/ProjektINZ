@@ -199,6 +199,9 @@ onMounted(() => {
 
       <div class="nav-right">
         <!-- Notifications -->
+          <button @click="buyPremium" class="create-btn">
+            Buy Premium
+          </button>
         <button class="notification-btn">
           🔔
           <span v-if="notifications > 0" class="notification-badge">{{ notifications }}</span>
@@ -278,6 +281,7 @@ onMounted(() => {
   z-index: 100;
   flex-shrink: 0;
   width: 100%;
+  margin-right: auto;
 }
 
 .nav-left, .nav-right {
@@ -423,6 +427,7 @@ onMounted(() => {
   padding: 0.25rem;
   border-radius: 4px;
   transition: background-color 0.2s;
+  margin-right: 1rem;
 }
 
 .user-btn:hover, .user-btn.active {
@@ -545,6 +550,7 @@ onMounted(() => {
   padding: 2rem;
   overflow-y: auto;
   height: 100%;
+  margin-right: 1rem;
 }
 
 .dashboard-header {
