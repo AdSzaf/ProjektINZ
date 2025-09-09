@@ -93,6 +93,7 @@ const handleRegister = async () => {
 
   try {
     await axios.post('/api/register/', userData)
+    console.log('Data sent:', userData)
     alert('Registration successful!')
     router.push('/login')
   } catch (error) {

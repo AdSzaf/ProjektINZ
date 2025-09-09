@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.authtoken.models import Token
 from rest_framework.permissions import IsAuthenticated
-from .models import Organization, Project, IssueType, Epic, Sprint, User, Issue, WorkflowStatus
+from .models import Organization, Project, IssueType, Epic, Sprint, User, Issue, WorkflowStatus, OrganizationMembership
 from datetime import timedelta
 from django.utils import timezone
 from django.contrib.auth import get_user_model
@@ -47,6 +47,8 @@ def user_can_access_project(user, project):
     # If no org, user must be a project member
     return project.members.filter(id=user.id).exists()
 
+from .models import Organization, OrganizationMembership
+
 @api_view(['POST'])
 def register_user(request):
     serializer = RegisterSerializer(data=request.data)
@@ -54,14 +56,31 @@ def register_user(request):
         user = serializer.save()
         org_name_or_code = request.data.get('organization')
         if org_name_or_code:
-            # Try to find org by name or invite code
+            # Szukamy organizacji po nazwie (albo możesz rozwinąć logikę o invite code)
             org = Organization.objects.filter(name__iexact=org_name_or_code).first()
             if org:
-                org.members.add(user)
-            # Optionally: handle invite codes, create org if not found, etc.
+                # Tworzymy membership
+                OrganizationMembership.objects.get_or_create(
+                    user=user,
+                    organization=org,
+                    defaults={'role': 'member'}
+                )
+            else:
+                # opcjonalnie: możesz utworzyć organizację jeśli nie istnieje
+                org = Organization.objects.create(
+                    name=org_name_or_code,
+                    slug=org_name_or_code.lower().replace(" ", "-")
+                )
+                OrganizationMembership.objects.create(
+                    user=user,
+                    organization=org,
+                    role='owner'  # pierwszy user może być właścicielem
+                )
+
         token, created = Token.objects.get_or_create(user=user)
         return Response({'token': token.key}, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 @api_view(['POST'])
 def login_user(request):
