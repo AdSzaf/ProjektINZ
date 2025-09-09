@@ -209,12 +209,17 @@ onMounted(async () => {
     const res = await axios.get('/api/me/')
     projectData.value.lead = res.data.id
     projectData.value.leadName = `${res.data.first_name} ${res.data.last_name}`
-    if (res.data.organizations?.length) {
+     if (res.data.organizations?.length) {
       projectData.value.organization = res.data.organizations[0].id
+      // Fetch only org members
+      const orgId = res.data.organizations[0].id
+      const usersRes = await axios.get(`/api/organizations/${orgId}/users/`)
+      users.value = usersRes.data
+    } else {
+      // Fallback: fetch all users or just self
+      const usersRes = await axios.get('/api/users/')
+      users.value = usersRes.data
     }
-    // Fetch all users for dropdown
-    const usersRes = await axios.get('/api/users/')
-    users.value = usersRes.data
   } catch (e) {
     if (e.response && e.response.status === 401) {
       alert('Session expired. Please log in again.')
@@ -1532,6 +1537,189 @@ onBeforeUnmount(() => {
   
   .type-icon {
     font-size: 2rem;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .project-creation,
+  .setup-main,
+  .setup-sidebar,
+  .type-card,
+  .type-selection,
+  .setup-container,
+  .creation-header,
+  .form-section,
+  .sidebar-section,
+  .kanban-settings,
+  .scrum-settings,
+  .info-card,
+  .selected-member,
+  .member-dropdown,
+  .form-actions,
+  .selected-members {
+    background: #181a1b !important;
+    color: #f3f3f3 !important;
+    border-color: #333 !important;
+  }
+
+  .header-content h1,
+  .form-section h2,
+  .sidebar-section h3,
+  .kanban-settings h3,
+  .scrum-settings h3,
+  .type-card h3,
+  .type-card p,
+  .type-features li,
+  .form-group label,
+  .form-hint,
+  .section-description,
+  .member-name,
+  .member-role,
+  .info-card h4,
+  .info-card p,
+  .step,
+  .back-btn {
+    color: #f3f3f3 !important;
+  }
+
+  .form-input,
+  .form-textarea,
+  .form-select,
+  .form-input.lead-input,
+  .lead-dropdown .dropdown-search,
+  .add-member-btn,
+  .member-option {
+    background: #232526 !important;
+    color: #f3f3f3 !important;
+    border-color: #444 !important;
+  }
+
+  .btn-primary {
+    background: #0056b3 !important;
+    color: #fff !important;
+  }
+
+  .btn-secondary,
+  .back-btn {
+    background: #232526 !important;
+    color: #f3f3f3 !important;
+    border: 1px solid #444 !important;
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    background: #004499 !important;
+  }
+
+  .btn-secondary:hover,
+  .back-btn:hover {
+    background: #0056b3 !important;
+    color: #fff !important;
+    border-color: #0056b3 !important;
+  }
+
+  .step.active {
+    background: #0056b3 !important;
+    color: #fff !important;
+  }
+
+  .step {
+    background: #232526 !important;
+    color: #f3f3f3 !important;
+  }
+
+  .type-card.selected {
+    background: #232526 !important;
+    border-color: #0056b3 !important;
+  }
+
+  .type-card:hover {
+    border-color: #4ea1ff !important;
+    box-shadow: 0 4px 12px rgba(78, 161, 255, 0.2) !important;
+  }
+
+  .info-card {
+    background: #232526 !important;
+    border-color: #0056b3 !important;
+  }
+
+  .info-card h4 {
+    color: #4ea1ff !important;
+  }
+
+  .member-avatar {
+    background: #0056b3 !important;
+    color: #fff !important;
+  }
+
+  .selected-member {
+    background: #232526 !important;
+    border-color: #444 !important;
+  }
+
+  .member-dropdown {
+    background: #232526 !important;
+    border-color: #0056b3 !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3) !important;
+  }
+
+  .member-option:hover {
+    background: #333 !important;
+  }
+
+  .dropdown.lead-dropdown {
+    background: #232526 !important;
+    border-color: #0056b3 !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3) !important;
+  }
+
+  .dropdown-item {
+    background: #232526 !important;
+    color: #f3f3f3 !important;
+    border-color: #333 !important;
+  }
+
+  .dropdown-item:hover {
+    background: #333 !important;
+    border-left-color: #4ea1ff !important;
+  }
+
+  .dropdown-item .user-name {
+    color: #f3f3f3 !important;
+  }
+
+  .dropdown-item .user-email {
+    color: #aaa !important;
+  }
+
+  .dropdown-no-results,
+  .dropdown-loading {
+    color: #aaa !important;
+  }
+
+  .remove-btn {
+    color: #ff6b6b !important;
+  }
+
+  .remove-btn:hover {
+    background: #332 !important;
+  }
+
+  .type-features li:before {
+    color: #4ea1ff !important;
+  }
+
+  .add-member-btn:hover {
+    background: #333 !important;
+    border-color: #4ea1ff !important;
+    color: #4ea1ff !important;
+  }
+
+  .form-input:focus,
+  .form-textarea:focus,
+  .form-select:focus,
+  .form-input.lead-input:focus {
+    border-color: #4ea1ff !important;
+    box-shadow: 0 0 0 3px rgba(78, 161, 255, 0.1) !important;
   }
 }
 </style>

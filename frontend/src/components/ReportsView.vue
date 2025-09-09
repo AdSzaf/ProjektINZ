@@ -418,7 +418,12 @@ watch(velocityData, (newVal) => {
 </script>
 
 <template>
-  <div class="reports-container">
+  <div v-if="!currentProject" class="no-projects-message">
+    <h2>No projects found</h2>
+    <p>Create your first project to get started!</p>
+    <button class="btn btn-primary" @click="$router.push('/create-project')">+ Create Project</button>
+  </div>
+  <div v-else class="reports-container">
     <!-- Reports Header -->
     <div class="reports-header">
       <h1>Reports & Analytics</h1>

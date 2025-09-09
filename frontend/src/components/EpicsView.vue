@@ -95,7 +95,12 @@ watch(currentProject, () => {
 </script>
 
 <template>
-  <div class="epics-view">
+  <div v-if="!currentProject" class="no-projects-message">
+    <h2>No projects found</h2>
+    <p>Create your first project to get started!</p>
+    <button class="btn btn-primary" @click="$router.push('/create-project')">+ Create Project</button>
+  </div>
+  <div v-else class="epics-view">
     <!-- Page Header -->
     <div class="page-header">
       <h1>Epics</h1>

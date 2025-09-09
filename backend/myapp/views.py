@@ -76,8 +76,14 @@ def login_user(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def current_user(request):
-    serializer = RegisterSerializer(request.user)
-    return Response(serializer.data)
+    user = request.user
+    # Get organizations for this user
+    orgs = user.organization_set.all()
+    orgs_data = [{'id': str(org.id), 'name': org.name} for org in orgs]
+    serializer = RegisterSerializer(user)
+    data = serializer.data
+    data['organizations'] = orgs_data
+    return Response(data)
 
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
@@ -812,3 +818,19 @@ def project_dashboard(request, project_id):
     }
     
     return Response(dashboard_data)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def organization_users(request, org_id):
+    try:
+        org = Organization.objects.get(id=org_id)
+    except Organization.DoesNotExist:
+        return Response({'detail': 'Organization not found.'}, status=404)
+    if not org.members.filter(id=request.user.id).exists():
+        return Response({'detail': 'Forbidden'}, status=403)
+    users = org.members.all()
+    data = [
+        {'id': str(u.id), 'first_name': u.first_name, 'last_name': u.last_name, 'email': u.email, 'role': u.role}
+        for u in users
+    ]
+    return Response(data)

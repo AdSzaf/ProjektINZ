@@ -320,7 +320,12 @@ watch(currentProject, () => {
 </script>
 
 <template>
-  <div class="dashboard-container">
+  <div v-if="!currentProject" class="no-projects-message">
+    <h2>No projects found</h2>
+    <p>Create your first project to get started!</p>
+    <button class="btn btn-primary" @click="$router.push('/create-project')">+ Create Project</button>
+  </div>
+  <div v-else class="dashboard-container">
     <!-- Header -->
     <div class="dashboard-header">
       <div class="header-left">

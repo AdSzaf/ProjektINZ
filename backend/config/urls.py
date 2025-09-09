@@ -43,6 +43,7 @@ from myapp.views import (auto_complete_sprints, register_user ,
     sprint_breakdown,
     sprint_team_performance,
     project_dashboard,
+    organization_users,
 )
 
 
@@ -79,4 +80,6 @@ urlpatterns = [
 
     path('api/sprints/auto-complete/', auto_complete_sprints, name='auto_complete_sprints'),
     path('api/projects/<uuid:project_id>/dashboard/', project_dashboard, name='project_dashboard'),
+
+    path('api/organizations/<uuid:org_id>/users/', organization_users, name='organization_users'),
 ]

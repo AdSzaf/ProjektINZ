@@ -218,7 +218,12 @@ watch(currentProject, () => {
 </script>
 
 <template>
-  <div class="sprint-view">
+  <div v-if="!currentProject" class="no-projects-message">
+    <h2>No projects found</h2>
+    <p>Create your first project to get started!</p>
+    <button class="btn btn-primary" @click="$router.push('/create-project')">+ Create Project</button>
+  </div>
+  <div v-else class="sprint-view">
     <div class="page-header">
       <div class="header-content">
         <h1>Sprints</h1>
