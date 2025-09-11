@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import { useProjectStore } from '../stores/projectStore'
+//import { loadStripe } from "@stripe/stripe-js"
 
 const router = useRouter()
 const projectStore = useProjectStore()
@@ -136,6 +137,34 @@ const autoCompleteSprints = async () => {
   axios.defaults.headers.common['Authorization'] = `Token ${token}`
   await axios.post('/api/sprints/auto-complete/')
 }
+
+
+const buyPremium = async () => {
+  try {
+    const stripe = await loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY)
+
+    // Token do autoryzacji (jak w innych requestach)
+    const token = localStorage.getItem("token")
+    if (token) {
+      axios.defaults.headers.common["Authorization"] = `Token ${token}`
+    }
+
+    // Wywołanie backendu
+    const res = await axios.post(
+      `${import.meta.env.VITE_API_URL}/api/payments/create-checkout-session/`
+    )
+
+    const sessionId = res.data.id
+    const { error } = await stripe.redirectToCheckout({ sessionId })
+
+    if (error) {
+      console.error("Stripe checkout error:", error)
+    }
+  } catch (e) {
+    console.error("Error creating checkout session", e)
+  }
+}
+
 
 onMounted(() => {
   document.addEventListener('click', closeDropdowns)

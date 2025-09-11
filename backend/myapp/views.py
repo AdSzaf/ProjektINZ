@@ -1,3 +1,9 @@
+import stripe
+from django.conf import settings
+
+from django.views.decorators.csrf import csrf_exempt
+from django.http import HttpResponse
+
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework import status
@@ -853,3 +859,67 @@ def organization_users(request, org_id):
         for u in users
     ]
     return Response(data)
+
+
+stripe.api_key = settings.STRIPE_SECRET_KEY
+User = get_user_model()
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_checkout_session(request):
+    try:
+        YOUR_DOMAIN = "http://localhost:5173"  # Vue dev server
+
+        checkout_session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            line_items=[{
+                'price_data': {
+                    'currency': 'usd',
+                    'product_data': {
+                        'name': 'Premium Account',
+                    },
+                    'unit_amount': 500,  # $5.00
+                },
+                'quantity': 1,
+            }],
+            mode='payment',
+            success_url=YOUR_DOMAIN + '/success',
+            cancel_url=YOUR_DOMAIN + '/cancel',
+            metadata={
+                "user_id": str(request.user.id)  # żeby webhook wiedział, kto zapłacił
+            }
+        )
+        return Response({"id": checkout_session.id})
+    except Exception as e:
+        return Response({"error": str(e)}, status=400)
+    
+@csrf_exempt
+@api_view(['POST'])
+def stripe_webhook(request):
+    payload = request.body
+    sig_header = request.META.get('HTTP_STRIPE_SIGNATURE')
+    event = None
+
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
+        )
+    except ValueError:
+        return HttpResponse(status=400)  # Invalid payload
+    except stripe.error.SignatureVerificationError:
+        return HttpResponse(status=400)  # Invalid signature
+
+    if event['type'] == 'checkout.session.completed':
+        session = event['data']['object']
+        user_id = session.get('metadata', {}).get('user_id')
+
+        if user_id:
+            try:
+                user = User.objects.get(id=user_id)
+                user.is_premium = True
+                user.save()
+            except User.DoesNotExist:
+                pass
+
+    return HttpResponse(status=200)

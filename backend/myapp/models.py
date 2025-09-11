@@ -18,6 +18,8 @@ class User(AbstractUser):
     ], default='developer')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    # Premium flag for paid features
+    is_premium = models.BooleanField(default=False)
 
 class Organization(models.Model):
     """Top-level organization/company"""

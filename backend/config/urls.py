@@ -44,6 +44,8 @@ from myapp.views import (auto_complete_sprints, register_user ,
     sprint_team_performance,
     project_dashboard,
     organization_users,
+    create_checkout_session, 
+    stripe_webhook,
 )
 
 
@@ -82,4 +84,8 @@ urlpatterns = [
     path('api/projects/<uuid:project_id>/dashboard/', project_dashboard, name='project_dashboard'),
 
     path('api/organizations/<uuid:org_id>/users/', organization_users, name='organization_users'),
+
+    #Stripe urls
+    path('api/payments/create-checkout-session/', create_checkout_session, name='create_checkout_session'),
+    path('api/payments/webhook/', stripe_webhook, name='stripe_webhook'),
 ]
