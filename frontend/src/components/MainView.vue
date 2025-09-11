@@ -3,7 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import { useProjectStore } from '../stores/projectStore'
-//import { loadStripe } from "@stripe/stripe-js"
+import { loadStripe } from "@stripe/stripe-js"
 
 const router = useRouter()
 const projectStore = useProjectStore()
@@ -151,7 +151,7 @@ const buyPremium = async () => {
 
     // Wywołanie backendu
     const res = await axios.post(
-      `${import.meta.env.VITE_API_URL}/api/payments/create-checkout-session/`
+      `${import.meta.env.VITE_BACKEND_URL}/api/payments/create-checkout-session/`
     )
 
     const sessionId = res.data.id

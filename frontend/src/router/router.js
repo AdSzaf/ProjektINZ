@@ -13,7 +13,8 @@ import SettingsView from '../components/SettingsView.vue'
 import CreateProjectView from '../components/CreateProjectView.vue'
 import EpicsView from '../components/EpicsView.vue'
 import SprintsView from '../components/SprintsView.vue'
-// import other views as needed
+import SuccessRedirect from '../components/SuccessRedirect.vue'
+import CancelRedirect from '../components/CancelRedirect.vue'
 
 const routes = [
   {
@@ -32,10 +33,8 @@ const routes = [
       { path: 'create-project', component: CreateProjectView },
       { path: 'epics', component: EpicsView },
       { path: 'sprints', component: SprintsView, alias: '/Sprints' },
-      // Add more child routes for other sidebar options
-      // { path: 'backlog', component: BacklogView },
-      // { path: 'sprint', component: SprintView },
-      // etc.
+      { path: '/success', component: SuccessRedirect },
+      { path: '/cancel', component: CancelRedirect }
     ]
   },
   { path: '/login', component: LoginView },
