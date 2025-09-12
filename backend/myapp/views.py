@@ -10,7 +10,7 @@ from rest_framework import status
 from rest_framework.authtoken.models import Token
 from rest_framework.permissions import IsAuthenticated
 from .models import Organization, Project, IssueType, Epic, Sprint, User, Issue, WorkflowStatus, OrganizationMembership
-from datetime import timedelta
+from datetime import timedelta, datetime
 from django.utils import timezone
 from django.contrib.auth import get_user_model
 from .serializers import (RegisterSerializer
@@ -895,31 +895,64 @@ def create_checkout_session(request):
         return Response({"error": str(e)}, status=400)
     
 @csrf_exempt
-@api_view(['POST'])
+@api_view(["POST"])
 def stripe_webhook(request):
     payload = request.body
-    sig_header = request.META.get('HTTP_STRIPE_SIGNATURE')
+    sig_header = request.META.get("HTTP_STRIPE_SIGNATURE")
     event = None
 
     try:
         event = stripe.Webhook.construct_event(
             payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
         )
-    except ValueError:
-        return HttpResponse(status=400)  # Invalid payload
-    except stripe.error.SignatureVerificationError:
-        return HttpResponse(status=400)  # Invalid signature
+    except (ValueError, stripe.error.SignatureVerificationError):
+        return HttpResponse(status=400)
 
-    if event['type'] == 'checkout.session.completed':
-        session = event['data']['object']
-        user_id = session.get('metadata', {}).get('user_id')
+    if event["type"] == "checkout.session.completed":
+        session = event["data"]["object"]
+        user_id = session.get("metadata", {}).get("user_id")
 
         if user_id:
             try:
                 user = User.objects.get(id=user_id)
+                user.stripe_customer_id = session.get("customer")
+
+                now = timezone.now()
+                # jeśli premium jeszcze trwa → przedłuż
+                if user.premium_until and user.premium_until > now:
+                    user.premium_until += timezone.timedelta(days=30)
+                else:
+                    user.premium_until = now + timezone.timedelta(days=30)
+
                 user.is_premium = True
                 user.save()
             except User.DoesNotExist:
                 pass
+
+    elif event["type"] == "customer.subscription.updated":
+        subscription = event["data"]["object"]
+        customer_id = subscription["customer"]
+
+        try:
+            user = User.objects.get(stripe_customer_id=customer_id)
+        except User.DoesNotExist:
+            return HttpResponse(status=200)
+
+        period_end = subscription["current_period_end"]  # UNIX timestamp
+        user.premium_until = datetime.fromtimestamp(period_end, tz=timezone.utc)
+        user.is_premium = True
+        user.save()
+
+    elif event["type"] == "customer.subscription.deleted":
+        customer_id = event["data"]["object"]["customer"]
+
+        try:
+            user = User.objects.get(stripe_customer_id=customer_id)
+        except User.DoesNotExist:
+            return HttpResponse(status=200)
+
+        user.is_premium = False
+        user.premium_until = None
+        user.save()
 
     return HttpResponse(status=200)

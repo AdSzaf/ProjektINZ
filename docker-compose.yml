@@ -40,5 +40,14 @@ services:
       - NODE_ENV=development
     # Remove the duplicate command since it's already in Dockerfile
 
+  stripe:
+    image: stripe/stripe-cli:latest
+    command: >
+      listen --forward-to http://backend:8000/api/payments/webhook/
+    environment:
+      - STRIPE_API_KEY=${STRIPE_SECRET_KEY} 
+    depends_on:
+      - backend
+
 volumes:
   pgdata:

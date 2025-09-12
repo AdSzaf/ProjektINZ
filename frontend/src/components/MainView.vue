@@ -15,7 +15,9 @@ const currentUser = ref({
   name: '',
   email: '',
   avatar: '',
-  role: ''
+  role: '',
+  is_premium: false,
+  premium_until: null
 })
 
 const fetchCurrentUser = async () => {
@@ -30,7 +32,9 @@ const fetchCurrentUser = async () => {
       name: `${res.data.first_name} ${res.data.last_name}`,
       email: res.data.email,
       avatar: (res.data.first_name[0] || '') + (res.data.last_name[0] || ''),
-      role: res.data.role
+      role: res.data.role,
+      is_premium: res.data.is_premium,
+      premium_until: res.data.premium_until
     }
   } catch (e) {
     // Token invalid/expired, force logout
@@ -66,21 +70,6 @@ const showProjectDropdown = ref(false)
 const showCreateDropdown = ref(false)
 const searchQuery = ref('')
 const notifications = ref(3)
-
-// Dashboard data
-const dashboardData = ref({
-  activeSprintName: 'Sprint 23',
-  sprintProgress: 65,
-  openIssues: 24,
-  inProgress: 8,
-  completed: 42,
-  velocity: 32,
-  recentActivity: [
-    { user: 'Alice Johnson', action: 'completed', item: 'AP-145: Login validation', time: '2 hours ago' },
-    { user: 'Bob Smith', action: 'created', item: 'AP-146: Dashboard refactor', time: '4 hours ago' },
-    { user: 'Charlie Brown', action: 'commented on', item: 'AP-143: User management', time: '6 hours ago' }
-  ]
-})
 
 // Menu items
 const menuItems = ref([
@@ -165,6 +154,12 @@ const buyPremium = async () => {
   }
 }
 
+function formatPremiumDate(dateStr) {
+  if (!dateStr) return ''
+  const date = new Date(dateStr)
+  return date.toLocaleDateString() + ' ' + date.toLocaleTimeString()
+}
+
 
 onMounted(() => {
   document.addEventListener('click', closeDropdowns)
@@ -231,6 +226,9 @@ onMounted(() => {
           <button @click="buyPremium" class="create-btn">
             Buy Premium
           </button>
+          <span v-if="currentUser.is_premium" style="color: #28a745; font-weight: bold;">
+            Premium until {{ formatPremiumDate(currentUser.premium_until) }}
+          </span>
         <button class="notification-btn">
           🔔
           <span v-if="notifications > 0" class="notification-badge">{{ notifications }}</span>

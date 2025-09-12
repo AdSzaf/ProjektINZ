@@ -18,8 +18,19 @@ class User(AbstractUser):
     ], default='developer')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
     # Premium flag for paid features
     is_premium = models.BooleanField(default=False)
+    premium_until = models.DateTimeField(null=True, blank=True)
+    stripe_customer_id = models.CharField(max_length=255, null=True, blank=True)
+
+    def has_premium(self):
+        """Sprawdza, czy użytkownik faktycznie ma aktywne premium"""
+        return (
+            self.is_premium
+            and self.premium_until
+            and self.premium_until > timezone.now()
+        )
 
 class Organization(models.Model):
     """Top-level organization/company"""
