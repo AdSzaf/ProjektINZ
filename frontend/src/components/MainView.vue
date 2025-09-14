@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import { useProjectStore } from '../stores/projectStore'
@@ -9,6 +9,14 @@ const router = useRouter()
 const projectStore = useProjectStore()
 const projects = computed(() => projectStore.projects)
 const selectedProject = computed(() => projectStore.selectedProject)
+
+const searchQuery = ref('')
+const searchResults = ref([])
+const searchType = ref('') // 'issue' or 'user'
+const showRecommendations = ref(false)
+const showIssueModal = ref(false)
+const showUserModal = ref(false)
+const selectedResult = ref(null)
 
 // User and project data
 const currentUser = ref({
@@ -68,7 +76,6 @@ const fetchProjects = async () => {
 const showUserDropdown = ref(false)
 const showProjectDropdown = ref(false)
 const showCreateDropdown = ref(false)
-const searchQuery = ref('')
 const notifications = ref(3)
 
 // Menu items
@@ -105,13 +112,6 @@ const createNew = (type) => {
 const logout = () => {
   localStorage.removeItem('token');
   router.push('/login')
-}
-
-const searchIssues = () => {
-  if (searchQuery.value.trim()) {
-    console.log('Searching for:', searchQuery.value)
-    // Handle search logic
-  }
 }
 
 // Close dropdowns when clicking outside
@@ -160,12 +160,118 @@ function formatPremiumDate(dateStr) {
   return date.toLocaleDateString() + ' ' + date.toLocaleTimeString()
 }
 
+const searchIssues = async () => {
+  const query = searchQuery.value.trim().toLowerCase()
+  if (!query || !selectedProject.value?.id) return
+
+  // Search issues
+  const token = localStorage.getItem('token')
+  axios.defaults.headers.common['Authorization'] = `Token ${token}`
+  const issuesRes = await axios.get(`/api/projects/${selectedProject.value.id}/issues/`)
+  const usersRes = await axios.get(`/api/projects/${selectedProject.value.id}/users/`)
+
+  // Filter issues
+  const issues = issuesRes.data.filter(issue =>
+    (issue.title && issue.title.toLowerCase().includes(query)) ||
+    (issue.key && issue.key.toLowerCase().includes(query))
+  )
+  // Filter users
+  const users = usersRes.data.filter(user =>
+    (user.first_name && user.first_name.toLowerCase().includes(query)) ||
+    (user.last_name && user.last_name.toLowerCase().includes(query)) ||
+    (user.email && user.email.toLowerCase().includes(query))
+  )
+
+  if (issues.length > 0) {
+    searchResults.value = issues
+    searchType.value = 'issue'
+    showIssueModal.value = true
+    showUserModal.value = false
+  } else if (users.length > 0) {
+    searchResults.value = users
+    searchType.value = 'user'
+    showUserModal.value = true
+    showIssueModal.value = false
+  } else {
+    searchResults.value = []
+    searchType.value = ''
+    showIssueModal.value = false
+    showUserModal.value = false
+    alert('No results found.')
+  }
+}
+
+// When a result is clicked, show the modal for that item
+const openResultModal = (item) => {
+  selectedResult.value = item
+  if (searchType.value === 'issue') {
+    showIssueModal.value = true
+  } else if (searchType.value === 'user') {
+    showUserModal.value = true
+  }
+}
+
+// When a recommendation is clicked
+const selectRecommendation = (item) => {
+  selectedResult.value = item
+  showRecommendations.value = false
+  if (item._type === 'issue') {
+    showIssueModal.value = true
+  } else if (item._type === 'user') {
+    showUserModal.value = true
+  }
+}
+
+const closeModals = () => {
+  showIssueModal.value = false
+  showUserModal.value = false
+  selectedResult.value = null
+}
 
 onMounted(() => {
   document.addEventListener('click', closeDropdowns)
   fetchCurrentUser()
   projectStore.fetchProjects()
   autoCompleteSprints()
+  document.addEventListener('click', (e) => {
+    if (!searchBarRef.value?.contains(e.target)) {
+      showRecommendations.value = false
+    }
+  })
+})
+
+// Live search as you type
+watch(searchQuery, async (newQuery) => {
+  if (!newQuery || !selectedProject.value?.id) {
+    searchResults.value = []
+    showRecommendations.value = false
+    return
+  }
+  const query = newQuery.trim().toLowerCase()
+  const token = localStorage.getItem('token')
+  axios.defaults.headers.common['Authorization'] = `Token ${token}`
+  // Fetch issues and users in parallel
+  const [issuesRes, usersRes] = await Promise.all([
+    axios.get(`/api/projects/${selectedProject.value.id}/issues/`),
+    axios.get(`/api/projects/${selectedProject.value.id}/users/`)
+  ])
+  // Filter issues
+  const issues = issuesRes.data.filter(issue =>
+    (issue.title && issue.title.toLowerCase().includes(query)) ||
+    (issue.key && issue.key.toLowerCase().includes(query))
+  )
+  // Filter users
+  const users = usersRes.data.filter(user =>
+    (user.first_name && user.first_name.toLowerCase().includes(query)) ||
+    (user.last_name && user.last_name.toLowerCase().includes(query)) ||
+    (user.email && user.email.toLowerCase().includes(query))
+  )
+  // Combine and tag results
+  searchResults.value = [
+    ...issues.map(i => ({ ...i, _type: 'issue' })),
+    ...users.map(u => ({ ...u, _type: 'user' }))
+  ]
+  showRecommendations.value = searchResults.value.length > 0
 })
 </script>
 
@@ -210,14 +316,53 @@ onMounted(() => {
 
       <div class="nav-center">
         <!-- Search Bar -->
-        <div class="search-bar">
+        <div class="search-bar" ref="searchBarRef" style="position:relative;">
           <input 
             type="text" 
             v-model="searchQuery"
             placeholder="Search issues, epics, users..."
-            @keyup.enter="searchIssues"
+            @focus="showRecommendations = searchResults.length > 0"
           />
-          <button class="search-btn" @click="searchIssues">🔍</button>
+          <button class="search-btn" @click="showRecommendations = searchResults.length > 0">🔍</button>
+          <!-- Recommendations Dropdown -->
+          <div v-if="showRecommendations" class="search-dropdown">
+            <div 
+              v-for="item in searchResults.slice(0, 8)" 
+              :key="item.id + item._type"
+              class="search-result"
+              @mousedown.prevent="selectRecommendation(item)"
+            >
+              <template v-if="item._type === 'issue'">
+                <span class="result-type">🎯 Issue</span>
+                <strong>{{ item.key }}</strong>: {{ item.title }}
+              </template>
+              <template v-else>
+                <span class="result-type">👤 User</span>
+                {{ item.first_name }} {{ item.last_name }} ({{ item.email }})
+              </template>
+            </div>
+            <div v-if="searchResults.length === 0" class="search-no-results">No results found.</div>
+          </div>
+        </div>
+        <!-- Issue Modal -->
+        <div v-if="showIssueModal && selectedResult" class="modal-overlay" @click.self="closeModals">
+          <div class="modal-content">
+            <h4>{{ selectedResult.key }}: {{ selectedResult.title }}</h4>
+            <p>{{ selectedResult.description }}</p>
+            <p><strong>Status:</strong> {{ selectedResult.status }}</p>
+            <p><strong>Assignee:</strong> {{ selectedResult.assignee }}</p>
+            <p><strong>Story Points:</strong> {{ selectedResult.story_points }}</p>
+            <button @click="closeModals">Close</button>
+          </div>
+        </div>
+        <!-- User Modal -->
+        <div v-if="showUserModal && selectedResult" class="modal-overlay" @click.self="closeModals">
+          <div class="modal-content">
+            <h4>{{ selectedResult.first_name }} {{ selectedResult.last_name }}</h4>
+            <p>Email: {{ selectedResult.email }}</p>
+            <p>Role: {{ selectedResult.role }}</p>
+            <button @click="closeModals">Close</button>
+          </div>
         </div>
       </div>
 
@@ -704,6 +849,48 @@ onMounted(() => {
   white-space: nowrap;
 }
 
+.modal-overlay {
+  position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+  background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 9999;
+}
+.modal-content {
+  background: #fff; padding: 2rem; border-radius: 8px; min-width: 300px; max-width: 90vw;
+}
+.search-dropdown {
+  position: absolute;
+  top: 110%;
+  left: 0;
+  width: 100%;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 0 0 6px 6px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  z-index: 100;
+  max-height: 300px;
+  overflow-y: auto;
+}
+.search-result {
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  border-bottom: 1px solid #f1f1f1;
+  transition: background 0.2s;
+}
+.search-result:last-child {
+  border-bottom: none;
+}
+.search-result:hover {
+  background: #f3f8ff;
+}
+.result-type {
+  font-size: 0.8em;
+  color: #888;
+  margin-right: 0.5em;
+}
+.search-no-results {
+  padding: 0.75rem 1rem;
+  color: #888;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .nav-center {
@@ -948,6 +1135,39 @@ onMounted(() => {
   /* HR elements */
   hr {
     border-color: #444 !important;
+  }
+  /* Modal Overlay */
+  .modal-overlay {
+    background: rgba(0, 0, 0, 0.8) !important;
+  }
+
+  .modal-content {
+    background: #232526 !important;
+    color: #f3f3f3 !important;
+  }
+
+  /* Search Dropdown */
+  .search-dropdown {
+    background: #232526 !important;
+    border: 1px solid #444 !important;
+    color: #f3f3f3 !important;
+  }
+
+  .search-result {
+    color: #f3f3f3 !important;
+    border-bottom: 1px solid #444 !important;
+  }
+
+  .search-result:hover {
+    background: #1a3a52 !important;
+  }
+
+  .result-type {
+    color: #aaa !important;
+  }
+
+  .search-no-results {
+    color: #aaa !important;
   }
 }
 </style>
