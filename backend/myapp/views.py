@@ -148,6 +148,7 @@ def list_users(request):
             'first_name': u.first_name,
             'last_name': u.last_name,
             'email': u.email,
+            'organizations': [str(org.id) for org in u.organization_set.all()]
         }
         for u in users
     ]

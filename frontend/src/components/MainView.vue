@@ -17,6 +17,7 @@ const showRecommendations = ref(false)
 const showIssueModal = ref(false)
 const showUserModal = ref(false)
 const selectedResult = ref(null)
+const searchBarRef = ref(null)
 
 // User and project data
 const currentUser = ref({

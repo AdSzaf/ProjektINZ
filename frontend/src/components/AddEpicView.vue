@@ -219,4 +219,79 @@ onMounted(async () => {
   .form-row { grid-template-columns: 1fr; gap: 1rem; }
   .modal-header, .modal-body, .modal-footer { padding-left: 1.5rem; padding-right: 1.5rem; }
 }
+@media (prefers-color-scheme: dark) {
+  .modal-overlay {
+    background: rgba(0, 0, 0, 0.8) !important;
+  }
+
+  .epic-modal,
+  .modal-header,
+  .modal-body,
+  .modal-footer {
+    background: #181a1b !important;
+    color: #f3f3f3 !important;
+    border-color: #333 !important;
+  }
+
+  .modal-header h2,
+  .form-label {
+    color: #f3f3f3 !important;
+  }
+
+  .close-btn {
+    color: #f3f3f3 !important;
+  }
+
+  .close-btn:hover {
+    background: #333 !important;
+  }
+
+  .form-input,
+  .form-select,
+  .form-textarea {
+    background: #232526 !important;
+    color: #f3f3f3 !important;
+    border-color: #444 !important;
+  }
+
+  .form-input:focus,
+  .form-select:focus,
+  .form-textarea:focus {
+    border-color: #4ea1ff !important;
+    box-shadow: 0 0 0 2px rgba(78, 161, 255, 0.1) !important;
+  }
+
+  .form-input.error {
+    border-color: #dc3545 !important;
+  }
+
+  .error-message {
+    color: #dc3545 !important;
+  }
+
+  .btn-primary {
+    background: #0056b3 !important;
+    color: #fff !important;
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    background: #4ea1ff !important;
+  }
+
+  .btn-primary:disabled {
+    background: #444 !important;
+    color: #aaa !important;
+  }
+
+  .btn-secondary {
+    background: #232526 !important;
+    color: #f3f3f3 !important;
+    border: 1px solid #444 !important;
+  }
+
+  .btn-secondary:hover {
+    background: #333 !important;
+    border-color: #555 !important;
+  }
+}
 </style>

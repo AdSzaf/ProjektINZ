@@ -218,7 +218,10 @@ onMounted(async () => {
     } else {
       // Fallback: fetch all users or just self
       const usersRes = await axios.get('/api/users/')
-      users.value = usersRes.data
+      // Filter out users who belong to any organization
+      users.value = usersRes.data.filter(u => !u.organizations || u.organizations.length === 0)
+      console.log(users.value)
+      console.log(usersRes.data)
     }
   } catch (e) {
     if (e.response && e.response.status === 401) {
