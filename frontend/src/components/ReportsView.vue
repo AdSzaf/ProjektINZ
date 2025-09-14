@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useProjectStore } from '../stores/projectStore'
 import axios from 'axios'
+import { useRouter } from 'vue-router'
 
 // Report data
 const selectedTimeframe = ref('current-sprint')
@@ -15,6 +16,10 @@ const velocityData = ref([])
 const issueBreakdown = ref({})
 const teamPerformance = ref([])
 const sprintIssues = ref([])
+
+const router = useRouter()
+const currentUser = ref(null)
+const loading = ref(true)
 
 const timeframeOptions = [
   { value: 'current-sprint', label: 'Current Sprint' },
@@ -375,6 +380,23 @@ const renderActiveChart = () => {
   })
 }
 
+const fetchCurrentUser = async () => {
+  try {
+    const token = localStorage.getItem('token')
+    if (!token) {
+      router.push('/login')
+      return
+    }
+    axios.defaults.headers.common['Authorization'] = `Token ${token}`
+    const res = await axios.get('/api/me/')
+    currentUser.value = res.data
+  } catch (e) {
+    router.push('/login')
+  } finally {
+    loading.value = false
+  }
+}
+
 onMounted(async () => {
 
   await fetchSprintInfo()
@@ -383,6 +405,7 @@ onMounted(async () => {
   await fetchVelocityData()
   await fetchIssueBreakdown()
   await fetchTeamPerformance()
+  await fetchCurrentUser()
   
   renderActiveChart()
 })
@@ -395,6 +418,7 @@ watch(currentProject, async (newVal) => {
     await fetchVelocityData()
     await fetchIssueBreakdown()
     await fetchTeamPerformance()
+    await fetchCurrentUser()
 
     renderActiveChart()
   }
@@ -418,196 +442,206 @@ watch(velocityData, (newVal) => {
 </script>
 
 <template>
-  <div v-if="!currentProject" class="no-projects-message">
-    <h2>No projects found</h2>
-    <p>Create your first project to get started!</p>
-    <button class="btn btn-primary" @click="$router.push('/create-project')">+ Create Project</button>
+  <div v-if="loading">
+    Loading...
   </div>
-  <div v-else class="reports-container">
-    <!-- Reports Header -->
-    <div class="reports-header">
-      <h1>Reports & Analytics</h1>
-      <p class="reports-description">Track progress, analyze team performance, and monitor project health</p>
-      
-      <!-- Report Controls -->
-      <div class="report-controls">
-        <div class="control-group">
-          <label>Time Frame:</label>
-          <select v-model="selectedTimeframe" class="control-select">
-            <option v-for="option in timeframeOptions" :key="option.value" :value="option.value">
-              {{ option.label }}
-            </option>
-          </select>
-        </div>
+  <div v-else-if="!currentUser?.is_premium">
+    <h2>Premium Feature</h2>
+    <p>The Reports & Analytics section is available for premium users only.</p>
+    <button class="btn btn-primary" @click="router.push('/home')">Back to Home</button>
+  </div>
+  <div v-else>
+    <div v-if="!currentProject" class="no-projects-message">
+      <h2>No projects found</h2>
+      <p>Create your first project to get started!</p>
+      <button class="btn btn-primary" @click="$router.push('/create-project')">+ Create Project</button>
+    </div>
+    <div v-else class="reports-container">
+      <!-- Reports Header -->
+      <div class="reports-header">
+        <h1>Reports & Analytics</h1>
+        <p class="reports-description">Track progress, analyze team performance, and monitor project health</p>
         
-        <div class="control-group">
-          <label>Report Type:</label>
-          <select v-model="selectedReport" class="control-select">
-            <option v-for="report in reportTypes" :key="report.value" :value="report.value">
-              {{ report.icon }} {{ report.label }}
-            </option>
-          </select>
-        </div>
-      </div>
-    </div>
-
-    <!-- Sprint Overview -->
-    <div class="sprint-overview" v-if="sprintInfo">
-      <div class="overview-card">
-        <h3>{{ sprintInfo?.name }} Overview</h3>
-        <div class="overview-stats">
-          <div class="stat">
-            <span class="stat-label">Progress</span>
-            <span class="stat-value">{{ sprintProgressPercentage }}%</span>
-          </div>
-          <div class="stat">
-            <span class="stat-label">Completed</span>
-            <span class="stat-value">{{ completedStoryPoints }}/{{ totalStoryPoints }} SP</span>
-          </div>
-          <div class="stat">
-            <span class="stat-label">Days Left</span>
-            <span class="stat-value">{{ remainingDays }}</span>
-          </div>
-          <div class="stat">
-            <span class="stat-label">Avg Velocity</span>
-            <span class="stat-value">{{ averageVelocity }} SP</span>
-          </div>
-        </div>
-        <div class="progress-container">
-          <div class="progress-bar">
-            <div class="progress-fill" :style="{ width: sprintProgressPercentage + '%' }"></div>
-          </div>
-          <div class="progress-text">{{ completedStoryPoints }} of {{ totalStoryPoints }} story points completed</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Charts Section -->
-    <div class="charts-grid">
-      <!-- Burndown Chart -->
-      <div class="chart-card" v-show="selectedReport === 'burndown'">
-        <div class="chart-header">
-          <h3>📉 Burndown Chart</h3>
-          <div class="chart-legend">
-            <span class="legend-item">
-              <span class="legend-color ideal"></span>
-              Ideal
-            </span>
-            <span class="legend-item">
-              <span class="legend-color actual"></span>
-              Actual
-            </span>
-          </div>
-        </div>
-        <div class="chart-container">
-          <canvas id="burndown-canvas" width="800" height="400"></canvas>
-        </div>
-      </div>
-
-      <!-- Velocity Chart -->
-      <div class="chart-card" v-show="selectedReport === 'velocity'">
-        <div class="chart-header">
-          <h3>🚀 Velocity Chart</h3>
-          <div class="chart-legend">
-            <span class="legend-item">
-              <span class="legend-color planned"></span>
-              Planned
-            </span>
-            <span class="legend-item">
-              <span class="legend-color completed"></span>
-              Completed
-            </span>
-          </div>
-        </div>
-        <div class="chart-container">
-          <canvas id="velocity-canvas" width="600" height="400"></canvas>
-        </div>
-      </div>
-
-      <!-- Issue Breakdown -->
-      <div class="chart-card breakdown-card" v-show="selectedReport === 'cumulative'">
-        <h3>📊 Issue Breakdown</h3>
-        <div class="breakdown-grid">
-          <div class="breakdown-section">
-            <h4>By Status</h4>
-            <div class="breakdown-list">
-              <div v-for="item in issueBreakdown.byStatus" :key="item.status" class="breakdown-item">
-                <span class="breakdown-color" :style="{ backgroundColor: item.color }"></span>
-                <span class="breakdown-label">{{ item.status }}</span>
-                <span class="breakdown-count">{{ item.count }}</span>
-              </div>
-            </div>
+        <!-- Report Controls -->
+        <div class="report-controls">
+          <div class="control-group">
+            <label>Time Frame:</label>
+            <select v-model="selectedTimeframe" class="control-select">
+              <option v-for="option in timeframeOptions" :key="option.value" :value="option.value">
+                {{ option.label }}
+              </option>
+            </select>
           </div>
           
-          <div class="breakdown-section">
-            <h4>By Type</h4>
-            <div class="breakdown-list">
-              <div v-for="item in issueBreakdown.byType" :key="item.type" class="breakdown-item">
-                <span class="breakdown-color" :style="{ backgroundColor: item.color }"></span>
-                <span class="breakdown-label">{{ item.type }}</span>
-                <span class="breakdown-count">{{ item.count }}</span>
+          <div class="control-group">
+            <label>Report Type:</label>
+            <select v-model="selectedReport" class="control-select">
+              <option v-for="report in reportTypes" :key="report.value" :value="report.value">
+                {{ report.icon }} {{ report.label }}
+              </option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sprint Overview -->
+      <div class="sprint-overview" v-if="sprintInfo">
+        <div class="overview-card">
+          <h3>{{ sprintInfo?.name }} Overview</h3>
+          <div class="overview-stats">
+            <div class="stat">
+              <span class="stat-label">Progress</span>
+              <span class="stat-value">{{ sprintProgressPercentage }}%</span>
+            </div>
+            <div class="stat">
+              <span class="stat-label">Completed</span>
+              <span class="stat-value">{{ completedStoryPoints }}/{{ totalStoryPoints }} SP</span>
+            </div>
+            <div class="stat">
+              <span class="stat-label">Days Left</span>
+              <span class="stat-value">{{ remainingDays }}</span>
+            </div>
+            <div class="stat">
+              <span class="stat-label">Avg Velocity</span>
+              <span class="stat-value">{{ averageVelocity }} SP</span>
+            </div>
+          </div>
+          <div class="progress-container">
+            <div class="progress-bar">
+              <div class="progress-fill" :style="{ width: sprintProgressPercentage + '%' }"></div>
+            </div>
+            <div class="progress-text">{{ completedStoryPoints }} of {{ totalStoryPoints }} story points completed</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Charts Section -->
+      <div class="charts-grid">
+        <!-- Burndown Chart -->
+        <div class="chart-card" v-show="selectedReport === 'burndown'">
+          <div class="chart-header">
+            <h3>📉 Burndown Chart</h3>
+            <div class="chart-legend">
+              <span class="legend-item">
+                <span class="legend-color ideal"></span>
+                Ideal
+              </span>
+              <span class="legend-item">
+                <span class="legend-color actual"></span>
+                Actual
+              </span>
+            </div>
+          </div>
+          <div class="chart-container">
+            <canvas id="burndown-canvas" width="800" height="400"></canvas>
+          </div>
+        </div>
+
+        <!-- Velocity Chart -->
+        <div class="chart-card" v-show="selectedReport === 'velocity'">
+          <div class="chart-header">
+            <h3>🚀 Velocity Chart</h3>
+            <div class="chart-legend">
+              <span class="legend-item">
+                <span class="legend-color planned"></span>
+                Planned
+              </span>
+              <span class="legend-item">
+                <span class="legend-color completed"></span>
+                Completed
+              </span>
+            </div>
+          </div>
+          <div class="chart-container">
+            <canvas id="velocity-canvas" width="600" height="400"></canvas>
+          </div>
+        </div>
+
+        <!-- Issue Breakdown -->
+        <div class="chart-card breakdown-card" v-show="selectedReport === 'cumulative'">
+          <h3>📊 Issue Breakdown</h3>
+          <div class="breakdown-grid">
+            <div class="breakdown-section">
+              <h4>By Status</h4>
+              <div class="breakdown-list">
+                <div v-for="item in issueBreakdown.byStatus" :key="item.status" class="breakdown-item">
+                  <span class="breakdown-color" :style="{ backgroundColor: item.color }"></span>
+                  <span class="breakdown-label">{{ item.status }}</span>
+                  <span class="breakdown-count">{{ item.count }}</span>
+                </div>
+              </div>
+            </div>
+            
+            <div class="breakdown-section">
+              <h4>By Type</h4>
+              <div class="breakdown-list">
+                <div v-for="item in issueBreakdown.byType" :key="item.type" class="breakdown-item">
+                  <span class="breakdown-color" :style="{ backgroundColor: item.color }"></span>
+                  <span class="breakdown-label">{{ item.type }}</span>
+                  <span class="breakdown-count">{{ item.count }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Team Performance -->
+        <div class="chart-card team-card" v-show="selectedReport === 'time-tracking'">
+          <h3>⏱️ Team Performance</h3>
+          <div class="team-performance">
+            <div class="performance-header">
+              <span>Team Member</span>
+              <span>Completed</span>
+              <span>Assigned</span>
+              <span>Efficiency</span>
+            </div>
+            <div v-for="member in teamPerformance" :key="member.member" class="performance-row">
+              <span class="member-name">{{ member.member }}</span>
+              <span class="performance-stat completed">{{ member.completed }}</span>
+              <span class="performance-stat assigned">{{ member.assigned }}</span>
+              <div class="efficiency-container">
+                <div class="efficiency-bar">
+                  <div class="efficiency-fill" :style="{ width: member.efficiency + '%' }"></div>
+                </div>
+                <span class="efficiency-text">{{ member.efficiency }}%</span>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Team Performance -->
-      <div class="chart-card team-card" v-show="selectedReport === 'time-tracking'">
-        <h3>⏱️ Team Performance</h3>
-        <div class="team-performance">
-          <div class="performance-header">
-            <span>Team Member</span>
-            <span>Completed</span>
-            <span>Assigned</span>
-            <span>Efficiency</span>
-          </div>
-          <div v-for="member in teamPerformance" :key="member.member" class="performance-row">
-            <span class="member-name">{{ member.member }}</span>
-            <span class="performance-stat completed">{{ member.completed }}</span>
-            <span class="performance-stat assigned">{{ member.assigned }}</span>
-            <div class="efficiency-container">
-              <div class="efficiency-bar">
-                <div class="efficiency-fill" :style="{ width: member.efficiency + '%' }"></div>
-              </div>
-              <span class="efficiency-text">{{ member.efficiency }}%</span>
-            </div>
+      <!-- Quick Stats -->
+      <div class="quick-stats">
+        <div class="stat-card">
+          <div class="stat-icon">🎯</div>
+          <div class="stat-info">
+            <div class="stat-number">{{ Array.isArray(issueBreakdown.byStatus) ? issueBreakdown.byStatus.reduce((sum, item) => sum + item.count, 0) : 0 }}</div>
+            <div class="stat-label">Total Issues</div>
           </div>
         </div>
-      </div>
-    </div>
-
-    <!-- Quick Stats -->
-    <div class="quick-stats">
-      <div class="stat-card">
-        <div class="stat-icon">🎯</div>
-        <div class="stat-info">
-          <div class="stat-number">{{ Array.isArray(issueBreakdown.byStatus) ? issueBreakdown.byStatus.reduce((sum, item) => sum + item.count, 0) : 0 }}</div>
-          <div class="stat-label">Total Issues</div>
+        
+        <div class="stat-card">
+          <div class="stat-icon">✅</div>
+          <div class="stat-info">
+            <div class="stat-number">{{ Array.isArray(issueBreakdown.byStatus) ? (issueBreakdown.byStatus.find(item => item.status === 'Done')?.count || 0) : 0 }}</div>
+            <div class="stat-label">Completed</div>
+          </div>
         </div>
-      </div>
-      
-      <div class="stat-card">
-        <div class="stat-icon">✅</div>
-        <div class="stat-info">
-          <div class="stat-number">{{ Array.isArray(issueBreakdown.byStatus) ? (issueBreakdown.byStatus.find(item => item.status === 'Done')?.count || 0) : 0 }}</div>
-          <div class="stat-label">Completed</div>
+        
+        <div class="stat-card">
+          <div class="stat-icon">🔥</div>
+          <div class="stat-info">
+            <div class="stat-number"> {{ Array.isArray(issueBreakdown.byType) ? (issueBreakdown.byType.find(item => item.type === 'Bug')?.count || 0) : 0 }}</div>
+            <div class="stat-label">Bugs</div>
+          </div>
         </div>
-      </div>
-      
-      <div class="stat-card">
-        <div class="stat-icon">🔥</div>
-        <div class="stat-info">
-          <div class="stat-number"> {{ Array.isArray(issueBreakdown.byType) ? (issueBreakdown.byType.find(item => item.type === 'Bug')?.count || 0) : 0 }}</div>
-          <div class="stat-label">Bugs</div>
-        </div>
-      </div>
-      
-      <div class="stat-card">
-        <div class="stat-icon">⚡</div>
-        <div class="stat-info">
-          <div class="stat-number">{{ Array.isArray(sprintInfo) ? averageVelocity : 0 }}</div>
-          <div class="stat-label">Avg Velocity</div>
+        
+        <div class="stat-card">
+          <div class="stat-icon">⚡</div>
+          <div class="stat-info">
+            <div class="stat-number">{{ Array.isArray(sprintInfo) ? averageVelocity : 0 }}</div>
+            <div class="stat-label">Avg Velocity</div>
+          </div>
         </div>
       </div>
     </div>
