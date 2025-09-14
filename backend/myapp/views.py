@@ -1,8 +1,10 @@
+import requests
+import os
 import stripe
 from django.conf import settings
 
 from django.views.decorators.csrf import csrf_exempt
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
@@ -22,6 +24,9 @@ from .serializers import (RegisterSerializer
                           , SprintSerializer
                           , IssueSerializer)
 # In-memory status store (no DB changes). Keys: project_id -> { user_id -> { 'status': str, 'updated_at': datetime } }
+
+from .ai_service import analyze_tasks
+
 ALLOWED_MEMBER_STATUSES = {'active', 'busy', 'away', 'offline'}
 MEMBER_STATUS_STORE = {}
 
@@ -957,3 +962,41 @@ def stripe_webhook(request):
         user.save()
 
     return HttpResponse(status=200)
+
+#----------------------------------------------------------------Sekcja AI-------------------------------------------------------------------------
+HF_API_KEY = os.getenv("HF_API_KEY")
+HF_API_URL = "https://api-inference.huggingface.co/models/google/flan-t5-small"
+HF_HEADERS = {"Authorization": f"Bearer {HF_API_KEY}"}
+
+
+def analyze_tasks(tasks: list[str]) -> str:
+    """
+    Wysyła listę zadań do modelu i zwraca propozycję kolejności.
+    """
+    prompt = "Posortuj te zadania według ważności:\n" + "\n".join(tasks)
+
+    response = requests.post(HF_API_URL, headers=HF_HEADERS, json={"inputs": prompt})
+
+    if response.status_code != 200:
+        return f"Error: {response.status_code}, {response.text}"
+
+    return response.json()[0]["generated_text"]
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def suggest_task_order(request):
+    """
+    Endpoint analizujący listę zadań i proponujący kolejność ich wykonania.
+    Wymaga autoryzacji.
+    """
+    tasks = request.data.get("tasks", [])
+
+    if not tasks or not isinstance(tasks, list):
+        return Response({"detail": "Tasks must be a non-empty list."}, status=400)
+
+    try:
+        suggestion = analyze_tasks(tasks)
+        return Response({"suggestion": suggestion}, status=200)
+    except Exception as e:
+        return Response({"detail": str(e)}, status=500)

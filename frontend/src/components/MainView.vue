@@ -19,6 +19,12 @@ const showUserModal = ref(false)
 const selectedResult = ref(null)
 const searchBarRef = ref(null)
 
+// AI Assistant modal
+const showAIModal = ref(false)
+const aiMessage = ref('')
+const aiConversation = ref([])
+const isAILoading = ref(false)
+
 // User and project data
 const currentUser = ref({
   name: '',
@@ -115,6 +121,72 @@ const logout = () => {
   router.push('/login')
 }
 
+// AI Assistant methods
+const openAIModal = () => {
+  showAIModal.value = true
+}
+
+const closeAIModal = () => {
+  showAIModal.value = false
+  aiMessage.value = ''
+}
+
+const sendAIMessage = async () => {
+  if (!aiMessage.value.trim()) return
+  
+  const userMessage = aiMessage.value.trim()
+  
+  // Add user message to conversation
+  aiConversation.value.push({
+    role: 'user',
+    message: userMessage,
+    timestamp: new Date().toLocaleTimeString()
+  })
+  
+  aiMessage.value = ''
+  isAILoading.value = true
+  
+  try {
+    // Here you would typically call your AI API
+    // For now, I'll simulate a response
+    const token = localStorage.getItem('token')
+    if (token) {
+      axios.defaults.headers.common['Authorization'] = `Token ${token}`
+    }
+
+    const response = await axios.post(
+      `${import.meta.env.VITE_BACKEND_URL}/api/ai/suggest-task-order/`,
+      {
+        tasks: [userMessage]
+      }
+    )
+
+    aiConversation.value.push({
+      role: 'assistant',
+      message: response.data.suggestion,
+      timestamp: new Date().toLocaleTimeString()
+    })
+    isAILoading.value = false
+
+    await nextTick()
+  } catch (error) {
+    console.error('AI Assistant error:', error)
+    aiConversation.value.push({
+      role: 'assistant',
+      message: 'Sorry, I encountered an error. Please try again.',
+      timestamp: new Date().toLocaleTimeString()
+    })
+    isAILoading.value = false
+  }
+}
+
+const handleAIKeyPress = (event) => {
+  if (event.key === 'Enter' && !event.shiftKey) {
+    event.preventDefault()
+    sendAIMessage()
+  }
+}
+
 // Close dropdowns when clicking outside
 const closeDropdowns = () => {
   showUserDropdown.value = false
@@ -127,7 +199,6 @@ const autoCompleteSprints = async () => {
   axios.defaults.headers.common['Authorization'] = `Token ${token}`
   await axios.post('/api/sprints/auto-complete/')
 }
-
 
 const buyPremium = async () => {
   try {
@@ -409,22 +480,94 @@ watch(searchQuery, async (newQuery) => {
     <div class="main-layout">
       <!-- Sidebar -->
       <nav class="sidebar">
-        <router-link 
-          v-for="item in menuItems" 
-          :key="item.name"
-          :to="item.route"
-          class="menu-item"
-          :class="{ active: $route.path === item.route }"
-        >
-          <span class="menu-icon">{{ item.icon }}</span>
-          <span class="menu-text">{{ item.name }}</span>
-        </router-link>
+        <div class="sidebar-content">
+          <div class="menu-items">
+            <router-link 
+              v-for="item in menuItems" 
+              :key="item.name"
+              :to="item.route"
+              class="menu-item"
+              :class="{ active: $route.path === item.route }"
+            >
+              <span class="menu-icon">{{ item.icon }}</span>
+              <span class="menu-text">{{ item.name }}</span>
+            </router-link>
+          </div>
+          
+          <!-- AI Assistant Button at the bottom -->
+          <div class="sidebar-bottom">
+            <button class="ai-assistant-btn" @click="openAIModal">
+              <span class="menu-icon">🤖</span>
+              <span class="menu-text">Ask AI Assistant</span>
+            </button>
+          </div>
+        </div>
       </nav>
 
       <!-- Main Content -->
       <main class="main-content">
         <router-view />
       </main>
+    </div>
+
+    <!-- AI Assistant Modal -->
+    <div v-if="showAIModal" class="modal-overlay" @click.self="closeAIModal">
+      <div class="ai-modal-content">
+        <div class="ai-modal-header">
+          <h3>🤖 AI Assistant</h3>
+          <button class="close-btn" @click="closeAIModal">✕</button>
+        </div>
+        
+        <div class="ai-conversation">
+          <div v-if="aiConversation.length === 0" class="ai-welcome">
+            <p>👋 Hello! I'm your AI assistant. I can help you with:</p>
+            <ul>
+              <li>Project management questions</li>
+              <li>Creating and managing issues</li>
+              <li>Sprint planning advice</li>
+              <li>Team collaboration tips</li>
+              <li>General project queries</li>
+            </ul>
+            <p>What would you like to know?</p>
+          </div>
+          
+          <div v-for="(msg, index) in aiConversation" :key="index" class="message" :class="msg.role">
+            <div class="message-content">
+              <div class="message-text">{{ msg.message }}</div>
+              <div class="message-time">{{ msg.timestamp }}</div>
+            </div>
+          </div>
+          
+          <div v-if="isAILoading" class="message assistant">
+            <div class="message-content">
+              <div class="message-text">
+                <div class="typing-indicator">
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="ai-input-area">
+          <textarea 
+            v-model="aiMessage"
+            placeholder="Ask me anything about your project..."
+            class="ai-input"
+            @keypress="handleAIKeyPress"
+            rows="3"
+          ></textarea>
+          <button 
+            @click="sendAIMessage" 
+            class="send-btn"
+            :disabled="!aiMessage.trim() || isAILoading"
+          >
+            Send
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -684,10 +827,23 @@ watch(searchQuery, async (newQuery) => {
   width: 250px;
   background: white;
   border-right: 1px solid #e1e5e9;
-  padding: 1rem 0;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
   flex-shrink: 0;
   height: 100%;
+  overflow: hidden;
+}
+
+.sidebar-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.menu-items {
+  flex: 1;
+  padding: 1rem 0;
+  overflow-y: auto;
 }
 
 .menu-item {
@@ -699,6 +855,8 @@ watch(searchQuery, async (newQuery) => {
   transition: all 0.2s;
   margin: 0 0.5rem;
   border-radius: 4px;
+  text-decoration: none;
+  color: inherit;
 }
 
 .menu-item:hover {
@@ -713,6 +871,36 @@ watch(searchQuery, async (newQuery) => {
 
 .menu-icon {
   font-size: 1.1rem;
+}
+
+.sidebar-bottom {
+  border-top: 1px solid #e1e5e9;
+  padding: 1rem 0.5rem;
+}
+
+.ai-assistant-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-weight: 500;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.ai-assistant-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.ai-assistant-btn:active {
+  transform: translateY(0);
 }
 
 /* Main Content */
@@ -892,6 +1080,205 @@ watch(searchQuery, async (newQuery) => {
   color: #888;
 }
 
+/* AI Assistant Modal Styles */
+.ai-modal-content {
+  background: white;
+  border-radius: 12px;
+  width: 90vw;
+  max-width: 600px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+}
+
+.ai-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid #e1e5e9;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.ai-modal-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.close-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  transition: background-color 0.2s;
+}
+
+.close-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.ai-conversation {
+  flex: 1;
+  padding: 1.5rem;
+  overflow-y: auto;
+  max-height: 50vh;
+}
+
+.ai-welcome {
+  text-align: center;
+  color: #666;
+  margin-bottom: 2rem;
+}
+
+.ai-welcome h4 {
+  color: #333;
+  margin-bottom: 1rem;
+}
+
+.ai-welcome ul {
+  text-align: left;
+  max-width: 300px;
+  margin: 1rem auto;
+}
+
+.ai-welcome li {
+  margin-bottom: 0.5rem;
+}
+
+.message {
+  margin-bottom: 1rem;
+  display: flex;
+}
+
+.message.user {
+  justify-content: flex-end;
+}
+
+.message.assistant {
+  justify-content: flex-start;
+}
+
+.message-content {
+  max-width: 80%;
+  padding: 0.75rem 1rem;
+  border-radius: 18px;
+  position: relative;
+}
+
+.message.user .message-content {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-bottom-right-radius: 6px;
+}
+
+.message.assistant .message-content {
+  background: #f1f3f5;
+  color: #333;
+  border-bottom-left-radius: 6px;
+}
+
+.message-text {
+  line-height: 1.4;
+}
+
+.message-time {
+  font-size: 0.75rem;
+  opacity: 0.7;
+  margin-top: 0.5rem;
+}
+
+.typing-indicator {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.typing-indicator span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #999;
+  animation: typing 1.4s infinite;
+}
+
+.typing-indicator span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing-indicator span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes typing {
+  0%, 60%, 100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  30% {
+    transform: translateY(-10px);
+    opacity: 1;
+  }
+}
+
+.ai-input-area {
+  padding: 1.5rem;
+  border-top: 1px solid #e1e5e9;
+  display: flex;
+  gap: 1rem;
+  align-items: flex-end;
+}
+
+.ai-input {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border: 1px solid #ddd;
+  border-radius: 20px;
+  resize: none;
+  outline: none;
+  font-family: inherit;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.ai-input:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.send-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 20px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.send-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.send-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .nav-center {
@@ -908,6 +1295,19 @@ watch(searchQuery, async (newQuery) => {
   
   .activity-card {
     grid-column: span 1;
+  }
+
+  .ai-modal-content {
+    width: 95vw;
+    max-height: 90vh;
+  }
+
+  .ai-conversation {
+    max-height: 40vh;
+  }
+
+  .message-content {
+    max-width: 90%;
   }
 }
 
@@ -1045,6 +1445,10 @@ watch(searchQuery, async (newQuery) => {
     border-right: 1px solid #444 !important;
   }
 
+  .sidebar-bottom {
+    border-top: 1px solid #444 !important;
+  }
+
   .menu-item {
     color: #f3f3f3 !important;
   }
@@ -1169,6 +1573,57 @@ watch(searchQuery, async (newQuery) => {
 
   .search-no-results {
     color: #aaa !important;
+  }
+
+  /* AI Modal Dark Mode */
+  .ai-modal-content {
+    background: #232526 !important;
+    color: #f3f3f3 !important;
+  }
+
+  .ai-modal-header {
+    border-bottom: 1px solid #444 !important;
+  }
+
+  .ai-conversation {
+    background: #232526 !important;
+  }
+
+  .ai-welcome {
+    color: #aaa !important;
+  }
+
+  .ai-welcome h4 {
+    color: #f3f3f3 !important;
+  }
+
+  .message.assistant .message-content {
+    background: #181a1b !important;
+    color: #f3f3f3 !important;
+  }
+
+  .ai-input-area {
+    border-top: 1px solid #444 !important;
+    background: #232526 !important;
+  }
+
+  .ai-input {
+    background: #181a1b !important;
+    border: 1px solid #444 !important;
+    color: #f3f3f3 !important;
+  }
+
+  .ai-input:focus {
+    border-color: #667eea !important;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2) !important;
+  }
+
+  .ai-input::placeholder {
+    color: #aaa !important;
+  }
+
+  .typing-indicator span {
+    background: #aaa !important;
   }
 }
 </style>

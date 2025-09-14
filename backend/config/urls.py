@@ -46,6 +46,7 @@ from myapp.views import (auto_complete_sprints, register_user ,
     organization_users,
     create_checkout_session, 
     stripe_webhook,
+    suggest_task_order,
 )
 
 
@@ -88,4 +89,7 @@ urlpatterns = [
     #Stripe urls
     path('api/payments/create-checkout-session/', create_checkout_session, name='create_checkout_session'),
     path('api/payments/webhook/', stripe_webhook, name='stripe_webhook'),
+
+    #AI urls
+    path('api/ai/suggest-task-order/', suggest_task_order, name='suggest_task_order'),
 ]
