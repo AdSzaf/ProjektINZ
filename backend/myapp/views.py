@@ -26,8 +26,7 @@ from .serializers import (RegisterSerializer
                           , IssueSerializer)
 # In-memory status store (no DB changes). Keys: project_id -> { user_id -> { 'status': str, 'updated_at': datetime } }
 
-from .ai_service import Task
-from .ai_service import SmartAIService
+from .ai_service import ai_service
 
 ALLOWED_MEMBER_STATUSES = {'active', 'busy', 'away', 'offline'}
 MEMBER_STATUS_STORE = {}
@@ -966,163 +965,49 @@ def stripe_webhook(request):
     return HttpResponse(status=200)
 
 #----------------------------------------------------------------Sekcja AI-------------------------------------------------------------------------
-ai_service = SmartAIService()
-
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def ai_chat(request):
-    """
-    Main AI chat endpoint that handles various types of queries
-    """
+    """Main AI chat endpoint"""
     user_message = request.data.get("message", "").strip()
     
     if not user_message:
-        return Response({"detail": "Message cannot be empty."}, status=400)
+        return Response({"response": "Please ask me a question about your project!"}, status=200)
     
-    try:
-        # Get project context for the user
-        context_data = get_user_project_context(request.user)
-        
-        # Get AI response
-        ai_response = ai_service.get_ai_response(user_message, context_data)
-        
-        return Response({
-            "response": ai_response,
-            "timestamp": timezone.now().isoformat(),
-            "context_used": bool(context_data)
-        }, status=200)
-        
-    except Exception as e:
-        return Response({
-            "response": "I'm experiencing some technical difficulties. Please try asking your question in a different way.",
-            "error": str(e)
-        }, status=200)  # Return 200 to avoid frontend error handling
-
+    # Get project context
+    context_data = get_user_context(request.user)
+    
+    # Get AI response
+    ai_response = ai_service.get_ai_response(user_message, context_data)
+    
+    return Response({
+        "response": ai_response,
+        "timestamp": timezone.now().isoformat()
+    }, status=200)
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def suggest_task_priority(request):
-    """
-    Analyze tasks and suggest priority order
-    """
+    """Get task priority suggestions"""
     try:
-        # Get user's tasks (adjust query based on your models)
-        user_tasks = Task.objects.filter(
+        # Get user's tasks (adjust based on your models)
+        tasks = Task.objects.filter(
             project__members=request.user,
-            status__in=['TODO', 'IN_PROGRESS', 'OPEN']
-        ).values('id', 'title', 'description', 'status', 'priority', 'created_at')[:20]
+            status__in=['TODO', 'IN_PROGRESS']
+        ).values('title', 'priority', 'status')[:10]
         
-        if not user_tasks:
-            return Response({
-                "suggestion": "You don't have any pending tasks. Great job staying on top of your work!"
-            }, status=200)
+        suggestion = ai_service.analyze_tasks(list(tasks))
         
-        # Convert to list for AI processing
-        tasks_list = list(user_tasks)
-        suggestion = ai_service.analyze_tasks_priority(tasks_list)
-        
-        return Response({
-            "suggestion": suggestion,
-            "analyzed_tasks": len(tasks_list)
-        }, status=200)
+        return Response({"suggestion": suggestion}, status=200)
         
     except Exception as e:
         return Response({
-            "suggestion": "I couldn't analyze your tasks right now. Try focusing on high-priority items first."
+            "suggestion": "Focus on high-priority tasks first, then work on items that unblock other team members."
         }, status=200)
 
-
-@api_view(["GET"])
-@permission_classes([IsAuthenticated])
-def sprint_planning_advice(request):
-    """
-    Get AI advice for sprint planning
-    """
+def get_user_context(user):
+    """Helper to get project context"""
     try:
-        # Get current sprint data (adjust based on your models)
-        current_sprint = Sprint.objects.filter(
-            project__members=request.user,
-            is_active=True
-        ).first()
-        
-        available_tasks = Task.objects.filter(
-            project__members=request.user,
-            status='TODO',
-            sprint__isnull=True
-        ).values('id', 'title', 'priority', 'estimated_hours')
-        
-        sprint_capacity = int(request.GET.get('capacity', 10))
-        
-        advice = ai_service.suggest_sprint_planning(
-            list(available_tasks), 
-            sprint_capacity
-        )
-        
-        return Response({
-            "advice": advice,
-            "available_tasks_count": len(available_tasks),
-            "current_sprint": current_sprint.name if current_sprint else None
-        }, status=200)
-        
-    except Exception as e:
-        return Response({
-            "advice": "For effective sprint planning, prioritize high-impact tasks and consider team capacity."
-        }, status=200)
-
-
-@api_view(["GET"])
-@permission_classes([IsAuthenticated])
-def team_insights(request):
-    """
-    Get AI insights about team performance
-    """
-    try:
-        # Calculate team metrics (adjust based on your models)
-        last_30_days = timezone.now() - timedelta(days=30)
-        
-        metrics = {
-            'total_tasks': Task.objects.filter(
-                project__members=request.user,
-                created_at__gte=last_30_days
-            ).count(),
-            'completed_tasks': Task.objects.filter(
-                project__members=request.user,
-                status='DONE',
-                updated_at__gte=last_30_days
-            ).count(),
-            'in_progress_tasks': Task.objects.filter(
-                project__members=request.user,
-                status='IN_PROGRESS'
-            ).count(),
-        }
-        
-        if metrics['total_tasks'] > 0:
-            metrics['completion_rate'] = (metrics['completed_tasks'] / metrics['total_tasks']) * 100
-        else:
-            metrics['completion_rate'] = 0
-        
-        insights = ai_service.analyze_team_performance({
-            'average_tasks_per_sprint': metrics['completed_tasks'] / 2,  # Rough estimate
-            'completion_rate': metrics['completion_rate']
-        })
-        
-        return Response({
-            "insights": insights,
-            "metrics": metrics
-        }, status=200)
-        
-    except Exception as e:
-        return Response({
-            "insights": "Focus on maintaining consistent delivery and clear communication for better team performance."
-        }, status=200)
-
-
-def get_user_project_context(user):
-    """
-    Helper function to gather project context for AI
-    """
-    try:
-        # Adjust queries based on your models
         total_tasks = Task.objects.filter(project__members=user).count()
         completed_tasks = Task.objects.filter(project__members=user, status='DONE').count()
         in_progress_tasks = Task.objects.filter(project__members=user, status='IN_PROGRESS').count()
@@ -1132,5 +1017,5 @@ def get_user_project_context(user):
             'completed_tasks': completed_tasks,
             'in_progress_tasks': in_progress_tasks,
         }
-    except Exception:
+    except:
         return None

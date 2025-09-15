@@ -48,8 +48,6 @@ from myapp.views import (auto_complete_sprints, register_user ,
     stripe_webhook,
     ai_chat,
     suggest_task_priority,
-    sprint_planning_advice,
-    team_insights,
 )
 
 
@@ -96,6 +94,4 @@ urlpatterns = [
     #AI urls
     path('api/ai/chat/', ai_chat, name='ai_chat'),
     path('api/ai/suggest-priority/', suggest_task_priority, name='suggest_task_priority'),
-    path('api/ai/sprint-advice/', sprint_planning_advice, name='sprint_planning_advice'),
-    path('api/ai/team-insights/', team_insights, name='team_insights'),
 ]
