@@ -19,12 +19,6 @@ const showUserModal = ref(false)
 const selectedResult = ref(null)
 const searchBarRef = ref(null)
 
-// AI Assistant modal
-const showAIModal = ref(false)
-const aiMessage = ref('')
-const aiConversation = ref([])
-const isAILoading = ref(false)
-
 // User and project data
 const currentUser = ref({
   name: '',
@@ -121,9 +115,32 @@ const logout = () => {
   router.push('/login')
 }
 
+//------------------------------------------------------------AI START------------------------------------------------------------
 // AI Assistant methods
+// Add these to your Vue component's data/ref section:
+const showAIModal = ref(false)
+const aiMessage = ref('')
+const aiConversation = ref([])
+const isAILoading = ref(false)
+const aiQuickActions = ref([
+  { id: 'priority', label: '🎯 Suggest Task Priority', action: 'getPriorityHelp' },
+  { id: 'sprint', label: '🏃 Sprint Planning Advice', action: 'getSprintAdvice' },
+  { id: 'insights', label: '📊 Team Performance', action: 'getTeamInsights' },
+  { id: 'general', label: '💬 Ask Anything', action: 'openChat' }
+])
+
+// Enhanced AI Assistant methods:
 const openAIModal = () => {
   showAIModal.value = true
+  // Add welcome message if conversation is empty
+  if (aiConversation.value.length === 0) {
+    aiConversation.value.push({
+      role: 'assistant',
+      message: '👋 Hi! I\'m your AI project assistant. I can help you with task prioritization, sprint planning, and project insights. What would you like to know?',
+      timestamp: new Date().toLocaleTimeString(),
+      type: 'welcome'
+    })
+  }
 }
 
 const closeAIModal = () => {
@@ -147,37 +164,126 @@ const sendAIMessage = async () => {
   isAILoading.value = true
   
   try {
-    // Here you would typically call your AI API
-    // For now, I'll simulate a response
     const token = localStorage.getItem('token')
     if (token) {
       axios.defaults.headers.common['Authorization'] = `Token ${token}`
     }
 
     const response = await axios.post(
-      `${import.meta.env.VITE_BACKEND_URL}/api/ai/suggest-task-order/`,
+      `${import.meta.env.VITE_BACKEND_URL}/api/ai/chat/`,
       {
-        tasks: [userMessage]
+        message: userMessage
       }
     )
 
     aiConversation.value.push({
       role: 'assistant',
-      message: response.data.suggestion,
-      timestamp: new Date().toLocaleTimeString()
+      message: response.data.response,
+      timestamp: new Date().toLocaleTimeString(),
+      contextUsed: response.data.context_used
     })
-    isAILoading.value = false
 
-    await nextTick()
   } catch (error) {
     console.error('AI Assistant error:', error)
     aiConversation.value.push({
       role: 'assistant',
-      message: 'Sorry, I encountered an error. Please try again.',
+      message: 'I\'m having trouble connecting right now. Please try again in a moment.',
+      timestamp: new Date().toLocaleTimeString(),
+      isError: true
+    })
+  } finally {
+    isAILoading.value = false
+    await nextTick()
+    // Scroll to bottom of conversation
+    scrollToBottom()
+  }
+}
+
+const handleQuickAction = async (actionType) => {
+  isAILoading.value = true
+  
+  try {
+    const token = localStorage.getItem('token')
+    if (token) {
+      axios.defaults.headers.common['Authorization'] = `Token ${token}`
+    }
+
+    let response
+    let message
+    
+    switch (actionType) {
+      case 'getPriorityHelp':
+        response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/ai/suggest-priority/`)
+        message = response.data.suggestion
+        aiConversation.value.push({
+          role: 'user',
+          message: 'Can you help me prioritize my tasks?',
+          timestamp: new Date().toLocaleTimeString(),
+          isQuickAction: true
+        })
+        break
+        
+      case 'getSprintAdvice':
+        response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/ai/sprint-advice/`)
+        message = response.data.advice
+        aiConversation.value.push({
+          role: 'user',
+          message: 'I need advice for sprint planning',
+          timestamp: new Date().toLocaleTimeString(),
+          isQuickAction: true
+        })
+        break
+        
+      case 'getTeamInsights':
+        response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/ai/team-insights/`)
+        message = response.data.insights
+        aiConversation.value.push({
+          role: 'user',
+          message: 'Show me team performance insights',
+          timestamp: new Date().toLocaleTimeString(),
+          isQuickAction: true
+        })
+        break
+        
+      case 'openChat':
+        message = 'What would you like to know about your project?'
+        break
+        
+      default:
+        message = 'I\'m ready to help! What can I assist you with?'
+    }
+    
+    aiConversation.value.push({
+      role: 'assistant',
+      message: message,
       timestamp: new Date().toLocaleTimeString()
     })
+
+  } catch (error) {
+    console.error('Quick action error:', error)
+    aiConversation.value.push({
+      role: 'assistant',
+      message: 'I couldn\'t complete that action right now. Please try asking me directly!',
+      timestamp: new Date().toLocaleTimeString(),
+      isError: true
+    })
+  } finally {
     isAILoading.value = false
+    await nextTick()
+    scrollToBottom()
   }
+}
+
+const scrollToBottom = () => {
+  const conversationElement = document.querySelector('.ai-conversation')
+  if (conversationElement) {
+    conversationElement.scrollTop = conversationElement.scrollHeight
+  }
+}
+
+const clearConversation = () => {
+  aiConversation.value = []
+  openAIModal() // This will add the welcome message again
 }
 
 const handleAIKeyPress = (event) => {
@@ -186,6 +292,7 @@ const handleAIKeyPress = (event) => {
     sendAIMessage()
   }
 }
+//------------------------------------------------------------AI END------------------------------------------------------------
 
 // Close dropdowns when clicking outside
 const closeDropdowns = () => {
@@ -514,30 +621,51 @@ watch(searchQuery, async (newQuery) => {
     <div v-if="showAIModal" class="modal-overlay" @click.self="closeAIModal">
       <div class="ai-modal-content">
         <div class="ai-modal-header">
-          <h3>🤖 AI Assistant</h3>
-          <button class="close-btn" @click="closeAIModal">✕</button>
+          <h3>🤖 AI Project Assistant</h3>
+          <div class="ai-header-actions">
+            <button class="clear-btn" @click="clearConversation" title="Clear conversation">
+              🗑️
+            </button>
+            <button class="close-btn" @click="closeAIModal">✕</button>
+          </div>
         </div>
         
-        <div class="ai-conversation">
-          <div v-if="aiConversation.length === 0" class="ai-welcome">
-            <p>👋 Hello! I'm your AI assistant. I can help you with:</p>
-            <ul>
-              <li>Project management questions</li>
-              <li>Creating and managing issues</li>
-              <li>Sprint planning advice</li>
-              <li>Team collaboration tips</li>
-              <li>General project queries</li>
-            </ul>
-            <p>What would you like to know?</p>
+        <!-- Quick Actions -->
+        <div v-if="aiConversation.length <= 1" class="ai-quick-actions">
+          <h4>Quick Actions:</h4>
+          <div class="quick-action-buttons">
+            <button 
+              v-for="action in aiQuickActions" 
+              :key="action.id"
+              @click="handleQuickAction(action.action)"
+              class="quick-action-btn"
+              :disabled="isAILoading"
+            >
+              {{ action.label }}
+            </button>
           </div>
-          
-          <div v-for="(msg, index) in aiConversation" :key="index" class="message" :class="msg.role">
+        </div>
+        
+        <!-- Conversation Area -->
+        <div class="ai-conversation" id="ai-conversation">
+          <div 
+            v-for="(msg, index) in aiConversation" 
+            :key="index" 
+            class="message" 
+            :class="[msg.role, { 'error-message': msg.isError, 'quick-action': msg.isQuickAction }]"
+          >
             <div class="message-content">
-              <div class="message-text">{{ msg.message }}</div>
+              <div class="message-text">
+                {{ msg.message }}
+                <span v-if="msg.contextUsed" class="context-indicator" title="Response used your project data">
+                  📊
+                </span>
+              </div>
               <div class="message-time">{{ msg.timestamp }}</div>
             </div>
           </div>
           
+          <!-- Loading indicator -->
           <div v-if="isAILoading" class="message assistant">
             <div class="message-content">
               <div class="message-text">
@@ -551,20 +679,35 @@ watch(searchQuery, async (newQuery) => {
           </div>
         </div>
         
+        <!-- Input Area -->
         <div class="ai-input-area">
-          <textarea 
-            v-model="aiMessage"
-            placeholder="Ask me anything about your project..."
-            class="ai-input"
-            @keypress="handleAIKeyPress"
-            rows="3"
-          ></textarea>
+          <div class="input-with-suggestions">
+            <textarea 
+              v-model="aiMessage"
+              placeholder="Ask about tasks, sprints, team performance, or anything project-related..."
+              class="ai-input"
+              @keypress="handleAIKeyPress"
+              rows="3"
+            ></textarea>
+            <div class="input-suggestions">
+              <span class="suggestion-chip" @click="aiMessage = 'What should I work on next?'">
+                What should I work on next?
+              </span>
+              <span class="suggestion-chip" @click="aiMessage = 'How is my team performing?'">
+                How is my team performing?
+              </span>
+              <span class="suggestion-chip" @click="aiMessage = 'Help me plan the next sprint'">
+                Help me plan the next sprint
+              </span>
+            </div>
+          </div>
           <button 
             @click="sendAIMessage" 
             class="send-btn"
             :disabled="!aiMessage.trim() || isAILoading"
           >
-            Send
+            <span v-if="!isAILoading">Send</span>
+            <span v-else>...</span>
           </button>
         </div>
       </div>
@@ -1277,6 +1420,157 @@ watch(searchQuery, async (newQuery) => {
   opacity: 0.6;
   cursor: not-allowed;
   transform: none;
+}
+
+.ai-modal-content {
+  max-width: 600px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.ai-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border-bottom: 1px solid #e1e5e9;
+}
+
+.ai-header-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.clear-btn {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 4px;
+}
+
+.clear-btn:hover {
+  background: #f3f4f6;
+}
+
+.ai-quick-actions {
+  padding: 1rem;
+  border-bottom: 1px solid #e1e5e9;
+  background: #f8f9fa;
+}
+
+.quick-action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.quick-action-btn {
+  padding: 0.5rem 1rem;
+  border: 1px solid #ddd;
+  background: white;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+}
+
+.quick-action-btn:hover:not(:disabled) {
+  background: #007bff;
+  color: white;
+  border-color: #007bff;
+}
+
+.quick-action-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.ai-conversation {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+  max-height: 400px;
+}
+
+.message.error-message .message-text {
+  color: #dc3545;
+  background: #f8d7da;
+  border-left: 3px solid #dc3545;
+  padding-left: 0.75rem;
+}
+
+.message.quick-action {
+  opacity: 0.8;
+  font-style: italic;
+}
+
+.context-indicator {
+  margin-left: 0.5rem;
+  font-size: 0.8rem;
+}
+
+.input-with-suggestions {
+  flex: 1;
+  position: relative;
+}
+
+.input-suggestions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.suggestion-chip {
+  background: #e9ecef;
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.suggestion-chip:hover {
+  background: #007bff;
+  color: white;
+}
+
+.ai-input-area {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem;
+  border-top: 1px solid #e1e5e9;
+  background: #f8f9fa;
+}
+
+.typing-indicator {
+  display: flex;
+  gap: 4px;
+}
+
+.typing-indicator span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #007bff;
+  animation: typing 1.4s infinite;
+}
+
+.typing-indicator span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing-indicator span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes typing {
+  0%, 60%, 100% { opacity: 0.3; }
+  30% { opacity: 1; }
 }
 
 /* Responsive */
