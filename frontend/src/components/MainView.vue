@@ -172,7 +172,8 @@ const sendAIMessage = async () => {
     const response = await axios.post(
       `${import.meta.env.VITE_BACKEND_URL}/api/ai/chat/`,
       {
-        message: userMessage
+        message: userMessage,
+        project_id: selectedProject.value?.id // or however you store it
       }
     )
 

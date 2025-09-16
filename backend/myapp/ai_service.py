@@ -62,18 +62,26 @@ Please provide helpful, concise project management advice. Keep your response un
             logger.error(f"Ollama error: {e}")
             return "I'm currently processing your request. Please try again in a moment."
     
-    def analyze_tasks(self, tasks: list) -> str:
+    def analyze_tasks(self, tasks: list, user_message: str) -> str:
         """Analyze task priority"""
         if not tasks:
             return "No tasks to analyze."
-        
-        task_list = "\n".join([f"- {task.get('title', 'Task')}: {task.get('priority', 'Normal')} priority" for task in tasks[:10]])
-        
-        prompt = f"""I have these tasks:
-{task_list}
 
-Please suggest which tasks to prioritize and why. Keep it brief and actionable."""
-        
+        task_list = "\n".join([
+            f"- {task.get('title', 'Task')} (Status: {task.get('status', 'Unknown')}, Priority: {task.get('priority', 'Normal')}, Assignee: {task.get('assignee', 'Unassigned')}, Story Points: {task.get('story_points', '-')})"
+            for task in tasks[:10]
+        ])
+
+        prompt = f"""You are an expert project assistant. Here is a list of tasks in my project:
+    {task_list}
+
+    Based ONLY on the above tasks, answer the user's question below. 
+    If the user asks which task to do next, pick one or two tasks from the list and explain why, using their status and priority. 
+    Do NOT give generic advice. 
+    If you can't answer using the list, say "I need more information."
+
+    User: {user_message}
+    Assistant:"""
         return self.get_ai_response(prompt)
 
 # Initialize the service

@@ -968,18 +968,37 @@ def stripe_webhook(request):
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def ai_chat(request):
-    """Main AI chat endpoint"""
     user_message = request.data.get("message", "").strip()
-    
     if not user_message:
         return Response({"response": "Please ask me a question about your project!"}, status=200)
-    
-    # Get project context
-    context_data = get_user_context(request.user)
-    
-    # Get AI response
-    ai_response = ai_service.get_ai_response(user_message, context_data)
-    
+
+    # Get the user's current project (you may need to pass project_id from frontend)
+    project_id = request.data.get("project_id")
+    if not project_id:
+        # fallback: pick the first project the user is a member of
+        project = request.user.projects.first()
+    else:
+        from .models import Project
+        project = Project.objects.filter(id=project_id).first()
+
+    # Get issues for this project
+    issues = []
+    if project:
+        issues_qs = project.issues.all()[:10]  # Limit to 10 for prompt size
+        issues = [
+            {
+                "title": i.title,
+                "status": i.status,
+                "priority": i.priority,
+                "assignee": i.assignee.first_name if i.assignee else None,
+                "story_points": i.story_points,
+            }
+            for i in issues_qs
+        ]
+
+    # Pass issues to the AI
+    ai_response = ai_service.analyze_tasks(issues, user_message)
+
     return Response({
         "response": ai_response,
         "timestamp": timezone.now().isoformat()
