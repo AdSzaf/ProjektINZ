@@ -26,7 +26,7 @@ from .serializers import (RegisterSerializer
                           , IssueSerializer)
 # In-memory status store (no DB changes). Keys: project_id -> { user_id -> { 'status': str, 'updated_at': datetime } }
 
-from .ai_service import ai_service
+from .ai_service import ai_service, get_ai_context_for_message
 
 ALLOWED_MEMBER_STATUSES = {'active', 'busy', 'away', 'offline'}
 MEMBER_STATUS_STORE = {}
@@ -972,33 +972,50 @@ def ai_chat(request):
     if not user_message:
         return Response({"response": "Please ask me a question about your project!"}, status=200)
 
-    # Get the user's current project (you may need to pass project_id from frontend)
     project_id = request.data.get("project_id")
     if not project_id:
-        # fallback: pick the first project the user is a member of
         project = request.user.projects.first()
     else:
         from .models import Project
         project = Project.objects.filter(id=project_id).first()
 
-    # Get issues for this project
-    issues = []
-    if project:
-        issues_qs = project.issues.all()[:10]  # Limit to 10 for prompt size
-        issues = [
-            {
-                "title": i.title,
-                "status": i.status,
-                "priority": i.priority,
-                "assignee": i.assignee.first_name if i.assignee else None,
-                "story_points": i.story_points,
-            }
-            for i in issues_qs
-        ]
+    # Dynamically select context
+    context = get_ai_context_for_message(user_message, project) if project else {}
 
-    # Pass issues to the AI
-    ai_response = ai_service.analyze_tasks(issues, user_message)
+    # Build prompt based on context
+    if 'sprints' in context:
+        sprint_list = "\n".join([
+            f"- {s['name']} ({s['status']}): {s['completed_issues']} completed out of {s['total_issues']} issues"
+            for s in context['sprints']
+        ])
+        prompt = f"""Here are recent sprints in my project:
+{sprint_list}
 
+User: {user_message}
+Assistant:"""
+    elif 'members' in context:
+        member_list = "\n".join([
+            f"- {m['name']}: {m['completed_issues']} completed, {m['assigned_issues']} assigned"
+            for m in context['members']
+        ])
+        prompt = f"""Here is my team performance:
+{member_list}
+
+User: {user_message}
+Assistant:"""
+    else:
+        issues = context.get('issues', [])
+        task_list = "\n".join([
+            f"- {task['title']} (Status: {task['status']}, Priority: {task['priority']}, Assignee: {task['assignee']}, Story Points: {task['story_points']})"
+            for task in issues
+        ])
+        prompt = f"""Here are some tasks in my project:
+{task_list}
+
+User: {user_message}
+Assistant:"""
+
+    ai_response = ai_service.get_ai_response(prompt)
     return Response({
         "response": ai_response,
         "timestamp": timezone.now().isoformat()
