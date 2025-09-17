@@ -73,15 +73,16 @@ Please provide helpful, concise project management advice. Keep your response un
         ])
 
         prompt = f"""You are an expert project assistant. Here is a list of tasks in my project:
-    {task_list}
+        {task_list}
 
-    Based ONLY on the above tasks, answer the user's question below. 
-    If the user asks which task to do next, pick one or two tasks from the list and explain why, using their status and priority. 
-    Do NOT give generic advice. 
-    If you can't answer using the list, say "I need more information."
+        Based ONLY on the above tasks, answer the user's question below.
+        If the user asks which task to do next, pick one or two tasks from the list that are NOT marked as 'done' and explain why, using their status and priority.
+        Never suggest tasks with status 'done'.
+        Do NOT give generic advice.
+        If you can't answer using the list, say "I need more information."
 
-    User: {user_message}
-    Assistant:"""
+        User: {user_message}
+        Assistant:"""
         return self.get_ai_response(prompt)
 
 # Initialize the service

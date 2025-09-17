@@ -1010,7 +1010,7 @@ def suggest_task_priority(request):
     """Get task priority suggestions"""
     try:
         # Get user's tasks (adjust based on your models)
-        tasks = Task.objects.filter(
+        tasks = Issue.objects.filter(
             project__members=request.user,
             status__in=['TODO', 'IN_PROGRESS']
         ).values('title', 'priority', 'status')[:10]
@@ -1027,10 +1027,10 @@ def suggest_task_priority(request):
 def get_user_context(user):
     """Helper to get project context"""
     try:
-        total_tasks = Task.objects.filter(project__members=user).count()
-        completed_tasks = Task.objects.filter(project__members=user, status='DONE').count()
-        in_progress_tasks = Task.objects.filter(project__members=user, status='IN_PROGRESS').count()
-        
+        total_tasks = Issue.objects.filter(project__members=user).count()
+        completed_tasks = Issue.objects.filter(project__members=user, status='DONE').count()
+        in_progress_tasks = Issue.objects.filter(project__members=user, status='IN_PROGRESS').count()
+
         return {
             'total_tasks': total_tasks,
             'completed_tasks': completed_tasks,
