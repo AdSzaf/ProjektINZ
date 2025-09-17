@@ -1,21 +1,15 @@
 import os
 import httpx
+from .models import Sprint, Issue  # Import your models here
 
 class MistralAssistant:
     def __init__(self):
         self.api_key = os.getenv("MISTRAL_API_KEY")
         self.model = "mistral-small-latest"  # or mistral-medium-latest, mistral-tiny, etc.
 
-    def get_ai_response(self, user_message: str, context_data: dict = None) -> str:
+    def get_ai_response(self, prompt: str) -> str:
         if not self.api_key:
             return "Mistral API key not configured."
-        context = ""
-        if context_data:
-            total = context_data.get('total_tasks', 0)
-            completed = context_data.get('completed_tasks', 0)
-            in_progress = context_data.get('in_progress_tasks', 0)
-            context = f"Project context: {total} total tasks, {completed} completed, {in_progress} in progress. "
-        prompt = f"{context}User question: {user_message}\nPlease provide helpful, concise project management advice. Keep your response under 150 words."
         try:
             headers = {
                 "Authorization": f"Bearer {self.api_key}",
@@ -61,5 +55,50 @@ If you can't answer using the list, say "I need more information."
 User: {user_message}
 Assistant:"""
         return self.get_ai_response(prompt)
+
+# Standalone function for context extraction
+def get_ai_context_for_message(user_message, project):
+    user_message = user_message.lower()
+    context = {}
+
+    if "sprint" in user_message or "velocity" in user_message:
+        # Sprint/velocity context
+        sprints = Sprint.objects.filter(project=project).order_by('-start_date')[:5]
+        context['sprints'] = [
+            {
+                "name": s.name,
+                "status": s.status,
+                "start_date": s.start_date.isoformat(),
+                "end_date": s.end_date.isoformat(),
+                "completed_issues": Issue.objects.filter(sprint=s, status__iexact='done').count(),
+                "total_issues": Issue.objects.filter(sprint=s).count(),
+            }
+            for s in sprints
+        ]
+    elif "team" in user_message or "member" in user_message or "performance" in user_message:
+        # Team performance context
+        members = project.members.all()
+        context['members'] = [
+            {
+                "name": f"{m.first_name} {m.last_name}",
+                "completed_issues": Issue.objects.filter(project=project, assignee=m, status__iexact='done').count(),
+                "assigned_issues": Issue.objects.filter(project=project, assignee=m).count(),
+            }
+            for m in members
+        ]
+    else:
+        # Default: issues/tasks context
+        issues = Issue.objects.filter(project=project).order_by('-priority')[:10]
+        context['issues'] = [
+            {
+                "title": i.title,
+                "status": i.status,
+                "priority": i.priority,
+                "assignee": i.assignee.first_name if i.assignee else None,
+                "story_points": i.story_points,
+            }
+            for i in issues
+        ]
+    return context
 
 ai_service = MistralAssistant()
