@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import axios from 'axios'
 import { useProjectStore } from '../stores/projectStore'
 import { loadStripe } from "@stripe/stripe-js"
+import { marked } from 'marked'
 
 const router = useRouter()
 const projectStore = useProjectStore()
@@ -293,7 +294,12 @@ const handleAIKeyPress = (event) => {
     sendAIMessage()
   }
 }
+
 //------------------------------------------------------------AI END------------------------------------------------------------
+
+const renderMarkdown = (text) => {
+  return marked.parse(text || '')
+}
 
 // Close dropdowns when clicking outside
 const closeDropdowns = () => {
@@ -656,7 +662,8 @@ watch(searchQuery, async (newQuery) => {
             :class="[msg.role, { 'error-message': msg.isError, 'quick-action': msg.isQuickAction }]"
           >
             <div class="message-content">
-              <div class="message-text">
+              <div class="message-text" v-if="msg.role === 'assistant'" v-html="renderMarkdown(msg.message)" />
+              <div class="message-text" v-else>
                 {{ msg.message }}
                 <span v-if="msg.contextUsed" class="context-indicator" title="Response used your project data">
                   📊
