@@ -18,6 +18,9 @@ const columnToDelete = ref(null)
 const userCache = ref({})
 const showEditIssueModal = ref(false)
 const editIssueData = ref(null)
+const availableTags = ref([])
+const selectedTagIds = ref([])
+const showTagFilter = ref(false)
 
 const fetchIssues = async () => {
   if (!currentProject.value?.id) {
@@ -32,6 +35,17 @@ const fetchIssues = async () => {
     if (issue.assignee) fetchUserShort(issue.assignee)
   })
   console.log('Fetched issues:', issues.value)
+}
+
+const fetchTags = async () => {
+  if (!currentProject.value?.id) {
+    availableTags.value = []
+    return
+  }
+  const token = localStorage.getItem('token')
+  axios.defaults.headers.common['Authorization'] = `Token ${token}`
+  const res = await axios.get(`/api/projects/${currentProject.value.id}/tags/`)
+  availableTags.value = res.data
 }
 
 const confirmDeleteColumn = (column) => {
@@ -91,19 +105,39 @@ const filteredIssues = computed(() => {
         return false
       }
     }
+    
     // Assignment/type filter
     if (assignmentOrType.value === 'unassigned') {
       if (issue.assignee) return false
     } else if (assignmentOrType.value === 'assigned_me') {
-      // Match by id if we have it; otherwise match by email if present on cached user
       if (!currentUserId.value) return false
       if (String(issue.assignee) !== String(currentUserId.value)) return false
     } else if (assignmentOrType.value.startsWith('type:')) {
       const typeId = assignmentOrType.value.split(':')[1]
       if (String(issue.issue_type) !== String(typeId)) return false
     }
+    
+    // Tag filter
+    if (selectedTagIds.value.length > 0) {
+      const issueTagIds = (issue.tags || []).map(tag => tag.id)
+      const hasMatchingTag = selectedTagIds.value.some(selectedTagId => 
+        issueTagIds.includes(selectedTagId)
+      )
+      if (!hasMatchingTag) return false
+    }
+    
     return true
   })
+})
+
+const tagFilterOptions = computed(() => {
+  const base = [{ value: 'all', label: 'All tags' }]
+  const tagOpts = availableTags.value.map(tag => ({
+    value: tag.id,
+    label: tag.name,
+    color: tag.color
+  }))
+  return [...base, ...tagOpts]
 })
 
 const getIssuesByStatus = (category) => {
@@ -294,6 +328,7 @@ onMounted(() => {
   fetchUsers()
   fetchIssueTypes()
   fetchSprintsList()
+  fetchTags()
   // current user id
   const token = localStorage.getItem('token')
   if (token) {
@@ -316,6 +351,7 @@ watch(currentProject, () => {
   fetchUsers()
   fetchIssueTypes()
   fetchSprintsList()
+  fetchTags()
 })
 </script>
 
@@ -338,6 +374,52 @@ watch(currentProject, () => {
           <select v-model="assignmentOrType" class="filter-select">
             <option v-for="opt in assignmentTypeOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
           </select>
+          <div class="tag-filter-container">
+            <div class="tag-filter-dropdown">
+              <button 
+                class="tag-filter-btn" 
+                @click="showTagFilter = !showTagFilter"
+                :class="{ active: selectedTagIds.length > 0 }"
+              >
+                Tags {{ selectedTagIds.length > 0 ? `(${selectedTagIds.length})` : '' }}
+                <span class="dropdown-arrow">▼</span>
+              </button>
+              
+              <div v-if="showTagFilter" class="tag-filter-options">
+                <div class="tag-filter-header">
+                  <span>Filter by tags</span>
+                  <button 
+                    v-if="selectedTagIds.length > 0" 
+                    @click="selectedTagIds = []"
+                    class="clear-tags-btn"
+                  >
+                    Clear all
+                  </button>
+                </div>
+                <div class="tag-options-list">
+                  <label 
+                    v-for="tag in availableTags" 
+                    :key="tag.id"
+                    class="tag-option-item"
+                  >
+                    <input 
+                      type="checkbox" 
+                      :value="tag.id"
+                      v-model="selectedTagIds"
+                      class="tag-checkbox"
+                    />
+                    <div class="tag-preview">
+                      <div 
+                        class="tag-color-dot" 
+                        :style="{ backgroundColor: tag.color }"
+                      ></div>
+                      <span>{{ tag.name }}</span>
+                    </div>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
       
@@ -391,6 +473,21 @@ watch(currentProject, () => {
 
             <!-- Issue Title -->
             <h4 class="issue-title">{{ issue.title }}</h4>
+            
+            <!-- Add tags display before issue-footer -->
+            <div v-if="issue.tags && issue.tags.length > 0" class="issue-tags">
+              <div 
+                v-for="tag in issue.tags.slice(0, 2)" 
+                :key="tag.id"
+                class="issue-tag"
+                :style="{ backgroundColor: tag.color }"
+              >
+                {{ tag.name }}
+              </div>
+              <div v-if="issue.tags.length > 2" class="more-tags">
+                +{{ issue.tags.length - 2 }}
+              </div>
+            </div>
 
             <!-- Issue Footer -->
             <div class="issue-footer">
@@ -912,6 +1009,129 @@ watch(currentProject, () => {
   background: #f8f9fa;
 }
 
+.tag-filter-container {
+  position: relative;
+}
+
+.tag-filter-dropdown {
+  position: relative;
+}
+
+.tag-filter-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: white;
+  color: #333;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.tag-filter-btn.active {
+  border-color: #0066cc;
+  color: #0066cc;
+}
+
+.dropdown-arrow {
+  font-size: 0.7rem;
+  transition: transform 0.2s;
+}
+
+.tag-filter-options {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  min-width: 250px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.tag-filter-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  border-bottom: 1px solid #f0f0f0;
+  font-weight: 500;
+}
+
+.clear-tags-btn {
+  background: none;
+  border: none;
+  color: #0066cc;
+  cursor: pointer;
+  font-size: 0.8rem;
+  padding: 0.25rem;
+}
+
+.clear-tags-btn:hover {
+  text-decoration: underline;
+}
+
+.tag-options-list {
+  padding: 0.5rem;
+}
+
+.tag-option-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.tag-option-item:hover {
+  background: #f8f9fa;
+}
+
+.tag-checkbox {
+  margin: 0;
+}
+
+.tag-preview {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.tag-color-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.issue-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.issue-tag {
+  color: white;
+  padding: 0.2rem 0.4rem;
+  border-radius: 10px;
+  font-size: 0.7rem;
+  font-weight: 500;
+}
+
+.more-tags {
+  color: #6c757d;
+  font-size: 0.7rem;
+  padding: 0.2rem 0.4rem;
+}
+
 @media (prefers-color-scheme: dark) {
   .dashboard-container {
     background: #181a1b !important;
@@ -1094,6 +1314,40 @@ watch(currentProject, () => {
     background: #0056b3 !important;
     color: #fff !important;
     border-color: #0056b3 !important;
+  }
+
+  .tag-filter-btn {
+    background: #232526 !important;
+    color: #f3f3f3 !important;
+    border-color: #444 !important;
+  }
+
+  .tag-filter-btn.active {
+    border-color: #4ea1ff !important;
+    color: #4ea1ff !important;
+  }
+
+  .tag-filter-options {
+    background: #232526 !important;
+    border-color: #444 !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+  }
+
+  .tag-filter-header {
+    border-bottom-color: #444 !important;
+    color: #f3f3f3 !important;
+  }
+
+  .clear-tags-btn {
+    color: #4ea1ff !important;
+  }
+
+  .tag-option-item {
+    color: #f3f3f3 !important;
+  }
+
+  .tag-option-item:hover {
+    background: #2a2d2e !important;
   }
 }
 </style>

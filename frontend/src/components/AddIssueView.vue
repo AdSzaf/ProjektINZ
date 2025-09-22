@@ -129,11 +129,9 @@ const updateIssue = async () => {
   }
 }
 
-// Validation
 const errors = ref({})
 const isSubmitting = ref(false)
 
-// Methods
 const validateForm = () => {
   errors.value = {}
   
@@ -981,6 +979,16 @@ watch(() => props.issue, (newIssue) => {
     padding-left: 1.5rem;
     padding-right: 1.5rem;
   }
+  .tag-dropdown {
+      position: fixed;
+      top: 50%;
+      left: 1rem;
+      right: 1rem;
+      transform: translateY(-50%);
+      max-height: 60vh;
+      background: #232526 !important;
+      border-color: #444 !important;
+    }
 }
 
 @media (prefers-color-scheme: dark) {
@@ -1077,5 +1085,80 @@ watch(() => props.issue, (newIssue) => {
     background: #333 !important;
     border-color: #555 !important;
   }
+
+   .add-tag-btn {
+    background: #232526 !important;
+    color: #f3f3f3 !important;
+    border-color: #444 !important;
+  }
+
+  .add-tag-btn:hover {
+    background: #2a2d2e !important;
+    border-color: #4ea1ff !important;
+    color: #4ea1ff !important;
+  }
+
+  .tag-dropdown {
+    background: #232526 !important;
+    border-color: #444 !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+  }
+
+  .tag-section {
+    border-bottom-color: #444 !important;
+  }
+
+  .tag-section-title {
+    color: #aaa !important;
+  }
+
+  .tag-option {
+    background: #181a1b !important;
+    border-color: #444 !important;
+    color: #f3f3f3 !important;
+  }
+
+  .tag-option:hover {
+    background: #2a2d2e !important;
+    border-color: #4ea1ff !important;
+  }
+
+  .create-tag-btn {
+    background: #4ea1ff !important;
+    color: #fff !important;
+  }
+
+  .create-tag-btn:hover {
+    background: #0056b3 !important;
+  }
+
+  .tag-name-input {
+    background: #232526 !important;
+    color: #f3f3f3 !important;
+    border-color: #444 !important;
+  }
+
+  .tag-name-input:focus {
+    border-color: #4ea1ff !important;
+    box-shadow: 0 0 0 2px rgba(78, 161, 255, 0.1) !important;
+  }
+
+  .create-tag-confirm {
+    background: #28a745 !important;
+  }
+
+  .create-tag-confirm:hover:not(:disabled) {
+    background: #218838 !important;
+  }
+
+  .create-tag-cancel {
+    background: #444 !important;
+    color: #f3f3f3 !important;
+  }
+
+  .create-tag-cancel:hover {
+    background: #555 !important;
+  }
+
 }
 </style>
