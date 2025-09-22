@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.authtoken.models import Token
 from rest_framework.permissions import IsAuthenticated
-from .models import Organization, Project, IssueType, Epic, Sprint, User, Issue, WorkflowStatus, OrganizationMembership
+from .models import Organization, Project, IssueType, Epic, Sprint, User, Issue, WorkflowStatus, OrganizationMembership, Tag
 from datetime import timedelta, datetime
 from django.db.models import Count, Q
 from django.utils import timezone
@@ -23,7 +23,9 @@ from .serializers import (RegisterSerializer
                           , IssueCreateSerializer
                           , EpicCreateSerializer
                           , SprintSerializer
-                          , IssueSerializer)
+                          , IssueSerializer
+                          , TagSerializer
+                          , TagCreateSerializer)
 # In-memory status store (no DB changes). Keys: project_id -> { user_id -> { 'status': str, 'updated_at': datetime } }
 
 from .ai_service import ai_service, get_ai_context_for_message
@@ -963,6 +965,73 @@ def stripe_webhook(request):
         user.save()
 
     return HttpResponse(status=200)
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def project_tags(request, project_id):
+    """Get all tags for a project or create a new tag"""
+    try:
+        project = Project.objects.get(id=project_id)
+    except Project.DoesNotExist:
+        return Response({'detail': 'Project not found.'}, status=status.HTTP_404_NOT_FOUND)
+    
+    if not user_can_access_project(request.user, project):
+        return Response({'detail': 'Forbidden'}, status=status.HTTP_403_FORBIDDEN)
+    
+    if request.method == 'GET':
+        tags = Tag.objects.filter(project=project)
+        serializer = TagSerializer(tags, many=True)
+        return Response(serializer.data)
+    
+    elif request.method == 'POST':
+        data = request.data.copy()
+        data['project'] = str(project.id)
+        serializer = TagCreateSerializer(data=data)
+        if serializer.is_valid():
+            tag = serializer.save()
+            return Response(TagSerializer(tag).data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['PATCH', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def update_tag(request, project_id, tag_id):
+    """Update or delete a tag"""
+    try:
+        project = Project.objects.get(id=project_id)
+        tag = Tag.objects.get(id=tag_id, project=project)
+    except (Project.DoesNotExist, Tag.DoesNotExist):
+        return Response({'detail': 'Project or tag not found.'}, status=status.HTTP_404_NOT_FOUND)
+    
+    if not user_can_access_project(request.user, project):
+        return Response({'detail': 'Forbidden'}, status=status.HTTP_403_FORBIDDEN)
+    
+    if request.method == 'PATCH':
+        serializer = TagSerializer(tag, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    elif request.method == 'DELETE':
+        tag.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def issues_by_tag(request, project_id, tag_id):
+    """Get all issues with a specific tag"""
+    try:
+        project = Project.objects.get(id=project_id)
+        tag = Tag.objects.get(id=tag_id, project=project)
+    except (Project.DoesNotExist, Tag.DoesNotExist):
+        return Response({'detail': 'Project or tag not found.'}, status=status.HTTP_404_NOT_FOUND)
+    
+    if not user_can_access_project(request.user, project):
+        return Response({'detail': 'Forbidden'}, status=status.HTTP_403_FORBIDDEN)
+    
+    issues = tag.issues.all()
+    serializer = IssueSerializer(issues, many=True)
+    return Response(serializer.data)
 
 #----------------------------------------------------------------Sekcja AI-------------------------------------------------------------------------
 @api_view(["POST"])

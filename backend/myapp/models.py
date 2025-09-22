@@ -165,6 +165,21 @@ class IssueType(models.Model):
 
     def __str__(self):
         return self.name
+    
+class Tag(models.Model):
+    """Tag model for categorizing issues"""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(max_length=50)
+    color = models.CharField(max_length=7, default='#6c757d')  # Hex color code
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='tags')
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        unique_together = ['name', 'project']  # Unique tag names per project
+        ordering = ['name']
+    
+    def __str__(self):
+        return f"{self.name} ({self.project.key})"
 
 class Issue(models.Model):
     """Main issue/ticket model (Stories, Tasks, Bugs, etc.)"""
@@ -202,6 +217,8 @@ class Issue(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     resolved_at = models.DateTimeField(null=True, blank=True)
+
+    tags = models.ManyToManyField(Tag, blank=True, related_name='issues')
 
     class Meta:
         ordering = ['-created_at']

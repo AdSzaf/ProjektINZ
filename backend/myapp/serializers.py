@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.contrib.auth import authenticate
-from .models import Project, Issue, Epic, Sprint
+from .models import Project, Issue, Epic, Sprint, Tag
 import re
 
 User = get_user_model()
@@ -90,7 +90,39 @@ class ProjectGetSerializer(serializers.ModelSerializer):
     class Meta:
         model = Project
         fields = ['id', 'key', 'name', 'lead', 'organization', 'description', 'methodology']
-        
+
+class TagSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Tag
+        fields = ['id', 'name', 'color', 'project']
+
+class TagCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Tag
+        fields = ['name', 'color', 'project']
+    
+    def validate(self, data):
+        # Check if tag with this name already exists in the project
+        if Tag.objects.filter(name=data['name'], project=data['project']).exists():
+            raise serializers.ValidationError("A tag with this name already exists in this project.")
+        return data
+
+class TagSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Tag
+        fields = ['id', 'name', 'color', 'project']
+
+class TagCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Tag
+        fields = ['name', 'color', 'project']
+    
+    def validate(self, data):
+        # Check if tag with this name already exists in the project
+        if Tag.objects.filter(name=data['name'], project=data['project']).exists():
+            raise serializers.ValidationError("A tag with this name already exists in this project.")
+        return data
+
 class IssueCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Issue

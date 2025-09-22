@@ -21,6 +21,17 @@ const epics = ref([])
 const sprints = ref([])
 const users = ref([])
 
+// Tags functionality
+const availableTags = ref([])
+const selectedTags = ref([])
+const showTagDropdown = ref(false)
+const newTagName = ref('')
+const showNewTagInput = ref(false)
+const tagColors = [
+  '#FF5630', '#FF8B00', '#FFAB00', '#36B37E', 
+  '#00B8D9', '#6554C0', '#FF5630', '#97A0AF'
+]
+
 // Form data
 const formData = ref({
   title: '',
@@ -43,14 +54,73 @@ const priorities = ref([
   { value: 'highest', label: 'Highest', color: '#FF5630' }
 ])
 
+// Tag methods
+const fetchTags = async () => {
+  if (!currentProject.value?.id) return
+  try {
+    const response = await axios.get(`/api/projects/${currentProject.value.id}/tags/`)
+    availableTags.value = response.data
+  } catch (error) {
+    console.error('Error fetching tags:', error)
+  }
+}
+
+const createTag = async () => {
+  if (!newTagName.value.trim()) return
+  
+  try {
+    const randomColor = tagColors[Math.floor(Math.random() * tagColors.length)]
+    const response = await axios.post(`/api/projects/${currentProject.value.id}/tags/`, {
+      name: newTagName.value.trim(),
+      color: randomColor
+    })
+    
+    const newTag = response.data
+    availableTags.value.push(newTag)
+    selectedTags.value.push(newTag)
+    
+    newTagName.value = ''
+    showNewTagInput.value = false
+  } catch (error) {
+    console.error('Error creating tag:', error)
+  }
+}
+
+const toggleTag = (tag) => {
+  const index = selectedTags.value.findIndex(t => t.id === tag.id)
+  if (index > -1) {
+    selectedTags.value.splice(index, 1)
+  } else {
+    selectedTags.value.push(tag)
+  }
+}
+
+const removeTag = (tagId) => {
+  selectedTags.value = selectedTags.value.filter(t => t.id !== tagId)
+}
+
+const isTagSelected = (tag) => {
+  return selectedTags.value.some(t => t.id === tag.id)
+}
+
+const filteredTags = computed(() => {
+  return availableTags.value.filter(tag => !isTagSelected(tag))
+})
+
 const updateIssue = async () => {
   if (!validateForm()) return
   isSubmitting.value = true
   try {
     const token = localStorage.getItem('token')
     axios.defaults.headers.common['Authorization'] = `Token ${token}`
-    await axios.patch(`/api/issues/${props.issue.id}/`, formData.value)
-    emit('save', formData.value)
+    
+    const updateData = {
+      ...formData.value,
+      tags: selectedTags.value.map(tag => tag.id)
+    }
+    
+    await axios.patch(`/api/issues/${props.issue.id}/`, updateData)
+    emit('save', updateData)
     closeModal()
   } catch (error) {
     console.error('Error updating issue:', error)
@@ -95,11 +165,14 @@ const resetForm = () => {
     original_estimate: null,
     remaining_estimate: null
   }
+  selectedTags.value = []
   errors.value = {}
 }
 
 const closeModal = () => {
   resetForm()
+  showTagDropdown.value = false
+  showNewTagInput.value = false
   emit('close')
 }
 
@@ -115,7 +188,8 @@ const saveIssue = async () => {
     const issueData = {
       ...formData.value,
       project: currentProject.value?.id,
-      reporter: reporterId.value
+      reporter: reporterId.value,
+      tags: selectedTags.value.map(tag => tag.id)
     }
 
     await axios.post('/api/issues/', issueData)
@@ -172,10 +246,12 @@ onMounted(async () => {
     formData.value.issue_type = issueTypes.value[0].id
   }
   
-  // Fetch issue types for this project
+  // Fetch tags and other project data
   if (currentProject.value?.id) {
-    console.log('Fetching members for project:', currentProject.value.id)
+    console.log('Fetching project data for:', currentProject.value.id)
     const pid = currentProject.value.id
+    
+    await fetchTags()
     epics.value = (await axios.get(`/api/projects/${pid}/epics/`)).data
     sprints.value = (await axios.get(`/api/projects/${pid}/sprints/`)).data
     users.value = (await axios.get(`/api/projects/${currentProject.value.id}/users/`)).data
@@ -197,6 +273,9 @@ watch(() => props.issue, (newIssue) => {
       original_estimate: newIssue.original_estimate,
       remaining_estimate: newIssue.remaining_estimate
     }
+    
+    // Set selected tags for editing
+    selectedTags.value = newIssue.tags || []
   }
 })
 </script>
@@ -263,6 +342,101 @@ watch(() => props.issue, (newIssue) => {
               placeholder="Describe the issue in detail"
               rows="4"
             ></textarea>
+          </div>
+
+          <!-- Tags Section -->
+          <div class="form-group">
+            <label class="form-label">Tags</label>
+            
+            <!-- Selected Tags -->
+            <div v-if="selectedTags.length > 0" class="selected-tags">
+              <div 
+                v-for="tag in selectedTags" 
+                :key="tag.id"
+                class="tag-chip"
+                :style="{ backgroundColor: tag.color }"
+              >
+                <span>{{ tag.name }}</span>
+                <button 
+                  type="button" 
+                  class="tag-remove"
+                  @click="removeTag(tag.id)"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+
+            <!-- Tag Selector -->
+            <div class="tag-selector">
+              <button
+                type="button"
+                class="add-tag-btn"
+                @click="showTagDropdown = !showTagDropdown"
+              >
+                + Add Tag
+              </button>
+
+              <!-- Tag Dropdown -->
+              <div v-if="showTagDropdown" class="tag-dropdown">
+                <!-- Existing Tags -->
+                <div v-if="filteredTags.length > 0" class="tag-section">
+                  <div class="tag-section-title">Select existing tag</div>
+                  <div class="tag-options">
+                    <button
+                      v-for="tag in filteredTags"
+                      :key="tag.id"
+                      type="button"
+                      class="tag-option"
+                      :style="{ borderColor: tag.color }"
+                      @click="toggleTag(tag)"
+                    >
+                      <div class="tag-color" :style="{ backgroundColor: tag.color }"></div>
+                      {{ tag.name }}
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Create New Tag -->
+                <div class="tag-section">
+                  <div class="tag-section-title">Create new tag</div>
+                  <div v-if="!showNewTagInput" class="create-tag-prompt">
+                    <button
+                      type="button"
+                      class="create-tag-btn"
+                      @click="showNewTagInput = true"
+                    >
+                      + Create new tag
+                    </button>
+                  </div>
+                  <div v-else class="new-tag-input">
+                    <input
+                      v-model="newTagName"
+                      type="text"
+                      placeholder="Enter tag name"
+                      class="tag-name-input"
+                      @keyup.enter="createTag"
+                      @keyup.escape="showNewTagInput = false; newTagName = ''"
+                    />
+                    <button
+                      type="button"
+                      class="create-tag-confirm"
+                      @click="createTag"
+                      :disabled="!newTagName.trim()"
+                    >
+                      Create
+                    </button>
+                    <button
+                      type="button"
+                      class="create-tag-cancel"
+                      @click="showNewTagInput = false; newTagName = ''"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
           <!-- Row: Epic and Sprint -->
@@ -370,7 +544,6 @@ watch(() => props.issue, (newIssue) => {
       </div>
 
       <!-- Modal Footer -->
-      <h2>{{ mode === 'edit' ? 'Edit Issue' : 'Create Issue' }}</h2>
       <div class="modal-footer">
         <button type="button" class="btn-secondary" @click="closeModal">Cancel</button>
         <button 
@@ -566,6 +739,192 @@ watch(() => props.issue, (newIssue) => {
   color: #333;
 }
 
+/* Tag Styles */
+.selected-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  color: white;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.tag-remove {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 0;
+  margin-left: 0.25rem;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tag-remove:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.tag-selector {
+  position: relative;
+}
+
+.add-tag-btn {
+  background: #f8f9fa;
+  border: 1px dashed #ddd;
+  color: #666;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+}
+
+.add-tag-btn:hover {
+  background: #e9ecef;
+  border-color: #0066cc;
+  color: #0066cc;
+}
+
+.tag-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.tag-section {
+  padding: 0.75rem;
+}
+
+.tag-section:not(:last-child) {
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.tag-section-title {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #666;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.tag-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.tag-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: white;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: all 0.2s;
+}
+
+.tag-option:hover {
+  background: #f8f9fa;
+}
+
+.tag-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.create-tag-prompt {
+  display: flex;
+}
+
+.create-tag-btn {
+  background: #0066cc;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: background-color 0.2s;
+}
+
+.create-tag-btn:hover {
+  background: #0056b3;
+}
+
+.new-tag-input {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.tag-name-input {
+  flex: 1;
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+.create-tag-confirm,
+.create-tag-cancel {
+  padding: 0.5rem 0.75rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: background-color 0.2s;
+}
+
+.create-tag-confirm {
+  background: #28a745;
+  color: white;
+}
+
+.create-tag-confirm:hover:not(:disabled) {
+  background: #218838;
+}
+
+.create-tag-confirm:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+}
+
+.create-tag-cancel {
+  background: #6c757d;
+  color: white;
+}
+
+.create-tag-cancel:hover {
+  background: #5a6268;
+}
+
 /* Preview Elements */
 .assignee-preview {
   display: flex;
@@ -599,41 +958,6 @@ watch(() => props.issue, (newIssue) => {
   padding: 0.25rem 0.75rem;
   border-radius: 12px;
   font-size: 0.75rem;
-  font-weight: 500;
-}
-
-/* Buttons */
-.btn-primary,
-.btn-secondary {
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: background-color 0.2s;
-}
-
-.btn-primary {
-  background: #0066cc;
-  color: white;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: #0056b3;
-}
-
-.btn-primary:disabled {
-  background: #6c757d;
-  cursor: not-allowed;
-}
-
-.btn-secondary {
-  background: #6c757d;
-  color: white;
-}
-
-.btn-secondary:hover {
-  background: #5a6268;
 }
 
 /* Responsive */
