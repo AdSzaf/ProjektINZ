@@ -102,44 +102,56 @@ class TagCreateSerializer(serializers.ModelSerializer):
         fields = ['name', 'color', 'project']
     
     def validate(self, data):
-        # Check if tag with this name already exists in the project
-        if Tag.objects.filter(name=data['name'], project=data['project']).exists():
-            raise serializers.ValidationError("A tag with this name already exists in this project.")
-        return data
-
-class TagSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Tag
-        fields = ['id', 'name', 'color', 'project']
-
-class TagCreateSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Tag
-        fields = ['name', 'color', 'project']
-    
-    def validate(self, data):
-        # Check if tag with this name already exists in the project
         if Tag.objects.filter(name=data['name'], project=data['project']).exists():
             raise serializers.ValidationError("A tag with this name already exists in this project.")
         return data
 
 class IssueCreateSerializer(serializers.ModelSerializer):
+    tags = serializers.ListField(
+        child=serializers.UUIDField(), 
+        required=False, 
+        allow_empty=True,
+        write_only=True
+    )
+    
     class Meta:
         model = Issue
         fields = [
             'id', 'key', 'title', 'description', 'project', 'issue_type', 'epic', 'sprint',
             'reporter', 'assignee', 'priority', 'story_points',
-            'original_estimate', 'remaining_estimate', 'status'
+            'original_estimate', 'remaining_estimate', 'status', 'tags'
         ]
+    
+    def create(self, validated_data):
+        tags_data = validated_data.pop('tags', [])
+        issue = super().create(validated_data)
+        
+        if tags_data:
+            tag_objects = Tag.objects.filter(id__in=tags_data, project=issue.project)
+            issue.tags.set(tag_objects)
+        
+        return issue
+    
+    def update(self, instance, validated_data):
+        tags_data = validated_data.pop('tags', None)
+        issue = super().update(instance, validated_data)
+        
+        if tags_data is not None:
+            tag_objects = Tag.objects.filter(id__in=tags_data, project=issue.project)
+            issue.tags.set(tag_objects)
+        
+        return issue
 
 class IssueSerializer(serializers.ModelSerializer):
+    tags = TagSerializer(many=True, read_only=True)
+    
     class Meta:
         model = Issue
         fields = [
             'id', 'key', 'title', 'description', 'project', 'issue_type', 'epic', 'sprint',
             'reporter', 'assignee', 'priority', 'story_points',
             'original_estimate', 'remaining_estimate', 'status',
-            'resolved_at', 'created_at',
+            'resolved_at', 'created_at', 'tags'
         ]
         read_only_fields = ['resolved_at']
 

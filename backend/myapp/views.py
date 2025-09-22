@@ -527,13 +527,14 @@ def update_issue(request, issue_id):
     if not user_can_access_project(request.user, project):
         return Response({'detail': 'Forbidden'}, status=403)
     if request.method == 'GET':
-        serializer = IssueCreateSerializer(issue)
+        serializer = IssueSerializer(issue)
         return Response(serializer.data)
     elif request.method == 'PATCH':
         serializer = IssueCreateSerializer(issue, data=request.data, partial=True)
         if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
+            updated_issue = serializer.save()
+            response_serializer = IssueSerializer(updated_issue)
+            return Response(response_serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     elif request.method == 'DELETE':
         issue.delete()
