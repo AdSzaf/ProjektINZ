@@ -12,7 +12,8 @@ const selectedIssues = ref([])
 const bulkAction = ref('')
 const projectStore = useProjectStore()
 const currentProject = computed(() => projectStore.selectedProject)
-const showAddIssueModal = ref(false)
+const availableTags = ref([])
+const showTagFilter = ref(false)
 
 // Pagination
 const currentPage = ref(1)
@@ -41,7 +42,8 @@ const filters = ref({
   type: [],
   assignee: [],
   priority: [],
-  dateRange: ''
+  dateRange: '',
+  tags: []
 })
 
 // Computed properties
@@ -53,6 +55,7 @@ const activeFiltersCount = computed(() => {
   if (filters.value.assignee.length) count++
   if (filters.value.priority.length) count++
   if (filters.value.dateRange) count++
+  if (filters.value.tags.length) count++
   return count
 })
 
@@ -60,10 +63,21 @@ const filteredIssues = computed(() => {
   let filtered = [...totalIssues.value]
 
   // Sanitize multi-selects: ignore empty ("All ...") values
-  const selectedStatuses = (filters.value.status || []).filter(v => v)
-  const selectedTypes = (filters.value.type || []).filter(v => v)
-  const selectedAssignees = (filters.value.assignee || []).filter(v => v)
-  const selectedPriorities = (filters.value.priority || []).filter(v => v)
+   const selectedStatuses = Array.isArray(filters.value.status) 
+    ? filters.value.status.filter(v => v && v !== "") 
+    : []
+  const selectedTypes = Array.isArray(filters.value.type) 
+    ? filters.value.type.filter(v => v && v !== "") 
+    : []
+  const selectedAssignees = Array.isArray(filters.value.assignee) 
+    ? filters.value.assignee.filter(v => v && v !== "") 
+    : []
+  const selectedPriorities = Array.isArray(filters.value.priority) 
+    ? filters.value.priority.filter(v => v && v !== "") 
+    : []
+  const selectedTags = Array.isArray(filters.value.tags) 
+    ? filters.value.tags.filter(v => v && v !== "") 
+    : []
 
   // Search filter
   if (filters.value.search) {
@@ -98,6 +112,14 @@ const filteredIssues = computed(() => {
   // Priority filter
   if (selectedPriorities.length) {
     filtered = filtered.filter(issue => selectedPriorities.includes(issue.priority))
+  }
+
+  // Tag filter
+  if (selectedTags.length) {
+    filtered = filtered.filter(issue => {
+      const issueTagIds = (issue.tags || []).map(tag => tag.id)
+      return selectedTags.some(selectedTagId => issueTagIds.includes(selectedTagId))
+    })
   }
 
   // Sort
@@ -160,7 +182,8 @@ const clearAllFilters = () => {
     type: [],
     assignee: [],
     priority: [],
-    dateRange: ''
+    dateRange: '',
+    tags: []
   }
   currentPage.value = 1
 }
@@ -315,6 +338,29 @@ const getStatusDisplay = (status) => {
   return displays[status] || status
 }
 
+const addTagFilter = (tagId) => {
+  if (!Array.isArray(filters.value.tags)) {
+    filters.value.tags = []
+  }
+  
+  if (!filters.value.tags.includes(tagId)) {
+    filters.value.tags.push(tagId)
+    applyFilters()
+  }
+  showTagFilter.value = false
+}
+
+
+const removeTagFilter = (tagId) => {
+  if (!Array.isArray(filters.value.tags)) {
+    filters.value.tags = []
+    return
+  }
+  
+  filters.value.tags = filters.value.tags.filter(id => id !== tagId)
+  applyFilters()
+}
+
 const formatDate = (dateString) => {
   if (!dateString) return '-'
   const d = new Date(dateString)
@@ -374,6 +420,17 @@ const fetchProjectUsers = async () => {
   userById.value = map
 }
 
+const fetchTags = async () => {
+  if (!currentProject.value?.id) {
+    availableTags.value = []
+    return
+  }
+  const token = localStorage.getItem('token')
+  axios.defaults.headers.common['Authorization'] = `Token ${token}`
+  const res = await axios.get(`/api/projects/${currentProject.value.id}/tags/`)
+  availableTags.value = res.data
+}
+
 const normalizeStatus = (backendStatus) => {
   const s = String(backendStatus || '').toLowerCase()
   if (s === 'to_do' || s === 'todo') return 'todo'
@@ -398,7 +455,8 @@ const transformIssue = (raw) => {
     storyPoints: raw.story_points ?? null,
     assignee: assignee ? { id: assignee.id, name: assignee.name, avatar: assignee.avatar } : null,
     created: raw.created_at || null,
-    labels: []
+    labels: [],
+    tags: raw.tags || []
   }
 }
 
@@ -414,12 +472,14 @@ onMounted(async () => {
   await fetchIssueTypes()
   await fetchProjectUsers()
   await fetchIssues()
+  await fetchTags()
 })
 
 watch(currentProject, async () => {
   await fetchIssueTypes()
   await fetchProjectUsers()
   await fetchIssues()
+  await fetchTags()
 })
 
 </script>
@@ -520,6 +580,55 @@ watch(currentProject, async () => {
             <option value="month">This Month</option>
             <option value="quarter">This Quarter</option>
           </select>
+        </div>
+
+        
+        <div class="filter-group">
+          <label>Tags:</label>
+          <div class="tag-filter-container">
+            <div class="visual-tag-selector">
+              <!-- Only show this div if there are actually selected tags -->
+              <div class="selected-filter-tags" v-if="filters.tags && filters.tags.length > 0">
+                <span 
+                  v-for="tagId in filters.tags" 
+                  :key="tagId"
+                  class="filter-tag-chip"
+                  :style="{ backgroundColor: availableTags.find(t => t.id === tagId)?.color }"
+                >
+                  {{ availableTags.find(t => t.id === tagId)?.name }}
+                  <button @click="removeTagFilter(tagId)" class="remove-tag-filter">×</button>
+                </span>
+              </div>
+              
+              <div class="tag-dropdown-container">
+                <button 
+                  type="button" 
+                  class="tag-filter-btn"
+                  @click="showTagFilter = !showTagFilter"
+                >
+                  Add Tag Filter
+                  <span v-if="filters.tags && filters.tags.length > 0" class="tag-count">
+                    ({{ filters.tags.length }})
+                  </span>
+                </button>
+                
+                <div v-if="showTagFilter" class="tag-filter-dropdown">
+                  <div 
+                    v-for="tag in availableTags.filter(t => !filters.tags.includes(t.id))" 
+                    :key="tag.id"
+                    class="tag-filter-option"
+                    @click="addTagFilter(tag.id)"
+                  >
+                    <div class="tag-color-dot" :style="{ backgroundColor: tag.color }"></div>
+                    <span>{{ tag.name }}</span>
+                  </div>
+                  <div v-if="availableTags.filter(t => !filters.tags.includes(t.id)).length === 0" class="no-more-tags">
+                    All tags are already selected
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
       
@@ -800,6 +909,21 @@ watch(currentProject, async () => {
             <div class="detail-item">
               <label>Created:</label>
               <span>{{ formatDate(selectedIssueDetails.created) }}</span>
+            </div>
+
+                        <!-- In the issue-details-grid section, add this: -->
+            <div class="detail-item" v-if="selectedIssueDetails.tags && selectedIssueDetails.tags.length">
+              <label>Tags:</label>
+              <div class="modal-tags">
+                <span 
+                  v-for="tag in selectedIssueDetails.tags" 
+                  :key="tag.id"
+                  class="modal-tag"
+                  :style="{ backgroundColor: tag.color }"
+                >
+                  {{ tag.name }}
+                </span>
+              </div>
             </div>
           </div>
           
@@ -1501,6 +1625,128 @@ watch(currentProject, async () => {
   background: #cb2431;
   border-color: #cb2431;
 }
+.tag-filter-container {
+  position: relative;
+}
+
+.visual-tag-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.selected-filter-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.filter-tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.remove-tag-filter {
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  font-size: 0.8rem;
+  padding: 0;
+  margin-left: 0.25rem;
+}
+
+.tag-dropdown-container {
+  position: relative;
+}
+
+.tag-filter-btn {
+  padding: 0.5rem 0.75rem;
+  border: 1px dashed #d1d5da;
+  border-radius: 4px;
+  background: white;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: #656d76;
+}
+
+.tag-filter-btn:hover {
+  border-color: #0969da;
+  color: #0969da;
+}
+
+.tag-filter-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #d1d5da;
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(140, 149, 159, 0.2);
+  z-index: 10;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.tag-filter-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  cursor: pointer;
+  border-bottom: 1px solid #f6f8fa;
+  transition: background-color 0.15s ease;
+}
+
+.tag-filter-option:hover {
+  background: #f6f8fa;
+}
+
+.tag-filter-option:last-child {
+  border-bottom: none;
+}
+
+.tag-color-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+/* Modal Tags */
+.modal-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.modal-tag {
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.tag-count {
+  color: #0969da;
+  font-weight: 600;
+  margin-left: 0.25rem;
+}
+
+.no-more-tags {
+  padding: 0.75rem;
+  color: #656d76;
+  font-style: italic;
+  text-align: center;
+  font-size: 0.875rem;
+}
 
 /* Responsive Design */
 @media (max-width: 1024px) {
@@ -1549,6 +1795,7 @@ watch(currentProject, async () => {
     margin: 20px;
   }
 }
+
 
 /* Add this to your existing <style scoped> section */
 
@@ -1954,5 +2201,40 @@ watch(currentProject, async () => {
   .issue-row:focus-within {
     outline: 1px solid #30363d;
   }
+
+  .tag-filter-btn {
+    background: #21262d !important;
+    border-color: #30363d !important;
+    color: #8b949e !important;
+  }
+
+  .tag-filter-btn:hover {
+    border-color: #58a6ff !important;
+    color: #58a6ff !important;
+  }
+
+  .tag-filter-dropdown {
+    background: #161b22 !important;
+    border-color: #30363d !important;
+    box-shadow: 0 8px 24px rgba(1, 4, 9, 0.3) !important;
+  }
+
+  .tag-filter-option {
+    border-color: #21262d !important;
+    color: #c9d1d9 !important;
+  }
+
+  .tag-filter-option:hover {
+    background: #21262d !important;
+  }
+
+  .tag-count {
+    color: #58a6ff !important;
+  }
+
+  .no-more-tags {
+    color: #8b949e !important;
+  }
+  
 }
 </style>
