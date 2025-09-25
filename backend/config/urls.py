@@ -106,6 +106,6 @@ urlpatterns = [
     path('api/projects/<uuid:project_id>/tags/<uuid:tag_id>/issues/', issues_by_tag, name='issues_by_tag'),
 
     #Tempo worklog
-    path('projects/<uuid:project_id>/worklogs/', project_worklogs, name='project-worklogs'),
-    path('issues/<uuid:issue_id>/log-time/', log_time, name='log-time'),
+    path('api/projects/<uuid:project_id>/worklogs/', project_worklogs, name='project-worklogs'),
+    path('api/issues/<uuid:issue_id>/log-time/', log_time, name='log-time'),
 ]

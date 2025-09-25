@@ -400,6 +400,15 @@ const fetchCurrentUser = async () => {
   }
 }
 
+const fetchWorklogs = async () => {
+  if (!currentProject.value || !currentProject.value.id) return
+  const token = localStorage.getItem('token')
+  axios.defaults.headers.common['Authorization'] = `Token ${token}`
+  const res = await axios.get(`/api/projects/${currentProject.value.id}/worklogs/`)
+  worklogs.value = res.data
+  console.log('Fetched worklogs:', worklogs.value)
+}
+
 onMounted(async () => {
 
   await fetchSprintInfo()
@@ -409,6 +418,7 @@ onMounted(async () => {
   await fetchIssueBreakdown()
   await fetchTeamPerformance()
   await fetchCurrentUser()
+  await fetchWorklogs()
   
   renderActiveChart()
 })
@@ -422,6 +432,7 @@ watch(currentProject, async (newVal) => {
     await fetchIssueBreakdown()
     await fetchTeamPerformance()
     await fetchCurrentUser()
+    await fetchWorklogs()
 
     renderActiveChart()
   }
@@ -609,6 +620,29 @@ watch(velocityData, (newVal) => {
                 <span class="efficiency-text">{{ member.efficiency }}%</span>
               </div>
             </div>
+          </div>
+         <div class="worklogs-table mt-6">
+            <h4 class="text-lg font-semibold mb-3">⏱️ Logged Time</h4>
+            <table class="worklogs-table w-full border-collapse text-sm">
+              <thead>
+                <tr>
+                  <th>User</th>
+                  <th>Issue</th>
+                  <th>Date</th>
+                  <th>Minutes</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="log in worklogs" :key="log.id">
+                  <td>{{ log.user_name }}</td>
+                  <td>{{ log.issue_key }}</td>
+                  <td>{{ log.date }}</td>
+                  <td>{{ log.minutes }}</td>
+                  <td>{{ log.description }}</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
@@ -1033,6 +1067,33 @@ watch(velocityData, (newVal) => {
   border: 1px solid #ddd; /* Optional: for debugging */
 }
 
+.worklogs-table {
+  width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.worklogs-table thead {
+  background: #f8f9fa;
+  color: #333;
+}
+
+.worklogs-table th,
+.worklogs-table td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.worklogs-table tbody tr:nth-child(even) {
+  background: #fdfdfd;
+}
+
+.worklogs-table tbody tr:hover {
+  background: #f1f5ff;
+}
+
 @media (max-width: 1200px) {
   .breakdown-grid {
     grid-template-columns: 1fr;
@@ -1184,4 +1245,28 @@ watch(velocityData, (newVal) => {
   #velocity-canvas {
     filter: invert(0.9) hue-rotate(180deg);
   }
+
+  .worklogs-table {
+    box-shadow: 0 2px 6px rgba(255, 255, 255, 0.05);
+  }
+
+  .worklogs-table thead {
+    background: #2a2d33;
+    color: #f0f0f0;
+  }
+
+  .worklogs-table th,
+  .worklogs-table td {
+    border-bottom: 1px solid #444;
+    color: #ddd;
+  }
+
+  .worklogs-table tbody tr:nth-child(even) {
+    background: #1f2227;
+  }
+
+  .worklogs-table tbody tr:hover {
+    background: #2f3742;
+  }
+  
 }</style>

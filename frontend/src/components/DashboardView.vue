@@ -22,6 +22,9 @@ const availableTags = ref([])
 const selectedTagIds = ref([])
 const showTagFilter = ref(false)
 
+const showLogTimeModal = ref(false)
+const logTimeData = ref({ time: '', comment: '' })
+
 const fetchIssues = async () => {
   if (!currentProject.value?.id) {
     issues.value = []
@@ -296,6 +299,68 @@ const getAssigneeName = (assigneeId) => {
   return user ? user.name : 'Unassigned'
 }
 
+function parseTimeInputToMinutes(input) {
+  if (!input && input !== 0) return 0
+  const s = String(input).trim()
+
+  // 1) HH:MM format e.g. "2:30"
+  const hm = s.match(/^(\d+):(\d{1,2})$/)
+  if (hm) return parseInt(hm[1], 10) * 60 + parseInt(hm[2], 10)
+
+  // 2) "Xh Ym" or "X h Y m" or "2h30m"
+  const hMatch = s.match(/(\d+(?:\.\d+)?)\s*h/)
+  const mMatch = s.match(/(\d+)\s*m/)
+  if (hMatch || mMatch) {
+    const hours = hMatch ? parseFloat(hMatch[1]) : 0
+    const mins = mMatch ? parseInt(mMatch[1], 10) : 0
+    return Math.round(hours * 60) + mins
+  }
+
+  // 3) decimal hours like "2.5" (treat as hours)
+  if (/^\d+(\.\d+)?$/.test(s)) {
+    const num = parseFloat(s)
+    // heurystyka: jeśli > 10 - traktujemy jako minuty, inaczej jako godziny
+    if (num > 10) return Math.round(num) // minutes
+    return Math.round(num * 60) // hours -> minutes
+  }
+
+  // 4) fallback: integer treated as minutes
+  const asInt = parseInt(s, 10)
+  return isNaN(asInt) ? 0 : asInt
+}
+
+const saveWorkLog = async () => {
+  if (!selectedIssue.value?.id) return
+  const token = localStorage.getItem('token')
+  try {
+    const minutes = parseTimeInputToMinutes(logTimeData.value.time)
+    const date = logTimeData.value.date || new Date().toISOString().slice(0,10) // YYYY-MM-DD
+    const payload = {
+      minutes,
+      date,
+      description: logTimeData.value.comment || ''
+    }
+
+    const res = await axios.post(
+      `/api/issues/${selectedIssue.value.id}/log-time/`,
+      payload,
+      { headers: { Authorization: `Token ${token}` } }
+    )
+
+    // odśwież UI (np. szczegóły issue i lista worklogów)
+    showLogTimeModal.value = false
+    logTimeData.value = { time: '', comment: '', date: '' }
+    // jeśli masz fetchWorklogs() lub fetchIssues(), odpal:
+    fetchIssues()         // żeby zaktualizować issue.time_spent itp.
+    // jeśli masz dedykowany fetchWorklogs dla projektu/issue:
+    // await fetchWorklogs()
+  } catch (e) {
+    console.error('Failed to log time:', e.response?.data || e)
+    alert('Failed to log time: ' + JSON.stringify(e.response?.data || e.message))
+  }
+}
+
+
 const fetchUsers = async () => {
   if (!currentProject.value?.id) {
     users.value = []
@@ -554,6 +619,7 @@ watch(currentProject, () => {
             </div>
           </div>
           <div class="issue-modal-actions">
+            <button class="btn-logtime" @click="showLogTimeModal = true">⏱ Log Time</button>
             <button class="btn-edit" @click="startEditIssue(selectedIssue)">✏️ Edit Issue</button>
             <button class="close-btn" @click="closeIssueModal">×</button>
           </div>
@@ -574,6 +640,19 @@ watch(currentProject, () => {
             <label>Description:</label>
             <p>{{ selectedIssue?.description || 'No description provided.' }}</p>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Log Time Modal -->
+    <div v-if="showLogTimeModal" class="modal-overlay" @click="showLogTimeModal = false">
+      <div class="modal-content" @click.stop>
+        <h3>Log Work</h3>
+        <input v-model="logTimeData.time" placeholder="np. 2h 30m" />
+        <textarea v-model="logTimeData.comment" placeholder="Opis pracy"></textarea>
+        <div class="modal-actions">
+          <button class="btn-secondary" @click="showLogTimeModal = false">Cancel</button>
+          <button class="btn-primary" @click="saveWorkLog">Save</button>
         </div>
       </div>
     </div>
@@ -1132,6 +1211,70 @@ watch(currentProject, () => {
   padding: 0.2rem 0.4rem;
 }
 
+.btn-logtime {
+  background: #28a745;
+  color: white;
+  border: 1px solid #28a745;
+  border-radius: 4px;
+  font-size: 1rem;
+  padding: 0.4rem 0.8rem;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.btn-logtime:hover {
+  background: #218838;
+  border-color: #218838;
+}
+
+/* Log Time Modal Content */
+.modal-content input[type="text"],
+.modal-content input[type="number"] {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  background: white;
+  color: #333;
+}
+
+.modal-content input[type="text"]:focus,
+.modal-content input[type="number"]:focus {
+  outline: none;
+  border-color: #0066cc;
+  box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.1);
+}
+
+.modal-content textarea {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  background: white;
+  color: #333;
+  resize: vertical;
+  min-height: 80px;
+  font-family: inherit;
+}
+
+.modal-content textarea:focus {
+  outline: none;
+  border-color: #0066cc;
+  box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.1);
+}
+
+.modal-content input::placeholder,
+.modal-content textarea::placeholder {
+  color: #999;
+}
+
 @media (prefers-color-scheme: dark) {
   .dashboard-container {
     background: #181a1b !important;
@@ -1349,5 +1492,37 @@ watch(currentProject, () => {
   .tag-option-item:hover {
     background: #2a2d2e !important;
   }
+
+   .btn-logtime {
+    background: #198754 !important;
+    color: #fff !important;
+    border-color: #198754 !important;
+  }
+
+  .btn-logtime:hover {
+    background: #157347 !important;
+    border-color: #157347 !important;
+  }
+
+  .modal-content input[type="text"],
+  .modal-content input[type="number"],
+  .modal-content textarea {
+    background: #2c2f30 !important;
+    border-color: #444 !important;
+    color: #f3f3f3 !important;
+  }
+
+  .modal-content input[type="text"]:focus,
+  .modal-content input[type="number"]:focus,
+  .modal-content textarea:focus {
+    border-color: #4ea1ff !important;
+    box-shadow: 0 0 0 2px rgba(78, 161, 255, 0.1) !important;
+  }
+
+  .modal-content input::placeholder,
+  .modal-content textarea::placeholder {
+    color: #aaa !important;
+  }
+  
 }
 </style>
