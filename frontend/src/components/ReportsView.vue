@@ -21,6 +21,9 @@ const router = useRouter()
 const currentUser = ref(null)
 const loading = ref(true)
 
+const worklogs = ref([])
+
+
 const timeframeOptions = [
   { value: 'current-sprint', label: 'Current Sprint' },
   { value: 'last-sprint', label: 'Last Sprint' },

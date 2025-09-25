@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.contrib.auth import authenticate
-from .models import Project, Issue, Epic, Sprint, Tag
+from .models import Project, Issue, Epic, Sprint, Tag, WorkLog
 import re
 
 User = get_user_model()
@@ -168,3 +168,15 @@ class SprintSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'name', 'goal', 'start_date', 'end_date', 'status', 'project'
         ]
+
+class WorkLogSerializer(serializers.ModelSerializer):
+    user_name = serializers.CharField(source='user.username', read_only=True)
+    issue_key = serializers.CharField(source='issue.key', read_only=True)
+
+    class Meta:
+        model = WorkLog
+        fields = [
+            'id', 'user', 'user_name', 'issue', 'issue_key',
+            'project', 'date', 'minutes', 'description', 'created_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'user_name', 'issue_key']

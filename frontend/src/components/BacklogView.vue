@@ -516,6 +516,19 @@ watch(currentProject, () => {
                   {{ issue.storyPoints }}
                 </span>
               </div>
+              <div v-if="issue.tags && issue.tags.length > 0" class="issue-tags">
+                <span 
+                  v-for="tag in issue.tags.slice(0, 2)" 
+                  :key="tag.id"
+                  class="issue-tag"
+                  :style="{ backgroundColor: tag.color }"
+                >
+                  {{ tag.name }}
+                </span>
+                <span v-if="issue.tags.length > 2" class="more-tags">
+                  +{{ issue.tags.length - 2 }}
+                </span>
+              </div>
             </div>
             
             <div 
@@ -612,6 +625,19 @@ watch(currentProject, () => {
                 <span v-if="isIssueFromCompletedSprint(issue)" class="origin-sprint-tag">
                   🏁 From {{ getSprintById(issue.sprint)?.name }}
                 </span>
+                <div v-if="issue.tags && issue.tags.length > 0" class="issue-tags">
+                  <span 
+                    v-for="tag in issue.tags.slice(0, 2)" 
+                    :key="tag.id"
+                    class="issue-tag"
+                    :style="{ backgroundColor: tag.color }"
+                  >
+                    {{ tag.name }}
+                  </span>
+                  <span v-if="issue.tags.length > 2" class="more-tags">
+                    +{{ issue.tags.length - 2 }}
+                  </span>
+                </div>
               </div>
               <div v-if="isIssueFromCompletedSprint(issue)" class="reassign-row">
                 <label class="reassign-label">Reassign to sprint:</label>
@@ -625,8 +651,6 @@ watch(currentProject, () => {
             </div>
           </div>
         </div>
-        
-        <!-- Backlog drop zone indicator -->
         <div v-if="isBacklogDragTarget()" class="drop-zone-indicator backlog-drop">
           <div class="drop-zone-content">
             <span class="drop-icon">📋</span>
@@ -666,6 +690,19 @@ watch(currentProject, () => {
               <div class="issue-field">
                 <label>Description:</label>
                 <p>{{ selectedIssue?.description || 'No description provided.' }}</p>
+              </div>
+              <div class="issue-field" v-if="selectedIssue?.tags && selectedIssue.tags.length > 0">
+                <label>Tags:</label>
+                <div class="modal-tags">
+                  <span 
+                    v-for="tag in selectedIssue.tags" 
+                    :key="tag.id"
+                    class="modal-tag"
+                    :style="{ backgroundColor: tag.color }"
+                  >
+                    {{ tag.name }}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -1344,6 +1381,46 @@ watch(currentProject, () => {
   margin: 0;
 }
 
+.modal-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.modal-tag {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.issue-tags {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.issue-tag {
+  display: inline-block;
+  padding: 0.2rem 0.4rem;
+  border-radius: 10px;
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 500;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
+}
+
+.more-tags {
+  color: #666;
+  font-size: 0.7rem;
+  padding: 0.2rem 0.4rem;
+  background: #f8f9fa;
+  border-radius: 10px;
+}
+
 @media (max-width: 768px) {
   .page-header {
     flex-direction: column;
@@ -1496,6 +1573,13 @@ watch(currentProject, () => {
     background: #0056b3 !important;
     color: #fff !important;
     border-color: #0056b3 !important;
+  }
+   .modal-tag {
+    color: white !important;
+  }
+  .more-tags {
+    background: #444 !important;
+    color: #ccc !important;
   }
 }
 </style>

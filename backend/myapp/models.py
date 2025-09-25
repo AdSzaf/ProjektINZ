@@ -303,3 +303,22 @@ class IssueHistory(models.Model):
 
     def __str__(self):
         return f"{self.issue.key} - {self.field_name} changed"
+
+class WorkLog(models.Model):
+    """Czas pracy logowany na issue"""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='worklogs')
+    issue = models.ForeignKey(Issue, on_delete=models.CASCADE, related_name='worklogs')
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='worklogs')
+    date = models.DateField(default=timezone.now)
+    minutes = models.PositiveIntegerField(help_text="Przepracowany czas w minutach")
+    description = models.TextField(blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-date', '-created_at']
+
+    def __str__(self):
+        return f"{self.user.username} - {self.issue.key} - {self.minutes}m"
+

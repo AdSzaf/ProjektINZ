@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.authtoken.models import Token
 from rest_framework.permissions import IsAuthenticated
-from .models import Organization, Project, IssueType, Epic, Sprint, User, Issue, WorkflowStatus, OrganizationMembership, Tag
+from .models import Organization, Project, IssueType, Epic, Sprint, User, Issue, WorkflowStatus, OrganizationMembership, Tag, WorkLog
 from datetime import timedelta, datetime
 from django.db.models import Count, Q
 from django.utils import timezone
@@ -25,7 +25,8 @@ from .serializers import (RegisterSerializer
                           , SprintSerializer
                           , IssueSerializer
                           , TagSerializer
-                          , TagCreateSerializer)
+                          , TagCreateSerializer
+                          , WorkLogSerializer)
 # In-memory status store (no DB changes). Keys: project_id -> { user_id -> { 'status': str, 'updated_at': datetime } }
 
 from .ai_service import ai_service, get_ai_context_for_message
@@ -1033,6 +1034,58 @@ def issues_by_tag(request, project_id, tag_id):
     issues = tag.issues.all()
     serializer = IssueSerializer(issues, many=True)
     return Response(serializer.data)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def log_time(request, issue_id):
+    """
+    Logowanie czasu na issue
+    """
+    try:
+        issue = Issue.objects.get(id=issue_id)
+    except Issue.DoesNotExist:
+        return Response({"detail": "Issue not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    data = request.data.copy()
+    data['user'] = request.user.id
+    data['issue'] = issue.id
+    data['project'] = issue.project.id
+
+    serializer = WorkLogSerializer(data=data)
+    if serializer.is_valid():
+        worklog = serializer.save()
+        # aktualizacja Issue.time_spent
+        issue.time_spent += worklog.minutes
+        issue.remaining_estimate = max(0, (issue.remaining_estimate or 0) - worklog.minutes)
+        issue.save(update_fields=['time_spent', 'remaining_estimate'])
+        return Response(WorkLogSerializer(worklog).data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def project_worklogs(request, project_id):
+    """
+    Raport czasu pracy w projekcie
+    Filtrowanie: ?from=2025-01-01&to=2025-01-31&user=uuid
+    """
+    worklogs = WorkLog.objects.filter(project_id=project_id)
+
+    start = request.GET.get('from')
+    end = request.GET.get('to')
+    user = request.GET.get('user')
+
+    if start:
+        worklogs = worklogs.filter(date__gte=start)
+    if end:
+        worklogs = worklogs.filter(date__lte=end)
+    if user:
+        worklogs = worklogs.filter(user_id=user)
+
+    serializer = WorkLogSerializer(worklogs, many=True)
+    return Response(serializer.data)
+
+
 
 #----------------------------------------------------------------Sekcja AI-------------------------------------------------------------------------
 @api_view(["POST"])

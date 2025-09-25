@@ -51,6 +51,8 @@ from myapp.views import (auto_complete_sprints, register_user ,
     project_tags,
     update_tag,
     issues_by_tag,
+    project_worklogs,
+    log_time
 )
 
 
@@ -102,4 +104,8 @@ urlpatterns = [
     path('api/projects/<uuid:project_id>/tags/', project_tags, name='project_tags'),
     path('api/tags/<uuid:tag_id>/', update_tag, name='update_tag'),
     path('api/projects/<uuid:project_id>/tags/<uuid:tag_id>/issues/', issues_by_tag, name='issues_by_tag'),
+
+    #Tempo worklog
+    path('projects/<uuid:project_id>/worklogs/', project_worklogs, name='project-worklogs'),
+    path('issues/<uuid:issue_id>/log-time/', log_time, name='log-time'),
 ]
