@@ -52,7 +52,8 @@ from myapp.views import (auto_complete_sprints, register_user ,
     update_tag,
     issues_by_tag,
     project_worklogs,
-    log_time
+    log_time,
+    activate,
 )
 
 
@@ -108,4 +109,7 @@ urlpatterns = [
     #Tempo worklog
     path('api/projects/<uuid:project_id>/worklogs/', project_worklogs, name='project-worklogs'),
     path('api/issues/<uuid:issue_id>/log-time/', log_time, name='log-time'),
+
+    #Email activation urls
+    path("api/activate/<uidb64>/<token>/", activate, name="activate"),
 ]

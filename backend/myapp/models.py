@@ -21,6 +21,7 @@ class User(AbstractUser):
 
     # Premium flag for paid features
     is_premium = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=False)
     premium_until = models.DateTimeField(null=True, blank=True)
     stripe_customer_id = models.CharField(max_length=255, null=True, blank=True)
 

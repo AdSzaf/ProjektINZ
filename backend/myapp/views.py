@@ -30,6 +30,9 @@ from .serializers import (RegisterSerializer
 # In-memory status store (no DB changes). Keys: project_id -> { user_id -> { 'status': str, 'updated_at': datetime } }
 
 from .ai_service import ai_service, get_ai_context_for_message
+from django.utils.http import urlsafe_base64_decode
+from django.contrib.auth.tokens import default_token_generator
+from .utils import send_activation_email
 
 ALLOWED_MEMBER_STATUSES = {'active', 'busy', 'away', 'offline'}
 MEMBER_STATUS_STORE = {}
@@ -68,7 +71,12 @@ from .models import Organization, OrganizationMembership
 def register_user(request):
     serializer = RegisterSerializer(data=request.data)
     if serializer.is_valid():
-        user = serializer.save()
+         # Tworzymy usera nieaktywnego
+        user = serializer.save(is_active=False)
+
+        # wysyłamy maila aktywacyjnego
+        send_activation_email(user)
+        
         org_name_or_code = request.data.get('organization')
         if org_name_or_code:
             # Szukamy organizacji po nazwie (albo możesz rozwinąć logikę o invite code)
@@ -1085,7 +1093,20 @@ def project_worklogs(request, project_id):
     serializer = WorkLogSerializer(worklogs, many=True)
     return Response(serializer.data)
 
+#--------------------------------------------------------------Aktywacja konta przez email--------------------------------------------------------------
+@api_view(["GET"])
+def activate(request, uidb64, token):
+    try:
+        uid = urlsafe_base64_decode(uidb64).decode()
+        user = User.objects.get(pk=uid)
+    except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+        user = None
 
+    if user and default_token_generator.check_token(user, token):
+        user.is_active = True
+        user.save()
+        return Response({"message": "Konto aktywowane. Możesz się zalogować."})
+    return Response({"error": "Nieprawidłowy link aktywacyjny."}, status=400)
 
 #----------------------------------------------------------------Sekcja AI-------------------------------------------------------------------------
 @api_view(["POST"])

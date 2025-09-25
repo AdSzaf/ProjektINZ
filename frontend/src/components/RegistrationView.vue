@@ -94,7 +94,7 @@ const handleRegister = async () => {
   try {
     await axios.post('/api/register/', userData)
     console.log('Data sent:', userData)
-    alert('Registration successful!')
+    alert('Registration successful! Check your email to activate your account.')
     router.push('/login')
   } catch (error) {
     alert('Registration failed: ' + (error.response?.data?.detail || error.message))

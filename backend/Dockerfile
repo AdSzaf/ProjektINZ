@@ -7,6 +7,11 @@ ENV PYTHONUNBUFFERED 1
 # Set workdir
 WORKDIR /app
 
+# Install system dependencies and CA certificates
+RUN apt-get update && \
+    apt-get install -y ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+    
 # Install dependencies
 COPY backend/requirements.txt /app/
 RUN pip install --upgrade pip && pip install -r requirements.txt

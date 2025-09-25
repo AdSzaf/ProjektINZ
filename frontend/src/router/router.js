@@ -15,6 +15,7 @@ import EpicsView from '../components/EpicsView.vue'
 import SprintsView from '../components/SprintsView.vue'
 import SuccessRedirect from '../components/SuccessRedirect.vue'
 import CancelRedirect from '../components/CancelRedirect.vue'
+import ActivationView from '../components/ActivationView.vue'
 
 const routes = [
   {
@@ -34,7 +35,8 @@ const routes = [
       { path: 'epics', component: EpicsView },
       { path: 'sprints', component: SprintsView, alias: '/Sprints' },
       { path: '/success', component: SuccessRedirect },
-      { path: '/cancel', component: CancelRedirect }
+      { path: '/cancel', component: CancelRedirect },
+      { path: '/activate/:uid/:token', component: ActivationView },
     ]
   },
   { path: '/login', component: LoginView },
