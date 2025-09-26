@@ -9,7 +9,13 @@ WORKDIR /app
 
 # Install system dependencies and CA certificates
 RUN apt-get update && \
-    apt-get install -y ca-certificates && \
+    apt-get install -y \
+        ca-certificates \
+        curl \
+        gnupg \
+        lsb-release && \
+    apt-get install -y --reinstall ca-certificates && \
+    update-ca-certificates --fresh && \
     rm -rf /var/lib/apt/lists/*
     
 # Install dependencies

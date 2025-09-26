@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 from pathlib import Path
 import os
 from dotenv import load_dotenv
+import ssl
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -30,13 +31,20 @@ STRIPE_PUBLISHABLE_KEY = os.getenv("STRIPE_PUBLISHABLE_KEY")
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
 
 #Email settings
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_BACKEND = 'myapp.email_backends.CustomSMTPBackend'
 EMAIL_HOST = "smtp.gmail.com"
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+print(f"EMAIL_HOST_USER: {os.getenv('EMAIL_HOST_USER')}")
+print(f"EMAIL_HOST_PASSWORD exists: {bool(os.getenv('EMAIL_HOST_PASSWORD'))}")
+print(f"Password length: {len(os.getenv('EMAIL_HOST_PASSWORD', ''))}")
+
+EMAIL_SSL_CERTFILE = None
+EMAIL_SSL_KEYFILE = None
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
