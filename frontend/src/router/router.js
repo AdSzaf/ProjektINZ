@@ -36,11 +36,11 @@ const routes = [
       { path: 'sprints', component: SprintsView, alias: '/Sprints' },
       { path: '/success', component: SuccessRedirect },
       { path: '/cancel', component: CancelRedirect },
-      { path: '/activate/:uid/:token', component: ActivationView },
     ]
   },
   { path: '/login', component: LoginView },
-  { path: '/register', component: RegistrationView }
+  { path: '/register', component: RegistrationView },
+  { path: '/activate/:uid/:token', component: ActivationView },
 ]
 
 const router = createRouter({

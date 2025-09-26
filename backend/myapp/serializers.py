@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.contrib.auth import authenticate
-from .models import Project, Issue, Epic, Sprint, Tag, WorkLog
+from .models import Project, Issue, Epic, Sprint, Tag, WorkLog, User
 import re
 
 User = get_user_model()
@@ -48,12 +48,27 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
-    password = serializers.CharField(write_only=True)
+    password = serializers.CharField()
 
     def validate(self, data):
-        user = authenticate(username=data['email'], password=data['password'])
+        email = data.get('email')
+        password = data.get('password')
+        User = get_user_model()
+
+        try:
+            user_obj = User.objects.get(email=email)
+        except User.DoesNotExist:
+            raise serializers.ValidationError("Invalid credentials.")
+
+        if not user_obj.is_active:
+            raise serializers.ValidationError(
+                "Account not activated. Please check your email for the activation link."
+            )
+
+        user = authenticate(username=email, password=password)
         if not user:
-            raise serializers.ValidationError("Invalid credentials")
+            raise serializers.ValidationError("Invalid credentials.")
+
         data['user'] = user
         return data
 

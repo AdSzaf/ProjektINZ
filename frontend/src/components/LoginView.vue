@@ -30,7 +30,12 @@ const handleLogin = async () => {
     localStorage.setItem('token', response.data.token)
     router.push('/home')
   } catch (error) {
-    alert('Login failed: ' + (error.response?.data?.detail || error.message))
+    const detail = error.response?.data?.non_field_errors?.[0] || error.response?.data?.detail || error.message
+    if (detail.includes('Account not activated')) {
+      alert('Your account is not activated. Please check your email for the activation link.')
+    } else {
+      alert('Login failed: ' + detail)
+    }
   } finally {
     isLoading.value = false
   }
