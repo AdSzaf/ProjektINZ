@@ -67,3 +67,21 @@ def test_smtp_connection():
     except Exception as e:
         print(f"✗ Connection test failed: {e}")
         return False
+    
+def send_issue_assignment_email(issue, assignee):
+    subject = f"You've been assigned a new issue in {issue.project.name}"
+    message = (
+        f"Hello {assignee.first_name},\n\n"
+        f"You have been assigned to the issue:\n"
+        f"Title: {issue.title}\n"
+        f"Project: {issue.project.name}\n"
+        f"Description: {issue.description}\n\n"
+        f"Please check it out in the project management system."
+    )
+    send_mail(
+        subject,
+        message,
+        settings.DEFAULT_FROM_EMAIL,
+        [assignee.email],
+        fail_silently=True,
+    )

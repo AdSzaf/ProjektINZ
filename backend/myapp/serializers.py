@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.contrib.auth import authenticate
+from .utils import send_issue_assignment_email
 from .models import Project, Issue, Epic, Sprint, Tag, WorkLog, User
 import re
 
@@ -145,16 +146,23 @@ class IssueCreateSerializer(serializers.ModelSerializer):
             tag_objects = Tag.objects.filter(id__in=tags_data, project=issue.project)
             issue.tags.set(tag_objects)
         
+        if issue.assignee:
+            send_issue_assignment_email(issue, issue.assignee)
+        
         return issue
     
     def update(self, instance, validated_data):
         tags_data = validated_data.pop('tags', None)
+        old_assignee = instance.assignee
         issue = super().update(instance, validated_data)
         
         if tags_data is not None:
             tag_objects = Tag.objects.filter(id__in=tags_data, project=issue.project)
             issue.tags.set(tag_objects)
         
+        if issue.assignee and issue.assignee != old_assignee:
+            send_issue_assignment_email(issue, issue.assignee)
+
         return issue
 
 class IssueSerializer(serializers.ModelSerializer):
