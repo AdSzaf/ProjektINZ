@@ -26,7 +26,8 @@ from .serializers import (RegisterSerializer
                           , IssueSerializer
                           , TagSerializer
                           , TagCreateSerializer
-                          , WorkLogSerializer)
+                          , WorkLogSerializer
+                          , CommentSerializer)
 # In-memory status store (no DB changes). Keys: project_id -> { user_id -> { 'status': str, 'updated_at': datetime } }
 
 from .ai_service import ai_service, get_ai_context_for_message
@@ -1094,6 +1095,31 @@ def project_worklogs(request, project_id):
 
     serializer = WorkLogSerializer(worklogs, many=True)
     return Response(serializer.data)
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def issue_comments(request, issue_id):
+    try:
+        issue = Issue.objects.get(id=issue_id)
+    except Issue.DoesNotExist:
+        return Response({'detail': 'Issue not found.'}, status=404)
+    project = issue.project
+    if not user_can_access_project(request.user, project):
+        return Response({'detail': 'Forbidden'}, status=403)
+
+    if request.method == 'GET':
+        comments = issue.comments.all().order_by('created_at')
+        serializer = CommentSerializer(comments, many=True)
+        return Response(serializer.data)
+    elif request.method == 'POST':
+        data = request.data.copy()
+        data['issue'] = str(issue.id)
+        data['author'] = str(request.user.id)
+        serializer = CommentSerializer(data=data)
+        if serializer.is_valid():
+            comment = serializer.save()
+            return Response(CommentSerializer(comment).data, status=201)
+        return Response(serializer.errors, status=400)
 
 #--------------------------------------------------------------Aktywacja konta przez email--------------------------------------------------------------
 @api_view(["GET"])

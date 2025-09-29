@@ -3,6 +3,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useProjectStore } from '../stores/projectStore'
 import AddIssueView from './AddIssueView.vue'
 import axios from 'axios'
+import IssueComments from './IssueComments.vue'
 
 const projectStore = useProjectStore()
 const currentProject = computed(() => projectStore.selectedProject)
@@ -640,6 +641,7 @@ watch(currentProject, () => {
             <label>Description:</label>
             <p>{{ selectedIssue?.description || 'No description provided.' }}</p>
           </div>
+          <IssueComments v-if="selectedIssue?.id" :issueId="selectedIssue.id" />
         </div>
       </div>
     </div>

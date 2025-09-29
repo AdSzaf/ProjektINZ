@@ -3,6 +3,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useProjectStore } from '../stores/projectStore'
 import AddIssueView from './AddIssueView.vue'
 import axios from 'axios'
+import IssueComments from './IssueComments.vue'
 
 // Data
 const showFilters = ref(false)
@@ -933,6 +934,8 @@ watch(currentProject, async () => {
               {{ selectedIssueDetails.description || 'No description provided.' }}
             </p>
           </div>
+
+          <IssueComments v-if="selectedIssueDetails?.id" :issueId="selectedIssueDetails.id" />
           
           <div class="modal-actions">
             <button class="action-btn" @click="editIssue(selectedIssueDetails)">Edit Issue</button>

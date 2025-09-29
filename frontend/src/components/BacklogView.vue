@@ -4,6 +4,7 @@ import { useProjectStore } from '../stores/projectStore'
 import AddIssueView from './AddIssueView.vue'
 import CreateSprintView from './CreateSprintView.vue'
 import axios from 'axios'
+import IssueComments from './IssueComments.vue'
 
 // Data
 const bulkEditMode = ref(false)
@@ -704,6 +705,7 @@ watch(currentProject, () => {
                   </span>
                 </div>
               </div>
+              <IssueComments v-if="selectedIssue?.id" :issueId="selectedIssue.id" />
             </div>
           </div>
         </div>

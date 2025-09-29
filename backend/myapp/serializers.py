@@ -2,7 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.contrib.auth import authenticate
 from .utils import send_issue_assignment_email
-from .models import Project, Issue, Epic, Sprint, Tag, WorkLog, User
+from .models import Project, Issue, Epic, Sprint, Tag, WorkLog, User, Comment
 import re
 
 User = get_user_model()
@@ -203,3 +203,10 @@ class WorkLogSerializer(serializers.ModelSerializer):
             'project', 'date', 'minutes', 'description', 'created_at'
         ]
         read_only_fields = ['id', 'created_at', 'user_name', 'issue_key']
+
+class CommentSerializer(serializers.ModelSerializer):
+    author_name = serializers.CharField(source='author.username', read_only=True)
+    class Meta:
+        model = Comment
+        fields = ['id', 'issue', 'author', 'author_name', 'content', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'author_name', 'created_at', 'updated_at']

@@ -56,6 +56,7 @@ from myapp.views import (auto_complete_sprints, register_user ,
     activate,
     ai_resource_recommendation,
     ai_project_prediction,
+    issue_comments,
 )
 
 
@@ -116,4 +117,7 @@ urlpatterns = [
 
     #Email activation urls
     path("api/activate/<uidb64>/<token>/", activate, name="activate"),
+
+    #Comments
+    path('api/issues/<uuid:issue_id>/comments/', issue_comments, name='issue_comments'),
 ]
