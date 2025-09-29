@@ -1125,16 +1125,18 @@ def ai_chat(request):
         from .models import Project
         project = Project.objects.filter(id=project_id).first()
 
-    # Dynamically select context
     context = get_ai_context_for_message(user_message, project) if project else {}
 
-    # Build prompt based on context
+    user_context = f"Current user: {request.user.first_name} {request.user.last_name} (email: {request.user.email}, role: {request.user.role})"
+
     if 'sprints' in context:
         sprint_list = "\n".join([
             f"- {s['name']} ({s['status']}): {s['completed_issues']} completed out of {s['total_issues']} issues"
             for s in context['sprints']
         ])
-        prompt = f"""Here are recent sprints in my project:
+        prompt = f"""{user_context}
+
+Here are recent sprints in my project:
 {sprint_list}
 
 User: {user_message}
@@ -1144,7 +1146,9 @@ Assistant:"""
             f"- {m['name']}: {m['completed_issues']} completed, {m['assigned_issues']} assigned"
             for m in context['members']
         ])
-        prompt = f"""Here is my team performance:
+        prompt = f"""{user_context}
+
+Here is my team performance:
 {member_list}
 
 User: {user_message}
@@ -1155,7 +1159,9 @@ Assistant:"""
             f"- {task['title']} (Status: {task['status']}, Priority: {task['priority']}, Assignee: {task['assignee']}, Story Points: {task['story_points']})"
             for task in issues
         ])
-        prompt = f"""Here are some tasks in my project:
+        prompt = f"""{user_context}
+
+Here are some tasks in my project:
 {task_list}
 
 User: {user_message}
@@ -1201,3 +1207,89 @@ def get_user_context(user):
         }
     except:
         return None
+    
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def ai_resource_recommendation(request):
+    project_id = request.data.get("project_id")
+    if not project_id:
+        project = request.user.projects.first()
+    else:
+        from .models import Project
+        project = Project.objects.filter(id=project_id).first()
+
+    if not project:
+        return Response({"response": "Project not found."}, status=404)
+
+    # Gather team and issue context
+    members = project.members.all()
+    issues = Issue.objects.filter(project=project, status__in=['to_do', 'in_progress'])
+    member_stats = [
+        {
+            "name": f"{m.first_name} {m.last_name}",
+            "role": m.role,
+            "assigned_issues": issues.filter(assignee=m).count(),
+            "completed_issues": Issue.objects.filter(project=project, assignee=m, status__iexact='done').count(),
+        }
+        for m in members
+    ]
+    task_list = "\n".join([
+        f"- {i.title} (Status: {i.status}, Priority: {i.priority}, Assignee: {i.assignee.first_name if i.assignee else 'Unassigned'})"
+        for i in issues[:10]
+    ])
+    team_list = "\n".join([
+        f"- {m['name']} ({m['role']}): {m['assigned_issues']} assigned, {m['completed_issues']} completed"
+        for m in member_stats
+    ])
+    prompt = f"""You are an expert project assistant.
+Here is my team:
+{team_list}
+
+Here are current tasks:
+{task_list}
+
+Based on the above, recommend which team members or resources are available to take on new tasks, and suggest how to best allocate work. Be specific and use the data above.
+Assistant:"""
+
+    ai_response = ai_service.get_ai_response(prompt)
+    return Response({"response": ai_response}, status=200)
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def ai_project_prediction(request):
+    project_id = request.data.get("project_id")
+    if not project_id:
+        project = request.user.projects.first()
+    else:
+        from .models import Project
+        project = Project.objects.filter(id=project_id).first()
+
+    if not project:
+        return Response({"response": "Project not found."}, status=404)
+
+    # Gather sprint, velocity, and issue context
+    sprints = Sprint.objects.filter(project=project).order_by('-start_date')[:5]
+    issues = Issue.objects.filter(project=project)
+    completed_issues = issues.filter(status__iexact='done').count()
+    open_issues = issues.exclude(status__iexact='done').count()
+    velocity = 0
+    completed_sprints = Sprint.objects.filter(project=project, status='completed').order_by('-end_date')[:3]
+    if completed_sprints:
+        total_completed_points = 0
+        for sprint in completed_sprints:
+            sprint_issues = issues.filter(sprint=sprint, status__iexact='done')
+            sprint_points = sum(issue.story_points or 0 for issue in sprint_issues)
+            total_completed_points += sprint_points
+        velocity = int(total_completed_points / len(completed_sprints))
+
+    prompt = f"""You are an expert project assistant.
+Here is the project data:
+- Completed issues: {completed_issues}
+- Open issues: {open_issues}
+- Average velocity (last 3 sprints): {velocity} story points per sprint
+
+Based on the above, predict the likelihood of project success, potential risks, and what should be improved. Be specific and use the data above.
+Assistant:"""
+
+    ai_response = ai_service.get_ai_response(prompt)
+    return Response({"response": ai_response}, status=200)

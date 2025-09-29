@@ -54,6 +54,8 @@ from myapp.views import (auto_complete_sprints, register_user ,
     project_worklogs,
     log_time,
     activate,
+    ai_resource_recommendation,
+    ai_project_prediction,
 )
 
 
@@ -100,6 +102,8 @@ urlpatterns = [
     #AI urls
     path('api/ai/chat/', ai_chat, name='ai_chat'),
     path('api/ai/suggest-priority/', suggest_task_priority, name='suggest_task_priority'),
+    path('api/ai/resource-recommendation/', ai_resource_recommendation, name='ai_resource_recommendation'),
+    path('api/ai/project-prediction/', ai_project_prediction, name='ai_project_prediction'),
 
     #Tag urls
     path('api/projects/<uuid:project_id>/tags/', project_tags, name='project_tags'),

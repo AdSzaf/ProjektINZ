@@ -127,6 +127,8 @@ const aiQuickActions = ref([
   { id: 'priority', label: '🎯 Suggest Task Priority', action: 'getPriorityHelp' },
   { id: 'sprint', label: '🏃 Sprint Planning Advice', action: 'getSprintAdvice' },
   { id: 'insights', label: '📊 Team Performance', action: 'getTeamInsights' },
+  { id: 'resources', label: '🧑‍💻 Resource Recommendation', action: 'getResourceRecommendation' },
+  { id: 'prediction', label: '📈 Project Success Prediction', action: 'getProjectPrediction' },
   { id: 'general', label: '💬 Ask Anything', action: 'openChat' }
 ])
 
@@ -242,6 +244,31 @@ const handleQuickAction = async (actionType) => {
         aiConversation.value.push({
           role: 'user',
           message: 'Show me team performance insights',
+          timestamp: new Date().toLocaleTimeString(),
+          isQuickAction: true
+        })
+        break
+      
+      case 'getResourceRecommendation':
+        response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/ai/resource-recommendation/`, {
+          project_id: selectedProject.value?.id
+        })
+        message = response.data.response
+        aiConversation.value.push({
+          role: 'user',
+          message: 'Recommend available resources',
+          timestamp: new Date().toLocaleTimeString(),
+          isQuickAction: true
+        })
+        break
+      case 'getProjectPrediction':
+        response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/ai/project-prediction/`, {
+          project_id: selectedProject.value?.id
+        })
+        message = response.data.response
+        aiConversation.value.push({
+          role: 'user',
+          message: 'Predict project success',
           timestamp: new Date().toLocaleTimeString(),
           isQuickAction: true
         })
