@@ -6,7 +6,7 @@ from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse, JsonResponse
 import hmac, hashlib
-
+import re
 import logging
 
 logger = logging.getLogger(__name__)
