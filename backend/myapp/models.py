@@ -85,6 +85,18 @@ class Project(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    github_repo_url = models.URLField(blank=True, null=True, help_text="e.g., https://github.com/username/repo")
+    github_repo_full_name = models.CharField(max_length=255, blank=True, help_text="e.g., username/repo")
+    
+    def save(self, *args, **kwargs):
+        # Auto-extract repo name from URL
+        if self.github_repo_url and not self.github_repo_full_name:
+            import re
+            match = re.search(r'github\.com/([^/]+/[^/]+)', self.github_repo_url)
+            if match:
+                self.github_repo_full_name = match.group(1).rstrip('.git')
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return f"{self.key} - {self.name}"
 

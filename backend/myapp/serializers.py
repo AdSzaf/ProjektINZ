@@ -79,11 +79,13 @@ class ProjectCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Project
         fields = [
-            'name', 'key', 'description', 'methodology', 'lead', 'organization', 'members'
+            'name', 'key', 'description', 'methodology', 'lead', 'organization', 'members', 'github_repo_url', 'github_repo_full_name'
         ]
         extra_kwargs = {
-            'lead': {'required': True},
+            'lead': {'required': False},
             'organization': {'required': False},
+            'github_repo_url': {'required': False}, 
+            'github_repo_full_name': {'required': False},
         }
 
     def create(self, validated_data):
@@ -105,7 +107,7 @@ class ProjectGetSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Project
-        fields = ['id', 'key', 'name', 'lead', 'organization', 'description', 'methodology']
+        fields = ['id', 'key', 'name', 'lead', 'organization', 'description', 'methodology', 'github_repo_url', 'github_repo_full_name']
 
 class TagSerializer(serializers.ModelSerializer):
     class Meta:
