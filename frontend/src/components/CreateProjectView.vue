@@ -35,7 +35,9 @@ const projectData = ref({
     todo: 0,
     inProgress: 3,
     done: 0
-  }
+  },
+  github_repo_url: '',
+  github_repo_full_name: ''
 })
 
 const availableMembers = computed(() =>
@@ -162,6 +164,8 @@ const createProject = async () => {
       organization: projectData.value.organization,
       members: selectedMembers.value.map(m => m.id),
       // You can add more fields as your backend supports them
+      github_repo_url: projectData.value.github_repo_url || null,
+      github_repo_full_name: projectData.value.github_repo_full_name || null,
     }
 
     const response = await axios.post('/api/projects/', payload)
@@ -199,6 +203,18 @@ const handleClickOutside = (event) => {
   const memberSelector = event.target.closest('.member-selector')
   if (!memberSelector) {
     showMemberDropdown.value = false
+  }
+}
+
+const extractRepoName = () => {
+  if (!projectData.value.github_repo_url) {
+    projectData.value.github_repo_full_name = ''
+    return
+  }
+  
+  const match = projectData.value.github_repo_url.match(/github\.com\/([^/]+\/[^/]+)/)
+  if (match) {
+    projectData.value.github_repo_full_name = match[1].replace(/\.git$/, '')
   }
 }
 
@@ -388,6 +404,35 @@ onBeforeUnmount(() => {
                     </div>
                   </div>
                 </div>
+              </div>
+            </div>
+
+            <!-- GitHub Integration (Optional) -->
+            <div class="github-integration">
+              <h3>🔗 GitHub Integration (Optional)</h3>
+              <p class="section-description">Connect a GitHub repository to track commits</p>
+              
+              <div class="form-group">
+                <label>GitHub Repository URL</label>
+                <input 
+                  type="url" 
+                  v-model="projectData.github_repo_url"
+                  @blur="extractRepoName"
+                  placeholder="https://github.com/username/repository"
+                  class="form-input"
+                />
+                <small class="form-hint">Example: https://github.com/AdSzaf/TestInzRep</small>
+              </div>
+
+              <div class="form-group" v-if="projectData.github_repo_full_name">
+                <label>Repository Name (auto-detected)</label>
+                <input 
+                  type="text" 
+                  v-model="projectData.github_repo_full_name"
+                  placeholder="username/repository"
+                  class="form-input"
+                  readonly
+                />
               </div>
             </div>
 
@@ -609,6 +654,35 @@ onBeforeUnmount(() => {
                     </div>
                   </div>
                 </div>
+              </div>
+            </div>
+
+            <!-- GitHub Integration (Optional) -->
+            <div class="github-integration">
+              <h3>🔗 GitHub Integration (Optional)</h3>
+              <p class="section-description">Connect a GitHub repository to track commits</p>
+              
+              <div class="form-group">
+                <label>GitHub Repository URL</label>
+                <input 
+                  type="url" 
+                  v-model="projectData.github_repo_url"
+                  @blur="extractRepoName"
+                  placeholder="https://github.com/username/repository"
+                  class="form-input"
+                />
+                <small class="form-hint">Example: https://github.com/AdSzaf/TestInzRep</small>
+              </div>
+
+              <div class="form-group" v-if="projectData.github_repo_full_name">
+                <label>Repository Name (auto-detected)</label>
+                <input 
+                  type="text" 
+                  v-model="projectData.github_repo_full_name"
+                  placeholder="username/repository"
+                  class="form-input"
+                  readonly
+                />
               </div>
             </div>
 
@@ -1396,6 +1470,23 @@ onBeforeUnmount(() => {
   border-color: var(--primary-color, #0066cc);
 }
 
+.github-integration {
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid #e1e5e9;
+}
+
+.github-integration h3 {
+  margin: 0 0 0.5rem 0;
+  color: #333;
+}
+
+.github-integration .section-description {
+  color: #666;
+  font-size: 0.9rem;
+  margin-bottom: 1.5rem;
+}
+
 /* Dark mode support */
 @media (prefers-color-scheme: dark) {
   .dropdown.lead-dropdown {
@@ -1723,6 +1814,13 @@ onBeforeUnmount(() => {
   .form-input.lead-input:focus {
     border-color: #4ea1ff !important;
     box-shadow: 0 0 0 3px rgba(78, 161, 255, 0.1) !important;
+  }
+  .github-integration h3 {
+    color: #f3f3f3 !important;
+  }
+  
+  .github-integration .section-description {
+    color: #aaa !important;
   }
 }
 </style>

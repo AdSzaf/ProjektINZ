@@ -4,6 +4,7 @@ import { useProjectStore } from '../stores/projectStore'
 import AddIssueView from './AddIssueView.vue'
 import axios from 'axios'
 import IssueComments from './IssueComments.vue'
+import { format } from 'date-fns'
 
 const projectStore = useProjectStore()
 const currentProject = computed(() => projectStore.selectedProject)
@@ -27,6 +28,11 @@ const showLogTimeModal = ref(false)
 const logTimeData = ref({ time: '', comment: '' })
 
 const githubActivity = ref({ activity: [] })
+
+const formatDate = (dateString) => {
+  if (!dateString) return ""
+  return format(new Date(dateString), "yyyy-MM-dd HH:mm")
+}
 
 const fetchGithubActivity = async () => {
   if (!currentProject.value?.id) return

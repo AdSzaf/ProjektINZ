@@ -60,6 +60,17 @@ services:
       - OLLAMA_HOST=0.0.0.0
     restart: unless-stopped
 
+  ngrok:
+    image: wernight/ngrok
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN}
+    command: ngrok http backend:8000
+    ports:
+      - "4040:4040"
+
 volumes:
   pgdata:
   ollama_data:
