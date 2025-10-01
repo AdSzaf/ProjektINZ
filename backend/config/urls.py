@@ -57,6 +57,7 @@ from myapp.views import (auto_complete_sprints, register_user ,
     ai_resource_recommendation,
     ai_project_prediction,
     issue_comments,
+    github_webhook,
 )
 
 
@@ -120,4 +121,7 @@ urlpatterns = [
 
     #Comments
     path('api/issues/<uuid:issue_id>/comments/', issue_comments, name='issue_comments'),
+
+    #GitHub integration
+    path("api/github/webhook/", github_webhook, name="github_webhook"),
 ]

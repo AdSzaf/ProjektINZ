@@ -5,6 +5,11 @@ from django.conf import settings
 
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse, JsonResponse
+import hmac, hashlib
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
@@ -1120,6 +1125,55 @@ def issue_comments(request, issue_id):
             comment = serializer.save()
             return Response(CommentSerializer(comment).data, status=201)
         return Response(serializer.errors, status=400)
+
+#--------------------------------------------------------------Połaczenie z GitHubem--------------------------------------------------------------
+
+GITHUB_SECRET = os.environ.get("GITHUB_WEBHOOK_SECRET", "")
+
+def verify_signature(request):
+    signature = request.headers.get("X-Hub-Signature-256")
+    if not signature:
+        return False
+    sha_name, signature = signature.split("=")
+    mac = hmac.new(GITHUB_SECRET.encode(), msg=request.body, digestmod=hashlib.sha256)
+    return hmac.compare_digest(mac.hexdigest(), signature)
+
+@csrf_exempt
+@api_view(['POST'])
+def github_webhook(request):
+    if not verify_signature(request):
+        return JsonResponse({"error": "Invalid signature"}, status=400)
+
+    event = request.headers.get("X-GitHub-Event")
+    payload = request.data
+
+    if event == "push":
+        commits = payload.get("commits", [])
+        logger.info(f"Received push with {len(commits)} commits")
+        for commit in commits:
+            logger.info(f"Commit: {commit['message']} by {commit['author']['name']}")
+            message = commit["message"]
+            author = commit["author"]["name"]
+            url = commit["url"]
+            import re
+            match = re.search(r"#(\d+)", message)
+            if match:
+                issue_id = match.group(1)
+                from .models import Issue, WorkLog
+                issue = Issue.objects.filter(id=issue_id).first()
+                if issue:
+                    WorkLog.objects.create(
+                        issue=issue,
+                        user=issue.assignee,
+                        description=f"Commit: {message}",
+                        time_spent=0
+                    )
+    elif event == "pull_request":
+        action = payload.get("action")
+        pr = payload.get("pull_request", {})
+        title = pr.get("title")
+
+    return JsonResponse({"status": "ok"})
 
 #--------------------------------------------------------------Aktywacja konta przez email--------------------------------------------------------------
 @api_view(["GET"])
