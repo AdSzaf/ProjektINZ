@@ -33,7 +33,6 @@ from .serializers import (RegisterSerializer
                           , TagCreateSerializer
                           , WorkLogSerializer
                           , CommentSerializer)
-# In-memory status store (no DB changes). Keys: project_id -> { user_id -> { 'status': str, 'updated_at': datetime } }
 
 from .ai_service import ai_service, get_ai_context_for_message
 from django.utils.http import urlsafe_base64_decode
