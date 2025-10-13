@@ -58,6 +58,8 @@ from myapp.views import (auto_complete_sprints, register_user ,
     ai_project_prediction,
     issue_comments,
     github_webhook,
+    project_github_activity,
+    issue_commits,
 )
 
 
@@ -124,4 +126,6 @@ urlpatterns = [
 
     #GitHub integration
     path("api/github/webhook/", github_webhook, name="github_webhook"),
+    path('api/projects/<uuid:project_id>/github-activity/', project_github_activity, name='project_github_activity'),
+    path('api/issues/<uuid:issue_id>/commits/', issue_commits, name='issue_commits'),
 ]

@@ -4,6 +4,7 @@ import { useProjectStore } from '../stores/projectStore'
 import AddIssueView from './AddIssueView.vue'
 import axios from 'axios'
 import IssueComments from './IssueComments.vue'
+import { format } from 'date-fns'
 
 const projectStore = useProjectStore()
 const currentProject = computed(() => projectStore.selectedProject)
@@ -25,6 +26,27 @@ const showTagFilter = ref(false)
 
 const showLogTimeModal = ref(false)
 const logTimeData = ref({ time: '', comment: '' })
+
+const githubActivity = ref({ activity: [] })
+
+const formatDate = (dateString) => {
+  if (!dateString) return ""
+  return format(new Date(dateString), "yyyy-MM-dd HH:mm")
+}
+
+const fetchGithubActivity = async () => {
+  if (!currentProject.value?.id) return
+  
+  try {
+    const token = localStorage.getItem('token')
+    axios.defaults.headers.common['Authorization'] = `Token ${token}`
+    
+    const res = await axios.get(`/api/projects/${currentProject.value.id}/github-activity/`)
+    githubActivity.value = res.data
+  } catch (error) {
+    console.error('Failed to fetch GitHub activity:', error)
+  }
+}
 
 const fetchIssues = async () => {
   if (!currentProject.value?.id) {
@@ -395,6 +417,7 @@ onMounted(() => {
   fetchIssueTypes()
   fetchSprintsList()
   fetchTags()
+  fetchGithubActivity()
   // current user id
   const token = localStorage.getItem('token')
   if (token) {
@@ -418,6 +441,7 @@ watch(currentProject, () => {
   fetchIssueTypes()
   fetchSprintsList()
   fetchTags()
+  fetchGithubActivity()
 })
 </script>
 
@@ -431,7 +455,7 @@ watch(currentProject, () => {
     <!-- Header -->
     <div class="dashboard-header">
       <div class="header-left">
-        <h1>Sprint Board</h1>
+        <h1>Project Board</h1>
         <p class="dashboard-subtitle">Drag and drop issues to update their status</p>
         <div class="filters-row">
           <select v-model="selectedSprint" class="filter-select">
@@ -688,6 +712,59 @@ watch(currentProject, () => {
   @close="closeEditIssueModal"
   @save="onIssueEdited"
 />
+<div class="github-activity-section" v-if="currentProject">
+    <div class="section-header">
+      <h3>🔗 Recent GitHub Activity</h3>
+      <button @click="fetchGithubActivity" class="refresh-btn">
+        ↻ Refresh
+      </button>
+    </div>
+
+    <div v-if="githubActivity.github_repo" class="repo-info">
+      <span>Repository: </span>
+      <a :href="githubActivity.github_repo" target="_blank">
+        {{ githubActivity.github_repo }}
+      </a>
+    </div>
+
+    <div v-if="githubActivity.activity && githubActivity.activity.length > 0" class="activity-list">
+      <div 
+        v-for="item in githubActivity.activity" 
+        :key="item.changed_at"
+        class="activity-item"
+      >
+        <div class="activity-header">
+          <span class="issue-badge">{{ item.issue_key }}</span>
+          <span class="author">{{ item.author }}</span>
+          <span class="timestamp">{{ formatDate(item.changed_at) }}</span>
+        </div>
+        <div class="commit-message">
+          {{ item.commit_message }}
+        </div>
+        <div class="activity-footer">
+          <span class="issue-title">{{ item.issue_title }}</span>
+          <a 
+            v-if="item.commit_url" 
+            :href="item.commit_url" 
+            target="_blank" 
+            class="commit-link"
+          >
+            View Commit →
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div v-else-if="!githubActivity.github_repo" class="empty-state">
+      <p>📦 No GitHub repository linked to this project.</p>
+      <p class="hint">Add a repository URL in project settings to see commit activity.</p>
+    </div>
+
+    <div v-else class="empty-state">
+      <p>No commits linked to issues yet.</p>
+      <p class="hint">Reference issue IDs in your commit messages (e.g., "Fix login bug #123")</p>
+    </div>
+  </div>
 </template>
 
 <style scoped>
@@ -1277,6 +1354,143 @@ watch(currentProject, () => {
   color: #999;
 }
 
+.github-activity-section {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  margin: 20px 0;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.section-header h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.refresh-btn {
+  background: #f0f0f0;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.refresh-btn:hover {
+  background: #e0e0e0;
+}
+
+.repo-info {
+  margin-bottom: 16px;
+  padding: 8px 12px;
+  background: #f8f9fa;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.repo-info a {
+  color: #0366d6;
+  text-decoration: none;
+}
+
+.activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.activity-item {
+  border: 1px solid #e1e4e8;
+  border-radius: 6px;
+  padding: 12px;
+  transition: box-shadow 0.2s;
+}
+
+.activity-item:hover {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.activity-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+.issue-badge {
+  background: #0366d6;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.author {
+  color: #586069;
+  font-weight: 500;
+}
+
+.timestamp {
+  color: #959da5;
+  margin-left: auto;
+}
+
+.commit-message {
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  color: #24292e;
+  margin-bottom: 8px;
+  padding: 8px;
+  background: #f6f8fa;
+  border-radius: 3px;
+}
+
+.activity-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+}
+
+.issue-title {
+  color: #586069;
+  flex: 1;
+}
+
+.commit-link {
+  color: #0366d6;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.commit-link:hover {
+  text-decoration: underline;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: #586069;
+}
+
+.empty-state p {
+  margin: 8px 0;
+}
+
+.hint {
+  font-size: 14px;
+  color: #959da5;
+}
+
 @media (prefers-color-scheme: dark) {
   .dashboard-container {
     background: #181a1b !important;
@@ -1524,6 +1738,77 @@ watch(currentProject, () => {
   .modal-content input::placeholder,
   .modal-content textarea::placeholder {
     color: #aaa !important;
+  }
+
+  .github-activity-section {
+    background: #1e1e1e;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  }
+
+  .section-header h3 {
+    color: #e6e6e6;
+  }
+
+  .refresh-btn {
+    background: #2d2d2d;
+    color: #e6e6e6;
+  }
+
+  .refresh-btn:hover {
+    background: #3d3d3d;
+  }
+
+  .repo-info {
+    background: #252525;
+    color: #b0b0b0;
+  }
+
+  .repo-info a {
+    color: #58a6ff;
+  }
+
+  .activity-item {
+    border-color: #3d3d3d;
+    background: #252525;
+  }
+
+  .activity-item:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+    border-color: #58a6ff;
+  }
+
+  .issue-badge {
+    background: #1f6feb;
+    color: #ffffff;
+  }
+
+  .author {
+    color: #8b949e;
+  }
+
+  .timestamp {
+    color: #6e7681;
+  }
+
+  .commit-message {
+    color: #e6e6e6;
+    background: #161b22;
+  }
+
+  .issue-title {
+    color: #8b949e;
+  }
+
+  .commit-link {
+    color: #58a6ff;
+  }
+
+  .empty-state {
+    color: #8b949e;
+  }
+
+  .hint {
+    color: #6e7681;
   }
   
 }

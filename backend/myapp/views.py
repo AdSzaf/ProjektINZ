@@ -6,7 +6,7 @@ from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse, JsonResponse
 import hmac, hashlib
-
+import re
 import logging
 
 logger = logging.getLogger(__name__)
@@ -16,7 +16,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.authtoken.models import Token
 from rest_framework.permissions import IsAuthenticated
-from .models import Organization, Project, IssueType, Epic, Sprint, User, Issue, WorkflowStatus, OrganizationMembership, Tag, WorkLog
+from .models import Organization, Project, IssueType, Epic, Sprint, User, Issue, WorkflowStatus, OrganizationMembership, Tag, WorkLog, IssueHistory
 from datetime import timedelta, datetime
 from django.db.models import Count, Q
 from django.utils import timezone
@@ -33,7 +33,6 @@ from .serializers import (RegisterSerializer
                           , TagCreateSerializer
                           , WorkLogSerializer
                           , CommentSerializer)
-# In-memory status store (no DB changes). Keys: project_id -> { user_id -> { 'status': str, 'updated_at': datetime } }
 
 from .ai_service import ai_service, get_ai_context_for_message
 from django.utils.http import urlsafe_base64_decode
@@ -1128,52 +1127,215 @@ def issue_comments(request, issue_id):
 
 #--------------------------------------------------------------Połaczenie z GitHubem--------------------------------------------------------------
 
-GITHUB_SECRET = os.environ.get("GITHUB_WEBHOOK_SECRET", "")
+GITHUB_SECRET = settings.GITHUB_WEBHOOK_SECRET
 
 def verify_signature(request):
-    signature = request.headers.get("X-Hub-Signature-256")
-    if not signature:
+    """Verify that the webhook came from GitHub"""
+    secret = GITHUB_SECRET
+    if not secret:
+        logger.error("GITHUB_WEBHOOK_SECRET is not set")
         return False
-    sha_name, signature = signature.split("=")
-    mac = hmac.new(GITHUB_SECRET.encode(), msg=request.body, digestmod=hashlib.sha256)
-    return hmac.compare_digest(mac.hexdigest(), signature)
+
+    signature_header = request.headers.get("X-Hub-Signature-256")
+    if not signature_header:
+        logger.warning("Missing signature header")
+        return False
+
+    try:
+        sha_name, signature = signature_header.split("=", 1)
+    except ValueError:
+        logger.warning("Malformed signature")
+        return False
+    
+    mac = hmac.new(secret.encode(), msg=request.body, digestmod=hashlib.sha256)
+    expected = mac.hexdigest()
+    
+    if not hmac.compare_digest(expected, signature):
+        logger.warning("Signature mismatch")
+        return False
+
+    return True
 
 @csrf_exempt
 @api_view(['POST'])
 def github_webhook(request):
+    """
+    Receives GitHub webhook events.
+    Currently handles 'push' events to track commits.
+    """
     if not verify_signature(request):
         return JsonResponse({"error": "Invalid signature"}, status=400)
 
     event = request.headers.get("X-GitHub-Event")
     payload = request.data
 
+    if event == "ping":
+        # GitHub sends this to test the webhook
+        return JsonResponse({"status": "pong"})
+
     if event == "push":
+        repo_full_name = payload.get("repository", {}).get("full_name")
         commits = payload.get("commits", [])
-        logger.info(f"Received push with {len(commits)} commits")
+        
+        logger.info(f"Received push from {repo_full_name} with {len(commits)} commits")
+        
+        # Find which project this repository belongs to
+        try:
+            project = Project.objects.get(github_repo_full_name=repo_full_name)
+        except Project.DoesNotExist:
+            logger.warning(f"No project found for repository {repo_full_name}")
+            return JsonResponse({"status": "ok", "message": "Repository not linked to any project"})
+
+        # Process each commit
         for commit in commits:
-            logger.info(f"Commit: {commit['message']} by {commit['author']['name']}")
-            message = commit["message"]
-            author = commit["author"]["name"]
-            url = commit["url"]
-            import re
-            match = re.search(r"#(\d+)", message)
-            if match:
-                issue_id = match.group(1)
-                from .models import Issue, WorkLog
-                issue = Issue.objects.filter(id=issue_id).first()
+            message = commit.get("message", "")
+            author_name = commit.get("author", {}).get("name", "Unknown")
+            author_email = commit.get("author", {}).get("email", "")
+            commit_url = commit.get("url", "")
+            commit_sha = commit.get("id", "")[:7]  # Short SHA
+            
+            logger.info(f"Processing commit {commit_sha}: {message}")
+            
+            # Look for issue references like #123, PROJ-456, etc.
+            # Matches: #123 or PROJECT-123 or just 123 if preceded by issue/fix/close
+            issue_patterns = [
+                r'#(\d+)',  # #123
+                r'\b([A-Z]+-\d+)',  # PROJ-123
+                r'(?:issue|fix|fixes|fixed|close|closes|closed|resolve|resolves|resolved)\s+#?(\d+)',  # fix #123
+            ]
+            
+            found_issues = set()
+            for pattern in issue_patterns:
+                matches = re.finditer(pattern, message, re.IGNORECASE)
+                for match in matches:
+                    issue_ref = match.group(1)
+                    found_issues.add(issue_ref)
+            
+            # Try to link commits to issues
+            for issue_ref in found_issues:
+                # Try to find by ID or by key (e.g., PROJ-123)
+                issue = None
+                
+                # First try by key
+                issue = Issue.objects.filter(
+                    key=issue_ref,
+                    project=project
+                ).first()
+                
+                # If not found, try by ID
+                if not issue and issue_ref.isdigit():
+                    issue = Issue.objects.filter(
+                        id=issue_ref,
+                        project=project
+                    ).first()
+                
                 if issue:
-                    WorkLog.objects.create(
+                    # Try to find the user by name or email
+                    user = User.objects.filter(
+                        username__iexact=author_name
+                    ).first() or User.objects.filter(
+                        email__iexact=author_email
+                    ).first()
+                    
+                    # Create a history entry for this commit
+                    commit_info = f"{commit_sha}: {message}\n{commit_url}"
+                    
+                    IssueHistory.objects.create(
                         issue=issue,
-                        user=issue.assignee,
-                        description=f"Commit: {message}",
-                        time_spent=0
+                        changed_by=user if user else issue.reporter,
+                        field_name="commit",
+                        old_value="",
+                        new_value=commit_info,
                     )
+                    
+                    logger.info(f"Linked commit {commit_sha} to issue {issue.key}")
+                else:
+                    logger.info(f"No issue found for reference: {issue_ref}")
+
     elif event == "pull_request":
+        # Future enhancement: track PR status
         action = payload.get("action")
         pr = payload.get("pull_request", {})
-        title = pr.get("title")
+        logger.info(f"Received PR event: {action} - {pr.get('title')}")
 
     return JsonResponse({"status": "ok"})
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def project_github_activity(request, project_id):
+    """
+    Returns recent GitHub commit activity for a project.
+    Shows commits that have been linked to issues.
+    """
+    try:
+        project = Project.objects.get(id=project_id)
+    except Project.DoesNotExist:
+        return Response({'detail': 'Project not found.'}, status=404)
+    
+    # Get recent commit histories for issues in this project
+    histories = IssueHistory.objects.filter(
+        issue__project=project,
+        field_name="commit"
+    ).select_related('issue', 'changed_by').order_by('-changed_at')[:20]
+    
+    data = []
+    for h in histories:
+        # Parse the commit info
+        lines = h.new_value.split('\n')
+        commit_message = lines[0] if lines else ""
+        commit_url = lines[1] if len(lines) > 1 else ""
+        
+        data.append({
+            "issue_id": str(h.issue.id),
+            "issue_key": h.issue.key,
+            "issue_title": h.issue.title,
+            "commit_message": commit_message,
+            "commit_url": commit_url,
+            "author": h.changed_by.username if h.changed_by else "Unknown",
+            "changed_at": h.changed_at.isoformat(),
+        })
+    
+    return Response({
+        "project_name": project.name,
+        "github_repo": project.github_repo_url,
+        "activity": data
+    })
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def issue_commits(request, issue_id):
+    """
+    Returns all commits linked to a specific issue.
+    """
+    try:
+        issue = Issue.objects.get(id=issue_id)
+    except Issue.DoesNotExist:
+        return Response({'detail': 'Issue not found.'}, status=404)
+    
+    # Get commit histories for this issue
+    histories = IssueHistory.objects.filter(
+        issue=issue,
+        field_name="commit"
+    ).select_related('changed_by').order_by('-changed_at')
+    
+    commits = []
+    for h in histories:
+        lines = h.new_value.split('\n')
+        commit_message = lines[0] if lines else ""
+        commit_url = lines[1] if len(lines) > 1 else ""
+        
+        commits.append({
+            "commit_message": commit_message,
+            "commit_url": commit_url,
+            "author": h.changed_by.username if h.changed_by else "Unknown",
+            "committed_at": h.changed_at.isoformat(),
+        })
+    
+    return Response({
+        "issue_key": issue.key,
+        "issue_title": issue.title,
+        "commits": commits
+    })
 
 #--------------------------------------------------------------Aktywacja konta przez email--------------------------------------------------------------
 @api_view(["GET"])
