@@ -455,7 +455,7 @@ watch(currentProject, () => {
     <!-- Header -->
     <div class="dashboard-header">
       <div class="header-left">
-        <h1>Sprint Board</h1>
+        <h1>Project Board</h1>
         <p class="dashboard-subtitle">Drag and drop issues to update their status</p>
         <div class="filters-row">
           <select v-model="selectedSprint" class="filter-select">

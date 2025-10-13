@@ -64,7 +64,7 @@ class Project(models.Model):
     """Main project container"""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=255)
-    key = models.CharField(max_length=10, unique=True)  # e.g., 'PROJ', 'WEB'
+    key = models.CharField(max_length=10, unique=True)
     description = models.TextField(blank=True)
     organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name='projects', null=True, blank=True)
     lead = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='led_projects')
@@ -82,11 +82,19 @@ class Project(models.Model):
         ('on_hold', 'On Hold'),
     ], default='active')
     
+    # Scrum specific fields
+    sprint_duration = models.IntegerField(null=True, blank=True, help_text="Sprint duration in weeks")
+    sprint_start_date = models.DateField(null=True, blank=True, help_text="First sprint start date")
+    
+    # Kanban specific fields
+    enable_wip_limits = models.BooleanField(default=False)
+    wip_limits = models.JSONField(null=True, blank=True, help_text="WIP limits per column")
+    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     github_repo_url = models.URLField(blank=True, null=True, help_text="e.g., https://github.com/username/repo")
-    github_repo_full_name = models.CharField(max_length=255, blank=True, help_text="e.g., username/repo")
+    github_repo_full_name = models.CharField(max_length=255, blank=True, null=True, help_text="e.g., username/repo")
     
     def save(self, *args, **kwargs):
         # Auto-extract repo name from URL

@@ -75,18 +75,58 @@ class LoginSerializer(serializers.Serializer):
 
 class ProjectCreateSerializer(serializers.ModelSerializer):
     members = serializers.ListField(child=serializers.UUIDField(), required=False)
+    # GitHub integration fields
+    github_repo_url = serializers.URLField(required=False, allow_null=True)
+    github_repo_full_name = serializers.CharField(required=False, allow_null=True)
+    # Scrum fields
+    sprint_duration = serializers.IntegerField(required=False, allow_null=True)
+    sprint_start_date = serializers.DateField(required=False, allow_null=True)
+    # Kanban fields
+    enable_wip_limits = serializers.BooleanField(required=False, default=False)
+    wip_limits = serializers.JSONField(required=False, allow_null=True)
 
     class Meta:
         model = Project
         fields = [
-            'name', 'key', 'description', 'methodology', 'lead', 'organization', 'members', 'github_repo_url', 'github_repo_full_name'
+            'name', 'key', 'description', 'methodology', 'lead', 'organization', 'members', 
+            'github_repo_url', 'github_repo_full_name',
+            # New fields
+            'sprint_duration', 'sprint_start_date', 'enable_wip_limits', 'wip_limits'
         ]
         extra_kwargs = {
             'lead': {'required': False},
             'organization': {'required': False},
             'github_repo_url': {'required': False}, 
             'github_repo_full_name': {'required': False},
+            'sprint_duration': {'required': False},
+            'sprint_start_date': {'required': False},
+            'enable_wip_limits': {'required': False},
+            'wip_limits': {'required': False},
         }
+
+    def validate(self, data):
+        """Validate methodology-specific fields"""
+        methodology = data.get('methodology', 'scrum')
+        
+        # Validate Scrum fields
+        if methodology == 'scrum':
+            if not data.get('sprint_start_date'):
+                raise serializers.ValidationError({
+                    'sprint_start_date': 'Sprint start date is required for Scrum projects'
+                })
+            if not data.get('sprint_duration'):
+                data['sprint_duration'] = 2  # Default to 2 weeks
+        
+        # Clean up fields for non-matching methodology
+        if methodology != 'scrum':
+            data['sprint_duration'] = None
+            data['sprint_start_date'] = None
+        
+        if methodology != 'kanban':
+            data['enable_wip_limits'] = False
+            data['wip_limits'] = None
+            
+        return data
 
     def create(self, validated_data):
         members = validated_data.pop('members', [])
@@ -107,7 +147,11 @@ class ProjectGetSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Project
-        fields = ['id', 'key', 'name', 'lead', 'organization', 'description', 'methodology', 'github_repo_url', 'github_repo_full_name']
+        fields = [
+            'id', 'key', 'name', 'lead', 'organization', 'description', 'methodology', 
+            'github_repo_url', 'github_repo_full_name',
+            'sprint_duration', 'sprint_start_date', 'enable_wip_limits', 'wip_limits'
+        ]
 
 class TagSerializer(serializers.ModelSerializer):
     class Meta:

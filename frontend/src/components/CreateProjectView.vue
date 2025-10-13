@@ -134,6 +134,14 @@ const selectLead = (user) => {
   leadSearch.value = ''
 }
 
+const formatDateToYMD = (d) => {
+  if (!d) return null
+  // if already a string like '2025-10-13' this will keep it
+  const dt = new Date(d)
+  if (isNaN(dt.getTime())) return d // if it's already good string, keep
+  return dt.toISOString().slice(0,10)
+}
+
 const createProject = async () => {
   if (!isFormValid.value) return
 
@@ -160,20 +168,29 @@ const createProject = async () => {
       key: projectData.value.key,
       description: projectData.value.description,
       methodology: projectData.value.type, // 'scrum' or 'kanban'
-      lead: projectData.value.lead,
-      organization: projectData.value.organization,
-      members: selectedMembers.value.map(m => m.id),
-      // You can add more fields as your backend supports them
+      lead: String(projectData.value.lead), // send as string to be safe
+      organization: projectData.value.organization || null,
+      members: selectedMembers.value.map(m => String(m.id)), // ensure array of pks/uuids as strings
       github_repo_url: projectData.value.github_repo_url || null,
       github_repo_full_name: projectData.value.github_repo_full_name || null,
+      ...(projectData.value.type === 'scrum' && {
+        sprint_duration: projectData.value.sprintDuration ? parseInt(projectData.value.sprintDuration, 10) : null,
+        sprint_start_date: formatDateToYMD(projectData.value.startDate),
+      }),
+      ...(projectData.value.type === 'kanban' && {
+        enable_wip_limits: !!projectData.value.enableWipLimits,
+        wip_limits: projectData.value.enableWipLimits ? projectData.value.wipLimits : null,
+      }),
     }
+    console.log('Creating project payload:', payload)
 
     const response = await axios.post('/api/projects/', payload)
     await projectStore.fetchProjects()
     router.push('/dashboard')
   } catch (error) {
     console.error('Error creating project:', error)
-    alert('Failed to create project: ' + (error.response?.data?.detail || error.message))
+    const serverData = error.response?.data
+    alert('Failed to create project: ' + (serverData ? JSON.stringify(serverData) : error.message))
   } finally {
     isCreating.value = false
   }
