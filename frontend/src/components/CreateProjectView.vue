@@ -1822,5 +1822,9 @@ onBeforeUnmount(() => {
   .github-integration .section-description {
     color: #aaa !important;
   }
+
+  .github-integration {
+    border-top-color: #333 !important;
+  }
 }
 </style>
