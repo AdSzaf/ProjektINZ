@@ -109,6 +109,7 @@ const goToLogin = () => {
 
 <template>
   <div class="register-view">
+    <div class="app-name">TaskFlow</div>
     <div class="register-container">
       <h2>Create Account</h2>
       
@@ -251,12 +252,23 @@ const goToLogin = () => {
 <style scoped>
 .register-view {
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background-color: #27ae60;
+  background-color: #e5f3fd;
   width: 100%;
+  padding: 2rem 0;
 }
+
+.app-name {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #0066cc;
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
 
 .register-container {
   background: white;

@@ -85,7 +85,6 @@ const menuItems = ref([
   { name: 'Home', icon: '🏠', route: '/home', active: false },
   { name: 'Dashboard', icon: '📊', route: '/dashboard', active: true },
   { name: 'Backlog', icon: '📋', route: '/backlog' },
-  { name: 'Active Sprint', icon: '🏃', route: '/board' },
   { name: 'Epics', icon: '📚', route: '/epics' },
   { name: 'Sprints', icon: '🔄', route: '/sprints' },
   { name: 'Issues', icon: '🎯', route: '/issues' },
