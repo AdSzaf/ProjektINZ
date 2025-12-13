@@ -842,6 +842,7 @@ watch(searchQuery, async (newQuery) => {
   cursor: pointer;
   font-weight: 500;
   transition: background-color 0.2s;
+  white-space: nowrap;
 }
 
 .create-btn:hover, .create-btn.active {
@@ -1276,7 +1277,7 @@ watch(searchQuery, async (newQuery) => {
   color: #888;
 }
 
-/* AI Assistant Modal Styles - Enhanced */
+/* AI Assistant Modal Styles */
 .ai-modal-content {
   background: white;
   border-radius: 16px;
@@ -1643,13 +1644,626 @@ watch(searchQuery, async (newQuery) => {
   box-shadow: none;
 }
 
+/* ==================== RESPONSIVE BREAKPOINTS ==================== */
+
+/* Tablet - Large (1024px - 1199px) */
+@media (max-width: 1199px) {
+  .nav-center {
+    max-width: 300px;
+    margin: 0 1rem;
+  }
+
+  .sidebar {
+    width: 220px;
+  }
+
+  .main-content {
+    padding: 1.5rem;
+    margin-right: 0.5rem;
+  }
+
+  .dashboard-grid {
+    gap: 1rem;
+  }
+}
+
+/* Tablet - Medium (768px - 1023px) */
+@media (max-width: 1023px) {
+  .logo-text {
+    display: none;
+  }
+
+  .project-name {
+    display: none;
+  }
+
+  .quick-create {
+    display: none;
+  }
+
+  .nav-center {
+    margin: 0 0.5rem;
+    max-width: 250px;
+  }
+
+  .sidebar {
+    width: 200px;
+  }
+
+  .menu-text {
+    font-size: 0.9rem;
+  }
+
+  .ai-assistant-btn .menu-text {
+    font-size: 0.85rem;
+  }
+
+  .main-content {
+    padding: 1rem;
+  }
+
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .activity-card {
+    grid-column: span 1;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Mobile - Large (600px - 767px) */
+@media (max-width: 767px) {
+  .top-nav {
+    padding: 0 0.5rem;
+    height: 56px;
+    gap: 0.5rem;
+  }
+
+  .nav-left, .nav-right {
+    gap: 0.5rem;
+  }
+
+  .nav-left {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .nav-center {
+    display: none;
+  }
+
+  .logo {
+    gap: 0.25rem;
+  }
+
+  .logo-icon {
+    font-size: 1.3rem;
+  }
+
+  .project-btn {
+    padding: 0.4rem 0.6rem;
+    max-width: 120px;
+  }
+
+  .project-key {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.4rem;
+  }
+
+  .dropdown-arrow {
+    font-size: 0.7rem;
+  }
+
+  .create-btn {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
+  }
+
+  .notification-btn {
+    padding: 0.4rem;
+    font-size: 1rem;
+  }
+
+  .notification-badge {
+    width: 16px;
+    height: 16px;
+    font-size: 0.65rem;
+  }
+
+  .user-btn {
+    margin-right: 0;
+    padding: 0.2rem;
+  }
+
+  .user-avatar {
+    width: 28px;
+    height: 28px;
+    font-size: 0.8rem;
+  }
+
+  .dropdown-arrow {
+    display: none;
+  }
+
+  .sidebar {
+    width: 60px;
+    border-right: none;
+  }
+
+  .menu-text {
+    display: none;
+  }
+
+  .menu-item {
+    justify-content: center;
+    padding: 0.75rem 0.5rem;
+    margin: 0.25rem;
+  }
+
+  .menu-icon {
+    font-size: 1.3rem;
+  }
+
+  .sidebar-bottom {
+    padding: 0.75rem 0.25rem;
+  }
+
+  .ai-assistant-btn {
+    justify-content: center;
+    padding: 0.75rem 0.5rem;
+  }
+
+  .ai-assistant-btn .menu-text {
+    display: none;
+  }
+
+  .main-content {
+    padding: 1rem 0.75rem;
+    margin-right: 0;
+  }
+
+  .dashboard-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .dashboard-card {
+    padding: 1rem;
+  }
+
+  .stat-number {
+    font-size: 1.5rem;
+  }
+
+  .activity-item {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .activity-time {
+    align-self: flex-start;
+  }
+
+  /* AI Modal Responsive */
+  .ai-modal-content {
+    width: 95vw;
+    max-height: 90vh;
+    border-radius: 12px;
+  }
+
+  .ai-modal-header {
+    padding: 1.25rem 1.5rem;
+  }
+
+  .ai-modal-header h3 {
+    font-size: 1.1rem;
+  }
+
+  .ai-quick-actions {
+    padding: 1.25rem 1.5rem;
+  }
+
+  .quick-action-buttons {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+
+  .quick-action-btn {
+    padding: 0.65rem 0.85rem;
+    font-size: 0.85rem;
+  }
+
+  .ai-conversation {
+    padding: 1.25rem 1.5rem;
+    max-height: 350px;
+  }
+
+  .message-content {
+    max-width: 85%;
+    padding: 0.85rem 1rem;
+  }
+
+  .message-text {
+    font-size: 0.9rem;
+  }
+
+  .ai-input-area {
+    padding: 1.25rem 1.5rem;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .ai-input {
+    font-size: 16px; /* Prevents iOS zoom */
+    padding: 0.85rem 1rem;
+  }
+
+  .send-btn {
+    padding: 0.75rem 1.5rem;
+    font-size: 0.85rem;
+    align-self: stretch;
+  }
+
+  .input-suggestions {
+    order: -1;
+    margin-top: 0;
+    margin-bottom: 0.75rem;
+  }
+
+  .suggestion-chip {
+    font-size: 0.75rem;
+    padding: 0.35rem 0.7rem;
+  }
+}
+
+/* Mobile - Medium (480px - 599px) */
+@media (max-width: 599px) {
+  .top-nav {
+    height: 52px;
+  }
+
+  .project-btn {
+    max-width: 100px;
+    font-size: 0.85rem;
+  }
+
+  .project-key {
+    font-size: 0.65rem;
+  }
+
+  .create-btn {
+    font-size: 0.8rem;
+    padding: 0.35rem 0.7rem;
+  }
+
+  .main-content {
+    padding: 0.75rem 0.5rem;
+  }
+
+  .dashboard-header {
+    margin-bottom: 1rem;
+  }
+
+  .dashboard-header h1 {
+    font-size: 1.3rem;
+  }
+
+  .project-description {
+    font-size: 0.85rem;
+  }
+
+  .dashboard-card {
+    padding: 0.85rem;
+  }
+
+  .dashboard-card h3 {
+    font-size: 1rem;
+  }
+
+  .stat-number {
+    font-size: 1.3rem;
+  }
+
+  .stat-label {
+    font-size: 0.8rem;
+  }
+
+  .activity-item {
+    padding: 0.6rem;
+    font-size: 0.9rem;
+  }
+
+  .ai-modal-header {
+    padding: 1rem 1.25rem;
+  }
+
+  .ai-modal-header h3 {
+    font-size: 1rem;
+  }
+
+  .clear-btn, .close-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 1rem;
+  }
+
+  .ai-quick-actions {
+    padding: 1rem 1.25rem;
+  }
+
+  .ai-quick-actions h4 {
+    font-size: 0.85rem;
+  }
+
+  .ai-conversation {
+    padding: 1rem 1.25rem;
+  }
+
+  .ai-input-area {
+    padding: 1rem 1.25rem;
+  }
+}
+
+/* Mobile - Small (0px - 479px) */
+@media (max-width: 479px) {
+  .top-nav {
+    height: 50px;
+    padding: 0 0.35rem;
+  }
+
+  .logo-icon {
+    font-size: 1.2rem;
+  }
+
+  .project-selector {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .project-btn {
+    max-width: none;
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .project-name {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.8rem;
+  }
+
+  .create-btn {
+    display: none;
+  }
+
+  .nav-right > span {
+    display: none; /* Hide premium status text */
+  }
+
+  .user-avatar {
+    width: 26px;
+    height: 26px;
+    font-size: 0.75rem;
+  }
+
+  .sidebar {
+    width: 56px;
+  }
+
+  .menu-item {
+    padding: 0.65rem 0.4rem;
+  }
+
+  .menu-icon {
+    font-size: 1.2rem;
+  }
+
+  .ai-assistant-btn {
+    padding: 0.65rem 0.4rem;
+  }
+
+  .main-content {
+    padding: 0.5rem 0.35rem;
+  }
+
+  .dashboard-header h1 {
+    font-size: 1.2rem;
+  }
+
+  .project-description {
+    font-size: 0.8rem;
+  }
+
+  .dashboard-grid {
+    gap: 0.75rem;
+  }
+
+  .dashboard-card {
+    padding: 0.75rem;
+    border-radius: 6px;
+  }
+
+  .dashboard-card h3 {
+    font-size: 0.95rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .stats-grid {
+    gap: 0.75rem;
+  }
+
+  .stat-number {
+    font-size: 1.2rem;
+  }
+
+  .stat-label {
+    font-size: 0.75rem;
+  }
+
+  .activity-item {
+    padding: 0.5rem;
+    font-size: 0.85rem;
+  }
+
+  .activity-user, .activity-item-name {
+    font-size: 0.85rem;
+  }
+
+  .activity-action {
+    font-size: 0.8rem;
+  }
+
+  .activity-time {
+    font-size: 0.75rem;
+  }
+
+  .modal-content {
+    padding: 1.5rem;
+    max-width: 95vw;
+    font-size: 0.9rem;
+  }
+
+  .dropdown {
+    min-width: 180px;
+    font-size: 0.9rem;
+  }
+
+  .dropdown-item {
+    padding: 0.65rem 0.85rem;
+  }
+
+  /* AI Modal for very small screens */
+  .ai-modal-content {
+    width: 100vw;
+    height: 100vh;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+
+  .ai-modal-header {
+    padding: 0.85rem 1rem;
+  }
+
+  .ai-modal-header h3 {
+    font-size: 0.95rem;
+  }
+
+  .clear-btn, .close-btn {
+    width: 30px;
+    height: 30px;
+    font-size: 0.95rem;
+  }
+
+  .ai-quick-actions {
+    padding: 0.85rem 1rem;
+  }
+
+  .ai-quick-actions h4 {
+    font-size: 0.8rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .quick-action-btn {
+    padding: 0.6rem 0.75rem;
+    font-size: 0.8rem;
+  }
+
+  .ai-conversation {
+    padding: 0.85rem 1rem;
+    max-height: calc(100vh - 420px);
+    min-height: 200px;
+  }
+
+  .message-content {
+    max-width: 90%;
+    padding: 0.75rem 0.85rem;
+  }
+
+  .message-text {
+    font-size: 0.85rem;
+  }
+
+  .message-time {
+    font-size: 0.7rem;
+  }
+
+  .ai-input-area {
+    padding: 0.85rem 1rem;
+  }
+
+  .ai-input {
+    padding: 0.75rem 0.85rem;
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+
+  .send-btn {
+    padding: 0.65rem 1.25rem;
+    font-size: 0.8rem;
+  }
+
+  .input-suggestions {
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .suggestion-chip {
+    text-align: center;
+    width: 100%;
+  }
+}
+
+/* Landscape orientation for phones */
+@media (max-height: 500px) and (orientation: landscape) {
+  .sidebar {
+    width: 56px;
+  }
+
+  .menu-text {
+    display: none;
+  }
+
+  .ai-assistant-btn .menu-text {
+    display: none;
+  }
+
+  .menu-item {
+    justify-content: center;
+  }
+
+  .main-content {
+    padding: 0.75rem;
+  }
+
+  .ai-modal-content {
+    max-height: 95vh;
+  }
+
+  .ai-conversation {
+    max-height: 200px;
+    min-height: 150px;
+  }
+
+  .ai-quick-actions {
+    padding: 0.75rem 1rem;
+  }
+
+  .quick-action-buttons {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 /* Dark Mode Styles */
 @media (prefers-color-scheme: dark) {
   .dashboard-layout {
     background-color: #181a1b !important;
   }
 
-  /* Top Navigation */
   .top-nav {
     background: #232526 !important;
     border-bottom: 1px solid #444 !important;
@@ -1664,7 +2278,6 @@ watch(searchQuery, async (newQuery) => {
     color: #f3f3f3 !important;
   }
 
-  /* Project Selector */
   .project-btn {
     background: #181a1b !important;
     border: 1px solid #444 !important;
@@ -1685,7 +2298,6 @@ watch(searchQuery, async (newQuery) => {
     color: #f3f3f3 !important;
   }
 
-  /* Create Button */
   .create-btn {
     background: #0056b3 !important;
     color: #fff !important;
@@ -1695,7 +2307,6 @@ watch(searchQuery, async (newQuery) => {
     background: #004494 !important;
   }
 
-  /* Search Bar */
   .search-bar input {
     background: #181a1b !important;
     border: 1px solid #444 !important;
@@ -1720,7 +2331,6 @@ watch(searchQuery, async (newQuery) => {
     background: #333 !important;
   }
 
-  /* Notification Button */
   .notification-btn {
     color: #f3f3f3 !important;
   }
@@ -1734,7 +2344,6 @@ watch(searchQuery, async (newQuery) => {
     color: #fff !important;
   }
 
-  /* User Menu */
   .user-btn {
     color: #f3f3f3 !important;
   }
@@ -1748,7 +2357,6 @@ watch(searchQuery, async (newQuery) => {
     color: #fff !important;
   }
 
-  /* Dropdowns */
   .dropdown {
     background: #232526 !important;
     border: 1px solid #444 !important;
@@ -1771,7 +2379,6 @@ watch(searchQuery, async (newQuery) => {
     color: #aaa !important;
   }
 
-  /* Sidebar */
   .sidebar {
     background: #232526 !important;
     border-right: 1px solid #444 !important;
@@ -1794,13 +2401,11 @@ watch(searchQuery, async (newQuery) => {
     color: #4ea1ff !important;
   }
 
-  /* Main Content */
   .main-content {
     background: #181a1b !important;
     color: #f3f3f3 !important;
   }
 
-  /* Dashboard Cards */
   .dashboard-card {
     background: #232526 !important;
     color: #f3f3f3 !important;
@@ -1811,7 +2416,6 @@ watch(searchQuery, async (newQuery) => {
     color: #f3f3f3 !important;
   }
 
-  /* Progress Bar */
   .progress-bar {
     background: #333 !important;
   }
@@ -1824,7 +2428,6 @@ watch(searchQuery, async (newQuery) => {
     color: #aaa !important;
   }
 
-  /* Stats */
   .stat-number {
     color: #4ea1ff !important;
   }
@@ -1833,7 +2436,6 @@ watch(searchQuery, async (newQuery) => {
     color: #aaa !important;
   }
 
-  /* Activity Items */
   .activity-item {
     background: #181a1b !important;
     color: #f3f3f3 !important;
@@ -1855,7 +2457,6 @@ watch(searchQuery, async (newQuery) => {
     color: #888 !important;
   }
 
-  /* Dashboard Header */
   .dashboard-header h1 {
     color: #f3f3f3 !important;
   }
@@ -1864,17 +2465,14 @@ watch(searchQuery, async (newQuery) => {
     color: #aaa !important;
   }
 
-  /* Dropdown Arrow */
   .dropdown-arrow {
     color: #f3f3f3 !important;
   }
 
-  /* HR elements */
   hr {
     border-color: #444 !important;
   }
 
-  /* Modal Overlay */
   .modal-overlay {
     background: rgba(0, 0, 0, 0.8) !important;
   }
@@ -1884,7 +2482,6 @@ watch(searchQuery, async (newQuery) => {
     color: #f3f3f3 !important;
   }
 
-  /* Search Dropdown */
   .search-dropdown {
     background: #232526 !important;
     border: 1px solid #444 !important;
@@ -1908,7 +2505,6 @@ watch(searchQuery, async (newQuery) => {
     color: #aaa !important;
   }
 
-  /* AI Modal Dark Mode */
   .ai-modal-content {
     background: #2c2f33 !important;
     color: #ffffff !important;
@@ -2014,429 +2610,25 @@ watch(searchQuery, async (newQuery) => {
   }
 }
 
-/* Responsive Design */
-@media (max-width: 768px) {
-  .nav-center {
-    display: none;
-  }
-  
-  .sidebar {
-    width: 200px;
-  }
-  
-  .dashboard-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .activity-card {
-    grid-column: span 1;
-  }
-
-  .ai-modal-content {
-    width: 95vw !important;
-    max-height: 90vh !important;
-    border-radius: 12px !important;
-  }
-
-  .ai-modal-header {
-    padding: 1.25rem 1.5rem !important;
-  }
-
-  .ai-modal-header h3 {
-    font-size: 1.2rem !important;
-  }
-
-  .ai-quick-actions {
-    padding: 1.25rem 1.5rem !important;
-  }
-
-  .quick-action-buttons {
-    grid-template-columns: 1fr !important;
-  }
-
-  .ai-conversation {
-    padding: 1.25rem 1.5rem !important;
-    max-height: 350px !important;
-  }
-
-  .message-content {
-    max-width: 85% !important;
-  }
-
-  .ai-input-area {
-    padding: 1.25rem 1.5rem !important;
-    flex-direction: column !important;
-    gap: 1rem !important;
-  }
-
-  .ai-input {
-    font-size: 16px !important; /* Prevents zoom on iOS */
-  }
-
-  .send-btn {
-    padding: 0.75rem 1.5rem !important;
-    font-size: 0.85rem !important;
-    align-self: stretch !important;
-  }
-
-  .input-suggestions {
-    order: -1 !important;
-    margin-top: 0 !important;
-    margin-bottom: 0.75rem !important;
-  }
-}
-
-@media (max-width: 480px) {
-  .ai-modal-content {
-    width: 100vw !important;
-    height: 100vh !important;
-    max-height: 100vh !important;
-    border-radius: 0 !important;
-  }
-
-  .ai-conversation {
-    max-height: calc(100vh - 400px) !important;
-  }
-
-  .input-suggestions {
-    flex-direction: column !important;
-  }
-
-  .suggestion-chip {
-    text-align: center !important;
-  }
-
-  .main-content {
-    padding: 1rem !important;
-    margin-right: 0 !important;
-  }
-
-  .sidebar {
-    width: 180px !important;
-  }
-
-  .nav-left, .nav-right {
-    gap: 0.5rem !important;
-  }
-
-  .user-btn {
-    margin-right: 0.5rem !important;
-  }
-}
-
-/* Dark Mode Styles */
-@media (prefers-color-scheme: dark) {
-  .dashboard-layout {
-    background-color: #181a1b !important;
-  }
-
-  /* Top Navigation */
-  .top-nav {
-    background: #232526 !important;
-    border-bottom: 1px solid #444 !important;
-    color: #f3f3f3 !important;
-  }
-
-  .logo {
-    color: #4ea1ff !important;
-  }
-
-  .logo-text {
-    color: #f3f3f3 !important;
-  }
-
-  /* Project Selector */
-  .project-btn {
-    background: #181a1b !important;
-    border: 1px solid #444 !important;
-    color: #f3f3f3 !important;
-  }
-
-  .project-btn:hover, .project-btn.active {
-    background: #232526 !important;
-    border-color: #4ea1ff !important;
-  }
-
-  .project-key {
-    background: #0056b3 !important;
-    color: #fff !important;
-  }
-
-  .project-name {
-    color: #f3f3f3 !important;
-  }
-
-  /* Create Button */
+/* Print Styles */
+@media print {
+  .top-nav,
+  .sidebar,
+  .ai-assistant-btn,
+  .notification-btn,
   .create-btn {
-    background: #0056b3 !important;
-    color: #fff !important;
+    display: none !important;
   }
 
-  .create-btn:hover, .create-btn.active {
-    background: #004494 !important;
-  }
-
-  /* Search Bar */
-  .search-bar input {
-    background: #181a1b !important;
-    border: 1px solid #444 !important;
-    color: #f3f3f3 !important;
-  }
-
-  .search-bar input:focus {
-    border-color: #4ea1ff !important;
-  }
-
-  .search-bar input::placeholder {
-    color: #aaa !important;
-  }
-
-  .search-btn {
-    background: #232526 !important;
-    border: 1px solid #444 !important;
-    color: #f3f3f3 !important;
-  }
-
-  .search-btn:hover {
-    background: #333 !important;
-  }
-
-  /* Notification Button */
-  .notification-btn {
-    color: #f3f3f3 !important;
-  }
-
-  .notification-btn:hover {
-    background: #232526 !important;
-  }
-
-  .notification-badge {
-    background: #e74c3c !important;
-    color: #fff !important;
-  }
-
-  /* User Menu */
-  .user-btn {
-    color: #f3f3f3 !important;
-  }
-
-  .user-btn:hover, .user-btn.active {
-    background: #232526 !important;
-  }
-
-  .user-avatar {
-    background: #0056b3 !important;
-    color: #fff !important;
-  }
-
-  /* Dropdowns */
-  .dropdown {
-    background: #232526 !important;
-    border: 1px solid #444 !important;
-    color: #f3f3f3 !important;
-  }
-
-  .dropdown-item {
-    color: #f3f3f3 !important;
-  }
-
-  .dropdown-item:hover {
-    background: #181a1b !important;
-  }
-
-  .user-info .user-name {
-    color: #f3f3f3 !important;
-  }
-
-  .user-info .user-email {
-    color: #aaa !important;
-  }
-
-  /* Sidebar */
-  .sidebar {
-    background: #232526 !important;
-    border-right: 1px solid #444 !important;
-  }
-
-  .sidebar-bottom {
-    border-top: 1px solid #444 !important;
-  }
-
-  .menu-item {
-    color: #f3f3f3 !important;
-  }
-
-  .menu-item:hover {
-    background: #181a1b !important;
-  }
-
-  .menu-item.active {
-    background: #1a3a52 !important;
-    color: #4ea1ff !important;
-  }
-
-  /* Main Content */
   .main-content {
-    background: #181a1b !important;
-    color: #f3f3f3 !important;
+    padding: 0 !important;
+    margin: 0 !important;
   }
 
-  /* Dashboard Cards */
   .dashboard-card {
-    background: #232526 !important;
-    color: #f3f3f3 !important;
-    border-color: #444 !important;
-  }
-
-  .dashboard-card h3 {
-    color: #f3f3f3 !important;
-  }
-
-  /* Progress Bar */
-  .progress-bar {
-    background: #333 !important;
-  }
-
-  .progress-fill {
-    background: #28a745 !important;
-  }
-
-  .progress-text {
-    color: #aaa !important;
-  }
-
-  /* Stats */
-  .stat-number {
-    color: #4ea1ff !important;
-  }
-
-  .stat-label {
-    color: #aaa !important;
-  }
-
-  /* Activity Items */
-  .activity-item {
-    background: #181a1b !important;
-    color: #f3f3f3 !important;
-  }
-
-  .activity-user {
-    color: #4ea1ff !important;
-  }
-
-  .activity-action {
-    color: #aaa !important;
-  }
-
-  .activity-item-name {
-    color: #f3f3f3 !important;
-  }
-
-  .activity-time {
-    color: #888 !important;
-  }
-
-  /* Dashboard Header */
-  .dashboard-header h1 {
-    color: #f3f3f3 !important;
-  }
-
-  .project-description {
-    color: #aaa !important;
-  }
-
-  /* Dropdown Arrow */
-  .dropdown-arrow {
-    color: #f3f3f3 !important;
-  }
-
-  /* HR elements */
-  hr {
-    border-color: #444 !important;
-  }
-  /* Modal Overlay */
-  .modal-overlay {
-    background: rgba(0, 0, 0, 0.8) !important;
-  }
-
-  .modal-content {
-    background: #232526 !important;
-    color: #f3f3f3 !important;
-  }
-
-  /* Search Dropdown */
-  .search-dropdown {
-    background: #232526 !important;
-    border: 1px solid #444 !important;
-    color: #f3f3f3 !important;
-  }
-
-  .search-result {
-    color: #f3f3f3 !important;
-    border-bottom: 1px solid #444 !important;
-  }
-
-  .search-result:hover {
-    background: #1a3a52 !important;
-  }
-
-  .result-type {
-    color: #aaa !important;
-  }
-
-  .search-no-results {
-    color: #aaa !important;
-  }
-
-  /* AI Modal Dark Mode */
-  .ai-modal-content {
-    background: #232526 !important;
-    color: #f3f3f3 !important;
-  }
-
-  .ai-modal-header {
-    border-bottom: 1px solid #444 !important;
-  }
-
-  .ai-conversation {
-    background: #232526 !important;
-  }
-
-  .ai-welcome {
-    color: #aaa !important;
-  }
-
-  .ai-welcome h4 {
-    color: #f3f3f3 !important;
-  }
-
-  .message.assistant .message-content {
-    background: #181a1b !important;
-    color: #f3f3f3 !important;
-  }
-
-  .ai-input-area {
-    border-top: 1px solid #444 !important;
-    background: #232526 !important;
-  }
-
-  .ai-input {
-    background: #181a1b !important;
-    border: 1px solid #444 !important;
-    color: #f3f3f3 !important;
-  }
-
-  .ai-input:focus {
-    border-color: #667eea !important;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2) !important;
-  }
-
-  .ai-input::placeholder {
-    color: #aaa !important;
-  }
-
-  .typing-indicator span {
-    background: #aaa !important;
+    break-inside: avoid;
+    box-shadow: none !important;
+    border: 1px solid #ddd !important;
   }
 }
 </style>
