@@ -580,12 +580,25 @@ watch(searchQuery, async (newQuery) => {
 
       <div class="nav-right">
         <!-- Notifications -->
-          <button @click="buyPremium" class="create-btn">
-            Buy Premium
-          </button>
-          <span v-if="currentUser.is_premium" style="color: #28a745; font-weight: bold;">
-            Premium until {{ formatPremiumDate(currentUser.premium_until) }}
-          </span>
+          <!-- Buy Premium Button with icon support -->
+        <button @click="buyPremium" class="create-btn">
+          <span class="btn-icon">💳</span>
+          <span class="btn-text">Buy Premium</span>
+        </button>
+
+        <!-- Premium Status - text version -->
+        <span v-if="currentUser.is_premium" class="premium-status">
+          Premium until {{ formatPremiumDate(currentUser.premium_until) }}
+        </span>
+
+        <!-- Premium Status - icon version (shows on smaller screens) -->
+        <span 
+          v-if="currentUser.is_premium" 
+          class="premium-icon" 
+          :title="'Premium until ' + formatPremiumDate(currentUser.premium_until)"
+        >
+          ✨
+        </span>
         <button class="notification-btn">
           🔔
           <span v-if="notifications > 0" class="notification-badge">{{ notifications }}</span>
@@ -775,12 +788,25 @@ watch(searchQuery, async (newQuery) => {
   flex-shrink: 0;
   width: 100%;
   margin-right: auto;
+  min-width: 0;
 }
 
 .nav-left, .nav-right {
   display: flex;
   align-items: center;
   gap: 1rem;
+  min-width: 0;
+  flex-shrink: 1;
+}
+
+.nav-left {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.nav-right {
+  flex-shrink: 0;
 }
 
 .nav-center {
@@ -789,6 +815,7 @@ watch(searchQuery, async (newQuery) => {
   justify-content: center;
   max-width: 400px;
   margin: 0 2rem;
+  min-width: 0;
 }
 
 .logo {
@@ -797,14 +824,25 @@ watch(searchQuery, async (newQuery) => {
   gap: 0.5rem;
   font-weight: bold;
   color: #0066cc;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .logo-icon {
   font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.logo-text {
+  flex-shrink: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .project-selector {
   position: relative;
+  flex: 1;
+  min-width: 0;
 }
 
 .project-btn {
@@ -817,6 +855,8 @@ watch(searchQuery, async (newQuery) => {
   padding: 0.5rem 0.75rem;
   cursor: pointer;
   transition: all 0.2s;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .project-btn:hover, .project-btn.active {
@@ -831,6 +871,23 @@ watch(searchQuery, async (newQuery) => {
   border-radius: 3px;
   font-size: 0.8rem;
   font-weight: bold;
+  flex-shrink: 0;
+}
+
+.project-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dropdown-arrow {
+  flex-shrink: 0;
+}
+
+.quick-create {
+  flex-shrink: 0;
 }
 
 .create-btn {
@@ -853,6 +910,7 @@ watch(searchQuery, async (newQuery) => {
   display: flex;
   width: 100%;
   max-width: 400px;
+  position: relative;
 }
 
 .search-bar input {
@@ -875,6 +933,64 @@ watch(searchQuery, async (newQuery) => {
   border-radius: 0 4px 4px 0;
   padding: 0.5rem 0.75rem;
   cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* Compact search - icon only */
+.search-bar.compact {
+  width: auto;
+  max-width: none;
+}
+
+.search-bar.compact input {
+  display: none;
+}
+
+.search-bar.compact .search-btn {
+  border: 1px solid #ddd;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  font-size: 1.1rem;
+  background: white;
+}
+
+.search-bar.compact .search-btn:hover {
+  background: #f8f9fa;
+}
+
+/* Search expanded overlay for mobile */
+.search-overlay {
+  display: none;
+  position: fixed;
+  top: 60px;
+  left: 0;
+  right: 0;
+  background: white;
+  border-bottom: 1px solid #e1e5e9;
+  padding: 1rem;
+  z-index: 99;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.search-overlay.active {
+  display: block;
+}
+
+.search-overlay input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.quick-create {
+  flex-shrink: 0;
 }
 
 .notification-btn {
@@ -922,6 +1038,7 @@ watch(searchQuery, async (newQuery) => {
   border-radius: 4px;
   transition: background-color 0.2s;
   margin-right: 1rem;
+  flex-shrink: 0;
 }
 
 .user-btn:hover, .user-btn.active {
@@ -939,6 +1056,7 @@ watch(searchQuery, async (newQuery) => {
   justify-content: center;
   font-weight: bold;
   font-size: 0.9rem;
+  flex-shrink: 0;
 }
 
 /* Dropdowns */
@@ -1646,8 +1764,68 @@ watch(searchQuery, async (newQuery) => {
 
 /* ==================== RESPONSIVE BREAKPOINTS ==================== */
 
+/* Smooth transitions between breakpoints */
+@media (max-width: 1400px) {
+  .nav-center {
+    max-width: 350px;
+    margin: 0 1.5rem;
+  }
+}
+
+@media (max-width: 1300px) {
+  .nav-center {
+    max-width: 300px;
+    margin: 0 1rem;
+  }
+}
+
 /* Tablet - Large (1024px - 1199px) */
 @media (max-width: 1199px) {
+  .nav-center {
+    max-width: 280px;
+    margin: 0 1rem;
+  }
+
+  .sidebar {
+    width: 220px;
+  }
+
+  .main-content {
+    padding: 1.5rem;
+    margin-right: 0.5rem;
+  }
+
+  .dashboard-grid {
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 1100px) {
+  .logo-text {
+    display: none;
+  }
+
+  .nav-left {
+    gap: 0.75rem;
+  }
+
+  .nav-center {
+    margin: 0 0.75rem;
+  }
+}
+
+@media (max-width: 1024px) {
+  .project-name {
+    max-width: 120px;
+  }
+
+  .quick-create {
+    display: none;
+  }
+}
+
+/* Tablet - Medium (768px - 1023px) */
+@media (max-width: 1023px) {
   .nav-center {
     max-width: 300px;
     margin: 0 1rem;
@@ -1669,16 +1847,87 @@ watch(searchQuery, async (newQuery) => {
 
 /* Tablet - Medium (768px - 1023px) */
 @media (max-width: 1023px) {
-  .logo-text {
-    display: none;
+  .project-name {
+    max-width: 100px;
   }
 
+  .nav-center {
+    margin: 0 0.5rem;
+    max-width: 250px;
+  }
+
+  .sidebar {
+    width: 200px;
+  }
+
+  .menu-text {
+    font-size: 0.9rem;
+  }
+
+  .ai-assistant-btn .menu-text {
+    font-size: 0.85rem;
+  }
+
+  .main-content {
+    padding: 1rem;
+  }
+
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .activity-card {
+    grid-column: span 1;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .create-btn {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
+  }
+
+  .notification-btn {
+    padding: 0.4rem;
+  }
+
+  .user-btn {
+    margin-right: 0.5rem;
+  }
+
+  .nav-right {
+    gap: 0.5rem;
+  }
+
+  /* Hide premium status text on smaller screens */
+  .nav-right > span {
+    font-size: 0.85rem;
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 850px) {
   .project-name {
     display: none;
   }
 
-  .quick-create {
-    display: none;
+  .project-btn {
+    padding: 0.5rem 0.6rem;
+  }
+}
+
+/* Tablet - Medium (768px - 1023px) */
+@media (max-width: 1023px) {
+  .project-name {
+    max-width: 100px;
   }
 
   .nav-center {
@@ -1721,7 +1970,7 @@ watch(searchQuery, async (newQuery) => {
   .top-nav {
     padding: 0 0.5rem;
     height: 56px;
-    gap: 0.5rem;
+    gap: 0.25rem;
   }
 
   .nav-left, .nav-right {
@@ -1747,7 +1996,9 @@ watch(searchQuery, async (newQuery) => {
 
   .project-btn {
     padding: 0.4rem 0.6rem;
-    max-width: 120px;
+    max-width: none;
+    flex: 1;
+    min-width: 0;
   }
 
   .project-key {
@@ -1755,18 +2006,23 @@ watch(searchQuery, async (newQuery) => {
     padding: 0.2rem 0.4rem;
   }
 
+  .project-name {
+    display: block;
+    font-size: 0.85rem;
+  }
+
   .dropdown-arrow {
     font-size: 0.7rem;
   }
 
+  /* All buttons become icon-only */
   .create-btn {
-    padding: 0.4rem 0.8rem;
-    font-size: 0.85rem;
+    display: none; /* Hide create button completely on mobile */
   }
 
   .notification-btn {
     padding: 0.4rem;
-    font-size: 1rem;
+    font-size: 1.1rem;
   }
 
   .notification-badge {
@@ -1781,13 +2037,17 @@ watch(searchQuery, async (newQuery) => {
   }
 
   .user-avatar {
-    width: 28px;
-    height: 28px;
-    font-size: 0.8rem;
+    width: 32px;
+    height: 32px;
+    font-size: 0.85rem;
   }
 
   .dropdown-arrow {
     display: none;
+  }
+
+  .search-overlay {
+    top: 56px;
   }
 
   .sidebar {
@@ -1906,6 +2166,17 @@ watch(searchQuery, async (newQuery) => {
     padding: 0.75rem 1.5rem;
     font-size: 0.85rem;
     align-self: stretch;
+  }
+
+  .input-suggestions {
+    order: -1;
+    margin-top: 0;
+    margin-bottom: 0.75rem;
+  }
+
+  .suggestion-chip {
+    font-size: 0.75rem;
+    padding: 0.35rem 0.7rem;
   }
 
   .input-suggestions {
