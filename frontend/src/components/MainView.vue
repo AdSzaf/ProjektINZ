@@ -78,6 +78,7 @@ const fetchProjects = async () => {
 const showUserDropdown = ref(false)
 const showProjectDropdown = ref(false)
 const showCreateDropdown = ref(false)
+const showCompactMenu = ref(false)
 const notifications = ref(3)
 
 // Menu items
@@ -109,6 +110,19 @@ const toggleDropdown = (dropdown) => {
   showUserDropdown.value = dropdown === 'user' ? !showUserDropdown.value : false
   showProjectDropdown.value = dropdown === 'project' ? !showProjectDropdown.value : false
   showCreateDropdown.value = dropdown === 'create' ? !showCreateDropdown.value : false
+  // close compact menu when other dropdowns open
+  if (dropdown !== 'compact') showCompactMenu.value = false
+}
+
+const toggleCompactMenu = () => {
+  console.log('toggleCompactMenu called')
+  showCompactMenu.value = !showCompactMenu.value
+  // close other dropdowns when compact opens
+  if (showCompactMenu.value) {
+    showUserDropdown.value = false
+    showProjectDropdown.value = false
+    showCreateDropdown.value = false
+  }
 }
 
 const createNew = (type) => {
@@ -339,6 +353,7 @@ const closeDropdowns = () => {
   showUserDropdown.value = false
   showProjectDropdown.value = false
   showCreateDropdown.value = false
+  showCompactMenu.value = false
 }
 
 const autoCompleteSprints = async () => {
@@ -349,6 +364,7 @@ const autoCompleteSprints = async () => {
 
 const buyPremium = async () => {
   try {
+    showCompactMenu.value = false
     const stripe = await loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY)
 
     // Token do autoryzacji (jak w innych requestach)
@@ -371,6 +387,11 @@ const buyPremium = async () => {
   } catch (e) {
     console.error("Error creating checkout session", e)
   }
+}
+
+const openCreateProject = () => {
+  showCompactMenu.value = false
+  router.push('/create-project')
 }
 
 function formatPremiumDate(dateStr) {
@@ -611,6 +632,33 @@ watch(searchQuery, async (newQuery) => {
           🔔
           <span v-if="notifications > 0" class="notification-badge">{{ notifications }}</span>
         </button>
+
+        <!-- Compact overflow menu for small screens -->
+        <div class="compact-menu" @click.stop>
+          <button
+            type="button"
+            class="compact-menu-btn"
+            @click.stop="toggleCompactMenu"
+            :aria-expanded="showCompactMenu"
+            title="More"
+          >
+            ☰
+          </button>
+          <div v-if="showCompactMenu" class="dropdown compact-dropdown" @click.stop>
+            <div class="compact-search">
+              <input
+                type="text"
+                v-model="searchQuery"
+                placeholder="Search issues, users..."
+                @focus="showRecommendations = searchResults.length > 0"
+              />
+            </div>
+            <div class="compact-actions">
+              <button type="button" class="compact-action-btn" @click="openCreateProject">+ Create Project</button>
+              <button type="button" class="compact-action-btn" @click="buyPremium">💳 Buy Premium</button>
+            </div>
+          </div>
+        </div>
 
         <!-- User Menu -->
         <div class="user-menu" @click.stop>
@@ -1078,6 +1126,80 @@ watch(searchQuery, async (newQuery) => {
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   z-index: 1200; /* higher to avoid being under other elements */
   min-width: 200px;
+}
+
+/* Compact overflow menu styles */
+.compact-menu-btn {
+  display: none;
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  padding: 0.35rem;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.compact-dropdown {
+  right: 0;
+  top: 100%;
+  margin-top: 0.25rem;
+  min-width: 220px;
+  padding: 0.5rem;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.compact-search input {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  outline: none;
+}
+
+.compact-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.compact-action-btn {
+  background: #0066cc;
+  color: white;
+  border: none;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+@media (max-width: 1032px) {
+  /* Show compact menu earlier and center it in the top bar */
+  .compact-menu-btn { display: inline-flex; align-items: center; }
+  .nav-center { display: none; }
+  /* hide duplicated create/premium buttons to rely on compact menu */
+  .nav-right > .create-btn { display: none; }
+  .premium-status { display: none; }
+
+  /* Center compact menu button */
+  .compact-menu {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1200;
+  }
+  .compact-dropdown {
+    left: 50%;
+    transform: translateX(-50%);
+    right: auto;
+  }
+}
+
+/* Keep previous smaller-screen adjustments for very small devices */
+@media (max-width: 767px) {
+  .compact-menu-btn { display: inline-flex; align-items: center; }
 }
 
 .project-dropdown, .create-dropdown {
