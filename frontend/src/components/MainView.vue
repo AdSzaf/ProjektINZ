@@ -95,10 +95,17 @@ const menuItems = ref([
 
 // Methods
 const selectProject = (project) => {
+  console.log('selectProject called', project)
   projectStore.setProject(project)
+  try {
+    localStorage.setItem('selectedProjectId', String(project.id))
+  } catch (e) {
+    // ignore
+  }
   showProjectDropdown.value = false
 }
 const toggleDropdown = (dropdown) => {
+  console.log('toggleDropdown called', dropdown)
   showUserDropdown.value = dropdown === 'user' ? !showUserDropdown.value : false
   showProjectDropdown.value = dropdown === 'project' ? !showProjectDropdown.value : false
   showCreateDropdown.value = dropdown === 'create' ? !showCreateDropdown.value : false
@@ -501,8 +508,9 @@ watch(searchQuery, async (newQuery) => {
         <!-- Project Selector -->
         <div class="project-selector" @click.stop>
           <button 
+            type="button"
             class="project-btn" 
-            @click="toggleDropdown('project')"
+            @click.stop="toggleDropdown('project')"
             :class="{ active: showProjectDropdown }"
           >
             <span class="project-key">{{ selectedProject?.key }}</span>
@@ -796,21 +804,22 @@ watch(searchQuery, async (newQuery) => {
   align-items: center;
   gap: 1rem;
   min-width: 0;
-  flex-shrink: 1;
 }
 
 .nav-left {
-  flex: 1;
+  flex: 0 1 auto;
   min-width: 0;
-  overflow: hidden;
+  overflow: visible; /* allow dropdowns to extend outside the left container */
 }
 
 .nav-right {
-  flex-shrink: 0;
+  flex: 0 1 auto;
+  display: flex;
+  align-items: center;
 }
 
 .nav-center {
-  flex: 1;
+  flex: 1 1 400px;
   display: flex;
   justify-content: center;
   max-width: 400px;
@@ -841,8 +850,9 @@ watch(searchQuery, async (newQuery) => {
 
 .project-selector {
   position: relative;
-  flex: 1;
+  flex: 0 1 auto;
   min-width: 0;
+  overflow: visible; /* ensure child absolute dropdown is visible */
 }
 
 .project-btn {
@@ -1066,7 +1076,7 @@ watch(searchQuery, async (newQuery) => {
   border: 1px solid #ddd;
   border-radius: 4px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  z-index: 1000;
+  z-index: 1200; /* higher to avoid being under other elements */
   min-width: 200px;
 }
 
@@ -1826,38 +1836,26 @@ watch(searchQuery, async (newQuery) => {
 
 /* Tablet - Medium (768px - 1023px) */
 @media (max-width: 1023px) {
+  /* Center search area is slightly smaller on tablets */
   .nav-center {
-    max-width: 300px;
-    margin: 0 1rem;
+    max-width: 250px;
+    margin: 0 0.5rem;
+    flex: 1 1 250px;
   }
 
+  /* Slightly narrower sidebar */
   .sidebar {
-    width: 220px;
+    width: 200px;
   }
 
+  /* Reduce main content padding to gain space */
   .main-content {
-    padding: 1.5rem;
+    padding: 1rem;
     margin-right: 0.5rem;
   }
 
-  .dashboard-grid {
-    gap: 1rem;
-  }
-}
-
-/* Tablet - Medium (768px - 1023px) */
-@media (max-width: 1023px) {
   .project-name {
     max-width: 100px;
-  }
-
-  .nav-center {
-    margin: 0 0.5rem;
-    max-width: 250px;
-  }
-
-  .sidebar {
-    width: 200px;
   }
 
   .menu-text {
@@ -1866,10 +1864,6 @@ watch(searchQuery, async (newQuery) => {
 
   .ai-assistant-btn .menu-text {
     font-size: 0.85rem;
-  }
-
-  .main-content {
-    padding: 1rem;
   }
 
   .dashboard-grid {
@@ -1924,46 +1918,7 @@ watch(searchQuery, async (newQuery) => {
   }
 }
 
-/* Tablet - Medium (768px - 1023px) */
-@media (max-width: 1023px) {
-  .project-name {
-    max-width: 100px;
-  }
 
-  .nav-center {
-    margin: 0 0.5rem;
-    max-width: 250px;
-  }
-
-  .sidebar {
-    width: 200px;
-  }
-
-  .menu-text {
-    font-size: 0.9rem;
-  }
-
-  .ai-assistant-btn .menu-text {
-    font-size: 0.85rem;
-  }
-
-  .main-content {
-    padding: 1rem;
-  }
-
-  .dashboard-grid {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
-
-  .activity-card {
-    grid-column: span 1;
-  }
-
-  .stats-grid {
-    grid-template-columns: 1fr 1fr;
-  }
-}
 
 /* Mobile - Large (600px - 767px) */
 @media (max-width: 767px) {
