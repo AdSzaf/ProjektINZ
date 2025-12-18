@@ -1752,13 +1752,105 @@ watch(currentProject, async () => {
 }
 
 /* Responsive Design */
+@media (max-width: 1400px) {
+  .issues-table-container {
+    overflow-x: auto;
+  }
+
+  .issues-table {
+    min-width: 1050px;
+  }
+
+  .issues-table th,
+  .issues-table td {
+    padding: 0.65rem 0.5rem;
+    font-size: 0.8rem;
+  }
+
+  .key-cell {
+    width: 80px;
+  }
+
+  .title-cell {
+    min-width: 180px;
+  }
+
+  .title-content {
+    gap: 0.35rem;
+  }
+
+  .issue-title {
+    font-size: 0.8125rem;
+  }
+
+  .issue-labels {
+    max-width: 140px;
+  }
+
+  .label {
+    font-size: 0.68rem;
+    padding: 0.1rem 0.4rem;
+  }
+
+  .type-badge,
+  .status-badge,
+  .priority-badge {
+    padding: 0.22rem 0.45rem;
+    font-size: 0.7rem;
+  }
+
+  .assignee-avatar {
+    width: 22px;
+    height: 22px;
+    font-size: 0.7rem;
+  }
+
+  .assignee-name {
+    font-size: 0.8rem;
+  }
+
+  .story-points {
+    width: 22px;
+    height: 22px;
+    font-size: 0.65rem;
+  }
+
+  .created-date {
+    font-size: 0.75rem;
+  }
+
+  .action-icon {
+    padding: 0.2rem;
+    font-size: 0.8rem;
+  }
+}
+
 @media (max-width: 1024px) {
   .issues-table-container {
     overflow-x: auto;
   }
 
   .issues-table {
-    min-width: 800px;
+    min-width: 900px;
+  }
+
+  .issues-table th,
+  .issues-table td {
+    padding: 0.6rem;
+    font-size: 0.8125rem;
+  }
+
+  .title-cell {
+    min-width: 200px;
+  }
+
+  .issue-labels {
+    max-width: 150px;
+  }
+
+  .label {
+    font-size: 0.65rem;
+    padding: 0.1rem 0.35rem;
   }
 }
 
@@ -1769,8 +1861,20 @@ watch(currentProject, async () => {
     align-items: stretch;
   }
 
+  .header-title h1 {
+    font-size: 1.5rem;
+  }
+
   .header-actions {
-    justify-content: flex-end;
+    justify-content: space-between;
+    flex-wrap: wrap;
+  }
+
+  .action-btn {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.75rem;
+    flex: 1;
+    min-width: 100px;
   }
 
   .filters-row {
@@ -1783,6 +1887,12 @@ watch(currentProject, async () => {
     align-items: stretch;
   }
 
+  .bulk-select,
+  .apply-btn,
+  .cancel-btn {
+    width: 100%;
+  }
+
   .pagination-container {
     flex-direction: column;
     gap: 1rem;
@@ -1790,12 +1900,420 @@ watch(currentProject, async () => {
   }
 
   .pagination-controls {
+    flex-direction: column;
     justify-content: center;
+    gap: 1rem;
+  }
+
+  .page-buttons {
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 100%;
+  }
+
+  .page-size-select {
+    width: 100%;
+  }
+
+  .page-btn {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.8rem;
+    flex: 1;
+    min-width: 60px;
   }
 
   .issue-modal {
     width: 95%;
     margin: 20px;
+  }
+
+  /* Table adjustments for tablet */
+  .issues-table-container {
+    overflow-x: auto;
+  }
+
+  .issues-table {
+    min-width: 1000px;
+  }
+
+  .issues-table th,
+  .issues-table td {
+    padding: 0.5rem;
+    font-size: 0.75rem;
+  }
+
+  .key-cell {
+    width: 70px;
+  }
+
+  .title-cell {
+    min-width: 150px;
+  }
+
+  .title-content {
+    gap: 0.3rem;
+  }
+
+  .issue-title {
+    font-size: 0.8125rem;
+  }
+
+  .issue-labels {
+    max-width: 120px;
+  }
+
+  .label {
+    font-size: 0.6rem;
+    padding: 0.08rem 0.3rem;
+  }
+
+  .type-badge,
+  .status-badge,
+  .priority-badge {
+    padding: 0.2rem 0.4rem;
+    font-size: 0.65rem;
+  }
+
+  .assignee-avatar {
+    width: 20px;
+    height: 20px;
+    font-size: 0.65rem;
+  }
+
+  .assignee-name {
+    font-size: 0.75rem;
+  }
+
+  .story-points {
+    width: 20px;
+    height: 20px;
+    font-size: 0.65rem;
+  }
+
+  .created-date {
+    font-size: 0.7rem;
+  }
+
+  .action-icon {
+    padding: 0.15rem;
+    font-size: 0.7rem;
+  }
+
+  .modal-header h2 {
+    font-size: 1.125rem;
+  }
+
+  .issue-details-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+}
+
+/* Mobile - Small devices */
+@media (max-width: 480px) {
+  .issues-container {
+    gap: 1rem;
+  }
+
+  .issues-header {
+    padding: 1rem;
+  }
+
+  .header-title h1 {
+    font-size: 1.25rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .header-actions {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .action-btn {
+    width: 100%;
+    padding: 0.5rem;
+    font-size: 0.75rem;
+  }
+
+  .filters-panel {
+    padding: 1rem;
+  }
+
+  .filters-row {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .filter-group label {
+    font-size: 0.8rem;
+  }
+
+  .filter-group input,
+  .filter-group select {
+    padding: 0.4rem 0.5rem;
+    font-size: 0.75rem;
+  }
+
+  .filters-actions {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .clear-btn,
+  .save-btn {
+    width: 100%;
+    padding: 0.5rem;
+    font-size: 0.8rem;
+  }
+
+  /* Hide less important columns on very small screens */
+  .issues-table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .issues-table {
+    min-width: 600px;
+  }
+
+  .issues-table th,
+  .issues-table td {
+    padding: 0.4rem 0.3rem;
+    font-size: 0.7rem;
+  }
+
+  .select-column {
+    width: 32px;
+  }
+
+  .key-cell {
+    width: 50px;
+  }
+
+  .title-cell {
+    min-width: 120px;
+  }
+
+  .issue-key {
+    font-size: 0.7rem;
+  }
+
+  .issue-title {
+    font-size: 0.75rem;
+    line-height: 1.2;
+  }
+
+  .issue-labels {
+    display: none;
+  }
+
+  .type-badge,
+  .status-badge,
+  .priority-badge {
+    padding: 0.15rem 0.3rem;
+    font-size: 0.6rem;
+    gap: 0.1rem;
+  }
+
+  .type-badge {
+    display: none;
+  }
+
+  .status-badge {
+    display: none;
+  }
+
+  .priority-badge {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.3rem;
+  }
+
+  .assignee-cell {
+    min-width: 80px;
+  }
+
+  .assignee-avatar {
+    width: 18px;
+    height: 18px;
+    font-size: 0.6rem;
+  }
+
+  .assignee-name {
+    display: none;
+  }
+
+  .assignee-info {
+    gap: 0.3rem;
+  }
+
+  .unassigned {
+    font-size: 0.65rem;
+  }
+
+  .points-cell {
+    width: 35px;
+  }
+
+  .story-points {
+    width: 18px;
+    height: 18px;
+    font-size: 0.55rem;
+  }
+
+  .date-cell {
+    display: none;
+  }
+
+  .actions-cell {
+    width: 60px;
+  }
+
+  .action-icon {
+    padding: 0.1rem;
+    font-size: 0.6rem;
+  }
+
+  .issue-row {
+    height: auto;
+  }
+
+  .bulk-actions-bar {
+    padding: 0.75rem 1rem;
+  }
+
+  .bulk-info {
+    font-size: 0.8rem;
+  }
+
+  .bulk-select,
+  .apply-btn,
+  .cancel-btn {
+    padding: 0.4rem;
+    font-size: 0.75rem;
+  }
+
+  .pagination-container {
+    padding: 1rem;
+    gap: 0.75rem;
+  }
+
+  .pagination-info {
+    font-size: 0.75rem;
+    text-align: center;
+  }
+
+  .page-size-select {
+    width: 100%;
+    padding: 0.4rem;
+    font-size: 0.75rem;
+  }
+
+  .page-buttons {
+    width: 100%;
+    gap: 0.3rem;
+    justify-content: center;
+  }
+
+  .page-btn {
+    padding: 0.35rem 0.4rem;
+    font-size: 0.65rem;
+    flex-shrink: 1;
+  }
+
+  .page-info {
+    font-size: 0.7rem;
+    margin: 0 0.3rem;
+  }
+
+  .issue-modal {
+    width: 95vw;
+    max-height: 85vh;
+    margin: auto;
+  }
+
+  .modal-header {
+    padding: 1rem;
+  }
+
+  .modal-header h2 {
+    font-size: 1rem;
+    padding-right: 0.5rem;
+  }
+
+  .modal-content {
+    padding: 1rem;
+  }
+
+  .issue-details-grid {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+
+  .detail-item label {
+    font-size: 0.75rem;
+  }
+
+  .description-section label {
+    font-size: 0.75rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .description-text {
+    padding: 0.75rem;
+    font-size: 0.8rem;
+    line-height: 1.5;
+  }
+
+  .modal-tags {
+    gap: 0.2rem;
+  }
+
+  .modal-tag {
+    font-size: 0.65rem;
+    padding: 0.2rem 0.35rem;
+  }
+
+  .modal-actions {
+    flex-direction: column;
+    gap: 0.5rem;
+    padding-top: 0.75rem;
+  }
+
+  .modal-actions .action-btn {
+    width: 100%;
+    padding: 0.5rem;
+    font-size: 0.8rem;
+  }
+
+  .tag-filter-container {
+    width: 100%;
+  }
+
+  .tag-filter-btn {
+    width: 100%;
+    font-size: 0.75rem;
+  }
+
+  .tag-filter-dropdown {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90vw;
+    max-width: 300px;
+    max-height: 50vh;
+    z-index: 1001;
+  }
+
+  .tag-filter-option {
+    padding: 0.6rem;
+    font-size: 0.8rem;
+  }
+
+  .tag-color-dot {
+    width: 10px;
+    height: 10px;
   }
 }
 
