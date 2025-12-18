@@ -445,11 +445,13 @@ watch(currentProject, () => {
 })
 </script>
 
-<template>
-  <div v-if="!currentProject" class="no-projects-message">
-    <h2>No projects found</h2>
-    <p>Create your first project to get started!</p>
-    <button class="btn btn-primary" @click="$router.push('/create-project')">+ Create Project</button>
+  <template>
+    <div v-if="!currentProject" class="no-project-selected">
+      <h2>No projects found</h2>
+      <p>Create your first project to get started!</p>
+      <button class="btn btn-primary" @click="$router.push('/create-project')">
+        + Create Project
+      </button>
   </div>
   <div v-else class="dashboard-container">
     <!-- Header -->
@@ -768,9 +770,10 @@ watch(currentProject, () => {
 </template>
 
 <style scoped>
+/* ==================== BASE STYLES ==================== */
 .dashboard-container {
   padding: 2rem;
-  height: 100vh;
+  min-height: 100vh;
   overflow: hidden;
   background: #f8f9fa;
 }
@@ -779,6 +782,8 @@ watch(currentProject, () => {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 0.75rem;
   margin-bottom: 2rem;
 }
 
@@ -802,6 +807,7 @@ watch(currentProject, () => {
   display: flex;
   gap: 0.5rem;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .filter-select {
@@ -830,19 +836,26 @@ watch(currentProject, () => {
 .kanban-board {
   display: flex;
   gap: 1.5rem;
-  height: calc(100vh - 150px);
-  overflow-x: auto;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  /* keep page from growing vertically; allow columns to wrap into rows */
+  height: calc(100vh - 260px);
+  overflow-x: hidden;
   padding-bottom: 1rem;
+  padding-top: 0.5rem;
 }
 
 .kanban-column {
-  min-width: 300px;
+  flex: 0 0 300px;
+  min-width: 220px;
+  max-width: 380px;
   background: white;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
-  max-height: 100%;
+  /* keep column height bounded so the overall page doesn't overflow */
+  max-height: calc(100vh - 340px);
 }
 
 .column-header {
@@ -896,12 +909,14 @@ watch(currentProject, () => {
 
 /* Issues Container */
 .issues-container {
-  flex: 1;
+  flex: 1 1 auto;
   padding: 1rem;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  /* limit visible area inside column so the page height remains stable */
+  max-height: calc(100% - 120px);
 }
 
 .issue-card {
@@ -1489,6 +1504,120 @@ watch(currentProject, () => {
 .hint {
   font-size: 14px;
   color: #959da5;
+}
+
+/* ==================== RESPONSIVE BREAKPOINTS ==================== */
+
+/* Large Desktop (1400px+) */
+@media (min-width: 1400px) {
+  .kanban-board { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+}
+
+/* Desktop (1200px - 1399px) */
+@media (min-width: 1200px) and (max-width: 1399px) {
+  .kanban-board { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+}
+
+/* Tablet Large (1024px - 1199px) */
+@media (min-width: 1024px) and (max-width: 1199px) {
+  .dashboard-container { padding:1.5rem }
+  .kanban-board { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:1.25rem }
+  .column-title { font-size:0.95rem }
+}
+
+/* Tablet Medium (900px - 1023px) */
+@media (min-width: 900px) and (max-width: 1023px) {
+  .dashboard-header h1 { font-size:1.5rem }
+  .kanban-board { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:1rem }
+  .filter-select { min-width:130px; font-size:0.85rem }
+  .add-column-btn { padding:0.5rem 1rem; font-size:0.9rem }
+}
+
+/* Tablet Small (768px - 899px) */
+@media (min-width: 768px) and (max-width: 899px) {
+  .dashboard-container { padding:1rem }
+  .dashboard-header { gap:0.75rem }
+  .dashboard-subtitle { font-size:0.9rem }
+  .kanban-board { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)) }
+  .column-header { padding:0.75rem }
+  .column-points { display:none }
+  .issues-container { padding:0.75rem }
+  .issue-card { padding:0.75rem }
+  .issue-modal-header h2 { font-size:1.1rem }
+  .github-activity-section { padding:1rem }
+}
+
+/* Mobile Large (640px - 767px) */
+@media (min-width: 640px) and (max-width: 767px) {
+  .dashboard-container { padding:0.75rem }
+  .dashboard-header { flex-direction:column; align-items:stretch }
+  .dashboard-header h1 { font-size:1.25rem }
+  .dashboard-subtitle { display:none }
+  .add-column-btn { width:100%; padding:0.6rem }
+  .filters-row { flex-direction:column; gap:0.5rem }
+  .filter-select, .tag-filter-btn { width:100%; min-width:0 }
+  .kanban-board { grid-template-columns: 1fr; gap:1rem }
+  .kanban-column { max-height:500px }
+  .column-header { padding:0.75rem }
+  .column-info { gap:0.5rem }
+  .column-title { font-size:0.9rem }
+  .column-count { font-size:0.75rem; padding:0.2rem 0.4rem }
+  .remove-column-btn { font-size:1.25rem }
+  .issue-title { font-size:0.9rem }
+  .priority-badge { font-size:0.7rem; padding:0.15rem 0.4rem }
+  .story-points { font-size:0.75rem }
+  .assignee-avatar { width:24px; height:24px; font-size:0.7rem }
+  .issue-modal { width:95vw; max-height:90vh }
+  .issue-modal-header { flex-direction:column; padding:1rem }
+  .issue-modal-actions { width:100%; justify-content:flex-start }
+  .btn-edit, .btn-logtime { flex:1; text-align:center }
+  .close-btn { position:absolute; top:1rem; right:1rem }
+  .issue-modal-body { padding:1rem }
+  .tag-filter-options { left:0; right:0; width:auto }
+  .github-activity-section { padding:0.75rem }
+}
+
+/* Mobile Medium (480px - 639px) */
+@media (min-width: 480px) and (max-width: 639px) {
+  .dashboard-container { padding:0.5rem }
+  .dashboard-header { margin-bottom:1rem }
+  .dashboard-header h1 { font-size:1.1rem }
+  .kanban-board { gap:0.75rem }
+  .kanban-column { max-height:450px }
+  .column-header { padding:0.6rem }
+  .column-title { font-size:0.85rem }
+  .issues-container { padding:0.6rem; gap:0.6rem }
+  .issue-card { padding:0.6rem }
+  .issue-header { margin-bottom:0.4rem }
+  .issue-title { margin-bottom:0.75rem; font-size:0.85rem }
+  .issue-tags { margin-bottom:0.5rem }
+  .issue-tag { font-size:0.65rem }
+  .modal-content { padding:1.5rem }
+  .issue-modal-header h2 { font-size:1rem }
+  .btn-edit, .btn-logtime { padding:0.4rem 0.6rem; font-size:0.85rem }
+}
+
+/* Mobile Small (0px - 479px) */
+@media (max-width: 479px) {
+  .dashboard-container { padding:0.5rem }
+  .dashboard-header h1 { font-size:1rem }
+  .add-column-btn { font-size:0.85rem; padding:0.5rem }
+  .filter-select { font-size:0.8rem; padding:0.4rem 0.6rem }
+  .tag-filter-btn { font-size:0.8rem; padding:0.4rem 0.6rem }
+  .kanban-board { gap:0.6rem }
+  .kanban-column { max-height:400px; min-height:300px }
+  .column-header { padding:0.5rem }
+  .column-title { font-size:0.8rem }
+  .column-count { font-size:0.7rem; padding:0.15rem 0.35rem }
+  .remove-column-btn { font-size:1.1rem; padding:0.15rem 0.35rem }
+  .issues-container { padding:0.5rem; gap:0.5rem }
+  .issue-card { padding:0.5rem }
+  .issue-id { font-size:0.75rem }
+  .issue-type { font-size:0.9rem }
+  .issue-title { font-size:0.8rem; margin-bottom:0.6rem }
+  .priority-badge { font-size:0.65rem; padding:0.15rem 0.35rem }
+  .story-points { font-size:0.7rem }
+  .assignee-avatar { width:22px; height:22px; font-size:0.65rem }
 }
 
 @media (prefers-color-scheme: dark) {
