@@ -492,7 +492,7 @@ watch(currentProject, async () => {
     <button class="btn btn-primary" @click="$router.push('/create-project')">+ Create Project</button>
   </div>
   <div v-else class="issues-container">
-    <!-- Issues Header -->
+    
     <div class="issues-header">
       <div class="header-title">
         <h1>Issues</h1>
@@ -513,7 +513,7 @@ watch(currentProject, async () => {
       </div>
     </div>
 
-    <!-- Advanced Filters Panel -->
+    
     <div v-if="showFilters" class="filters-panel">
       <div class="filters-row">
         <div class="filter-group">
@@ -588,7 +588,7 @@ watch(currentProject, async () => {
           <label>Tags:</label>
           <div class="tag-filter-container">
             <div class="visual-tag-selector">
-              <!-- Only show this div if there are actually selected tags -->
+              
               <div class="selected-filter-tags" v-if="filters.tags && filters.tags.length > 0">
                 <span 
                   v-for="tagId in filters.tags" 
@@ -639,7 +639,7 @@ watch(currentProject, async () => {
       </div>
     </div>
 
-    <!-- Bulk Actions Bar -->
+    
     <div v-if="selectedIssues.length > 0" class="bulk-actions-bar">
       <div class="bulk-info">
         <span>{{ selectedIssues.length }} issues selected</span>
@@ -661,7 +661,7 @@ watch(currentProject, async () => {
       </div>
     </div>
 
-    <!-- Issues Table -->
+    
     <div class="issues-table-container">
       <table class="issues-table">
         <thead>
@@ -811,7 +811,7 @@ watch(currentProject, async () => {
       </table>
     </div>
 
-    <!-- Pagination -->
+    
     <div class="pagination-container">
       <div class="pagination-info">
         Showing {{ ((currentPage - 1) * pageSize) + 1 }} to {{ Math.min(currentPage * pageSize, filteredIssues.length) }} 
@@ -862,7 +862,7 @@ watch(currentProject, async () => {
       </div>
     </div>
 
-    <!-- Issue Details Modal -->
+    
     <div v-if="selectedIssueDetails" class="modal-overlay" @click="closeIssueModal">
       <div class="issue-modal" @click.stop>
         <div class="modal-header">
@@ -912,7 +912,7 @@ watch(currentProject, async () => {
               <span>{{ formatDate(selectedIssueDetails.created) }}</span>
             </div>
 
-                        <!-- In the issue-details-grid section, add this: -->
+                        
             <div class="detail-item" v-if="selectedIssueDetails.tags && selectedIssueDetails.tags.length">
               <label>Tags:</label>
               <div class="modal-tags">
@@ -951,7 +951,7 @@ watch(currentProject, async () => {
     @save="onIssueCreated"
   />
 
-  <!-- Edit Issue Modal reuse -->
+  
   <AddIssueView
     :showModal="isEditModalOpen"
     mode="edit"
@@ -960,7 +960,7 @@ watch(currentProject, async () => {
     @save="handleIssueEdited"
   />
 
-  <!-- Delete Confirmation Modal -->
+  
   <div v-if="isDeleteModalOpen" class="modal-overlay" @click="cancelDeleteIssue">
     <div class="issue-modal" @click.stop>
       <div class="modal-header">
@@ -988,7 +988,7 @@ watch(currentProject, async () => {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
-/* Header Styles */
+
 .issues-header {
   display: flex;
   justify-content: space-between;
@@ -1067,7 +1067,7 @@ watch(currentProject, async () => {
   font-weight: 600;
 }
 
-/* Filters Panel */
+
 .filters-panel {
   background: white;
   border: 1px solid #e1e4e8;
@@ -1146,7 +1146,7 @@ watch(currentProject, async () => {
   background: #0860ca;
 }
 
-/* Bulk Actions Bar */
+
 .bulk-actions-bar {
   background: #fff8c5;
   border: 1px solid #d4c5f9;
@@ -1209,7 +1209,7 @@ watch(currentProject, async () => {
   background: #f6f8fa;
 }
 
-/* Issues Table */
+
 .issues-table-container {
   background: white;
   border: 1px solid #e1e4e8;
@@ -1272,7 +1272,7 @@ watch(currentProject, async () => {
   border-left: 4px solid #ff6b6b;
 }
 
-/* Table Cell Styles */
+
 .select-column {
   width: 40px;
 }
@@ -1331,7 +1331,7 @@ watch(currentProject, async () => {
   color: white;
 }
 
-/* Badge Styles */
+
 .type-badge, .status-badge, .priority-badge {
   display: inline-flex;
   align-items: center;
@@ -1343,25 +1343,25 @@ watch(currentProject, async () => {
   white-space: nowrap;
 }
 
-/* Type Badges */
+
 .type-badge.story { background: #e3f2fd; color: #1565c0; }
 .type-badge.bug { background: #ffebee; color: #c62828; }
 .type-badge.task { background: #e8f5e8; color: #2e7d32; }
 .type-badge.epic { background: #f3e5f5; color: #7b1fa2; }
 
-/* Status Badges */
+
 .status-badge.status-todo { background: #f1f3f4; color: #5f6368; }
 .status-badge.status-progress { background: #fff3cd; color: #856404; }
 .status-badge.status-review { background: #d1ecf1; color: #0c5460; }
 .status-badge.status-done { background: #d4edda; color: #155724; }
 
-/* Priority Badges */
+
 .priority-badge.critical { background: #ffebee; color: #c62828; }
 .priority-badge.high { background: #fff3e0; color: #ef6c00; }
 .priority-badge.medium { background: #fff8e1; color: #f57f17; }
 .priority-badge.low { background: #e3f2fd; color: #1565c0; }
 
-/* Assignee Styles */
+
 .assignee-info {
   display: flex;
   align-items: center;
@@ -1391,7 +1391,7 @@ watch(currentProject, async () => {
   font-style: italic;
 }
 
-/* Points and Date */
+
 .story-points {
   display: inline-flex;
   align-items: center;
@@ -1414,7 +1414,7 @@ watch(currentProject, async () => {
   font-size: 0.8125rem;
 }
 
-/* Actions */
+
 .issue-actions {
   display: flex;
   gap: 0.25rem;
@@ -1434,7 +1434,7 @@ watch(currentProject, async () => {
   background: #f6f8fa;
 }
 
-/* Pagination */
+
 .pagination-container {
   display: flex;
   justify-content: space-between;
@@ -1496,7 +1496,7 @@ watch(currentProject, async () => {
   margin: 0 0.5rem;
 }
 
-/* Modal Styles */
+
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -1722,7 +1722,7 @@ watch(currentProject, async () => {
   border-radius: 50%;
 }
 
-/* Modal Tags */
+
 .modal-tags {
   display: flex;
   flex-wrap: wrap;
@@ -1751,7 +1751,7 @@ watch(currentProject, async () => {
   font-size: 0.875rem;
 }
 
-/* Responsive Design */
+
 @media (max-width: 1400px) {
   .issues-table-container {
     overflow-x: auto;
@@ -1927,7 +1927,7 @@ watch(currentProject, async () => {
     margin: 20px;
   }
 
-  /* Table adjustments for tablet */
+  
   .issues-table-container {
     overflow-x: auto;
   }
@@ -2009,7 +2009,7 @@ watch(currentProject, async () => {
   }
 }
 
-/* Mobile - Small devices */
+
 @media (max-width: 480px) {
   .issues-container {
     gap: 1rem;
@@ -2067,7 +2067,7 @@ watch(currentProject, async () => {
     font-size: 0.8rem;
   }
 
-  /* Hide less important columns on very small screens */
+  
   .issues-table-container {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
@@ -2318,16 +2318,16 @@ watch(currentProject, async () => {
 }
 
 
-/* Add this to your existing <style scoped> section */
+
 
 @media (prefers-color-scheme: dark) {
-  /* Container */
+  
   .issues-container {
     background: #0d1117;
     color: #c9d1d9;
   }
 
-  /* Header Styles */
+  
   .issues-header {
     background: #161b22 !important;
     border-color: #30363d !important;
@@ -2369,7 +2369,7 @@ watch(currentProject, async () => {
     color: #ffffff !important;
   }
 
-  /* Filters Panel */
+  
   .filters-panel {
     background: #161b22 !important;
     border-color: #30363d !important;
@@ -2412,7 +2412,7 @@ watch(currentProject, async () => {
     background: #1a5ee8 !important;
   }
 
-  /* Bulk Actions Bar */
+  
   .bulk-actions-bar {
     background: #1c2128 !important;
     border-color: #373e47 !important;
@@ -2448,7 +2448,7 @@ watch(currentProject, async () => {
     background: #30363d !important;
   }
 
-  /* Issues Table */
+  
   .issues-table-container {
     background: #161b22 !important;
     border-color: #30363d !important;
@@ -2484,7 +2484,7 @@ watch(currentProject, async () => {
     border-left-color: #f85149 !important;
   }
 
-  /* Table Cell Styles */
+  
   .select-cell input[type="checkbox"] {
     accent-color: #1f6feb;
   }
@@ -2505,7 +2505,7 @@ watch(currentProject, async () => {
     color: #58a6ff !important;
   }
 
-  /* Badge Styles - Dark Mode Updates */
+  
   .type-badge.story { 
     background: #1a2332 !important; 
     color: #79c0ff !important; 
@@ -2526,7 +2526,7 @@ watch(currentProject, async () => {
     color: #d2a8ff !important; 
   }
 
-  /* Status Badges */
+  
   .status-badge.status-todo { 
     background: #21262d !important; 
     color: #8b949e !important; 
@@ -2547,7 +2547,7 @@ watch(currentProject, async () => {
     color: #7ee787 !important; 
   }
 
-  /* Priority Badges */
+  
   .priority-badge.critical { 
     background: #2d1b20 !important; 
     color: #ff7b72 !important; 
@@ -2568,7 +2568,7 @@ watch(currentProject, async () => {
     color: #79c0ff !important; 
   }
 
-  /* Assignee Styles */
+  
   .assignee-avatar {
     background: #1f6feb !important;
     color: #ffffff !important;
@@ -2582,7 +2582,7 @@ watch(currentProject, async () => {
     color: #8b949e !important;
   }
 
-  /* Points and Date */
+  
   .story-points {
     background: #21262d !important;
     border-color: #30363d !important;
@@ -2597,12 +2597,12 @@ watch(currentProject, async () => {
     color: #8b949e !important;
   }
 
-  /* Actions */
+  
   .action-icon:hover {
     background: #30363d !important;
   }
 
-  /* Pagination */
+  
   .pagination-container {
     background: #161b22 !important;
     border-color: #30363d !important;
@@ -2632,7 +2632,7 @@ watch(currentProject, async () => {
     color: #c9d1d9 !important;
   }
 
-  /* Modal Styles */
+  
   .modal-overlay {
     background: rgba(1, 4, 9, 0.8) !important;
   }
@@ -2689,12 +2689,12 @@ watch(currentProject, async () => {
     border-color: #f85149 !important;
   }
 
-  /* Label colors for dark mode */
+  
   .label {
     opacity: 0.9;
   }
 
-  /* Scrollbar styling for dark mode */
+  
   .issues-table-container::-webkit-scrollbar {
     width: 8px;
     height: 8px;
@@ -2713,7 +2713,7 @@ watch(currentProject, async () => {
     background: #6e7681;
   }
 
-  /* Focus states for better accessibility in dark mode */
+  
   .issues-table th.sortable:focus {
     outline: 2px solid #58a6ff;
     outline-offset: 2px;

@@ -54,7 +54,7 @@ const goToRegister = () => {
       <h2>Sign In</h2>
       
       <form @submit.prevent="handleLogin">
-        <!-- Email -->
+        
         <div class="form-group">
           <label for="email">Email Address</label>
           <input
@@ -67,7 +67,7 @@ const goToRegister = () => {
           />
         </div>
 
-        <!-- Password -->
+        
         <div class="form-group">
           <label for="password">Password</label>
           <input
@@ -80,7 +80,7 @@ const goToRegister = () => {
           />
         </div>
 
-        <!-- Submit Button -->
+        
         <button
           type="submit"
           class="login-btn"
@@ -91,7 +91,7 @@ const goToRegister = () => {
         </button>
       </form>
 
-      <!-- Register Link -->
+      
       <div class="register-link">
         <p>Don't have an account? <a @click="goToRegister" href="#">Register here</a></p>
       </div>

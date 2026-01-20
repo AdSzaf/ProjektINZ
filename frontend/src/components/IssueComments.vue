@@ -203,7 +203,7 @@ watch(() => props.issueId, fetchComments)
   opacity: 0.6;
 }
 
-/* Dark Mode Support */
+
 @media (prefers-color-scheme: dark) {
   .comments-section {
     background: #0d1117 !important;

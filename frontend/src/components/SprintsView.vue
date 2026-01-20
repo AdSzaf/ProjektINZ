@@ -764,7 +764,7 @@ watch(currentProject, () => {
   font-style: italic;
 }
 
-/* Responsive Design */
+
 @media (max-width: 768px) {
   .sprint-view {
     padding: 1rem;
@@ -798,7 +798,7 @@ watch(currentProject, () => {
   }
 }
 
-/* Dark Mode Support */
+
 @media (prefers-color-scheme: dark) {
   .sprint-view,
   .sprint-filters,

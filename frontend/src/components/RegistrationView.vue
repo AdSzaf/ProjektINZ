@@ -114,7 +114,7 @@ const goToLogin = () => {
       <h2>Create Account</h2>
       
       <form @submit.prevent="handleRegister">
-        <!-- First Name -->
+        
         <div class="form-group">
           <label for="firstName">First Name</label>
           <input
@@ -126,7 +126,7 @@ const goToLogin = () => {
           />
         </div>
 
-        <!-- Last Name -->
+        
         <div class="form-group">
           <label for="lastName">Last Name</label>
           <input
@@ -138,7 +138,7 @@ const goToLogin = () => {
           />
         </div>
 
-        <!-- Email -->
+        
         <div class="form-group">
           <label for="email">Email Address</label>
           <input
@@ -152,7 +152,7 @@ const goToLogin = () => {
           <span v-if="email && !isEmailValid" class="error-text">Invalid email format</span>
         </div>
 
-        <!-- Organization (optional) -->
+        
         <div class="form-group">
           <label for="organization">Organization (optional)</label>
           <input
@@ -163,7 +163,7 @@ const goToLogin = () => {
           />
         </div>
 
-        <!-- Role Selection -->
+        
         <div class="form-group">
           <label for="role">Role in Project</label>
           <select
@@ -182,7 +182,7 @@ const goToLogin = () => {
           </select>
         </div>
 
-        <!-- Password -->
+        
         <div class="form-group">
           <label for="password">Password</label>
           <input
@@ -194,7 +194,7 @@ const goToLogin = () => {
           />
         </div>
 
-        <!-- Confirm Password -->
+        
         <div class="form-group">
           <label for="confirmPassword">Confirm Password</label>
           <input
@@ -208,7 +208,7 @@ const goToLogin = () => {
           <span v-if="confirmPassword && !isPasswordMatch" class="error-text">Passwords don't match</span>
         </div>
 
-        <!-- Password Requirements -->
+        
         <div v-if="password" class="password-requirements">
           <p class="requirements-title">Password must have:</p>
           <ul>
@@ -231,7 +231,7 @@ const goToLogin = () => {
           </ul>
         </div>
 
-        <!-- Submit Button -->
+        
         <button
           type="submit"
           class="register-btn"
@@ -241,7 +241,7 @@ const goToLogin = () => {
         </button>
       </form>
 
-      <!-- Login Link -->
+      
       <div class="login-link">
         <p>Already have an account? <a @click="goToLogin" href="#">Go to login</a></p>
       </div>

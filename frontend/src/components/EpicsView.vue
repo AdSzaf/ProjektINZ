@@ -101,7 +101,7 @@ watch(currentProject, () => {
     <button class="btn btn-primary" @click="$router.push('/create-project')">+ Create Project</button>
   </div>
   <div v-else class="epics-view">
-    <!-- Page Header -->
+    
     <div class="page-header">
       <h1>Epics</h1>
       <p class="page-description">Manage and track your project epics and their associated issues</p>
@@ -115,7 +115,7 @@ watch(currentProject, () => {
       </div>
     </div>
 
-    <!-- Epics Board -->
+    
     <div class="epics-board">
       <div 
         v-for="epic in epics" 
@@ -123,7 +123,7 @@ watch(currentProject, () => {
         class="epic-card"
         :class="`status-${epic.status}`"
       >
-        <!-- Epic Header -->
+        
         <div class="epic-header">
           <div class="epic-title-row">
             <span class="epic-key">{{ epic.key || epic.id.slice(0, 8) }}</span>
@@ -145,7 +145,7 @@ watch(currentProject, () => {
           </div>
         </div>
 
-        <!-- Epic Issues -->
+        
         <div class="epic-issues">
           <div class="issues-header">
             <span class="issues-count">{{ getIssuesForEpic(epic.id).length }} issues</span>
@@ -529,7 +529,7 @@ watch(currentProject, () => {
   font-weight: 500;
 }
 
-/* Responsive */
+
 @media (max-width: 768px) {
   .epics-board {
     grid-template-columns: 1fr;
@@ -551,10 +551,10 @@ watch(currentProject, () => {
   }
 }
 
-/* Add this to your existing <style scoped> section */
+
 
 @media (prefers-color-scheme: dark) {
-  /* Page Header */
+  
   .page-header h1 {
     color: #f0f6fc !important;
   }
@@ -563,7 +563,7 @@ watch(currentProject, () => {
     color: #8b949e !important;
   }
 
-  /* Buttons */
+  
   .btn-primary {
     background: #238636 !important;
     color: #ffffff !important;
@@ -591,7 +591,7 @@ watch(currentProject, () => {
     color: #79c0ff !important;
   }
 
-  /* Epic Cards */
+  
   .epic-card {
     background: #161b22 !important;
     border-color: #30363d !important;
@@ -618,7 +618,7 @@ watch(currentProject, () => {
     border-left-color: #6e7681 !important;
   }
 
-  /* Epic Header */
+  
   .epic-header {
     background: #0d1117 !important;
     border-color: #30363d !important;
@@ -633,7 +633,7 @@ watch(currentProject, () => {
     color: #f0f6fc !important;
   }
 
-  /* Epic Status Badges */
+  
   .epic-status.status-completed {
     background: #1b2718 !important;
     color: #7ee787 !important;
@@ -654,7 +654,7 @@ watch(currentProject, () => {
     color: #8b949e !important;
   }
 
-  /* Progress Bar */
+  
   .progress-bar {
     background: #21262d !important;
     border: 1px solid #30363d;
@@ -683,7 +683,7 @@ watch(currentProject, () => {
     color: #8b949e !important;
   }
 
-  /* Epic Issues Section */
+  
   .epic-issues {
     background: #161b22 !important;
   }
@@ -692,7 +692,7 @@ watch(currentProject, () => {
     color: #8b949e !important;
   }
 
-  /* Issue Items */
+  
   .issue-item {
     background: #0d1117 !important;
     border: 1px solid #21262d;
@@ -725,7 +725,7 @@ watch(currentProject, () => {
     color: #c9d1d9 !important;
   }
 
-  /* Issue Status Badges */
+  
   .issue-status.status-done {
     background: #1b2718 !important;
     color: #7ee787 !important;
@@ -741,7 +741,7 @@ watch(currentProject, () => {
     color: #8b949e !important;
   }
 
-  /* Issues Summary */
+  
   .issues-summary {
     background: #0d1117 !important;
     border: 1px solid #30363d;
@@ -753,7 +753,7 @@ watch(currentProject, () => {
     border: 1px solid #30363d;
   }
 
-  /* Enhanced interactions and animations */
+  
   .epic-card {
     transition: all 0.3s ease;
     backdrop-filter: blur(8px);
@@ -776,19 +776,19 @@ watch(currentProject, () => {
     color: #58a6ff !important;
   }
 
-  /* Type icons with better visibility */
+  
   .issue-type {
     filter: brightness(1.2);
     text-shadow: 0 0 4px rgba(255, 255, 255, 0.3);
   }
 
-  /* Progress animation */
+  
   @keyframes shimmer {
     0% { transform: translateX(-100%); }
     100% { transform: translateX(100%); }
   }
 
-  /* Epic key hover effect */
+  
   .epic-key {
     transition: all 0.2s ease;
   }
@@ -798,7 +798,7 @@ watch(currentProject, () => {
     transform: scale(1.05);
   }
 
-  /* Status badges hover effects */
+  
   .epic-status, .issue-status {
     transition: all 0.2s ease;
   }
@@ -808,7 +808,7 @@ watch(currentProject, () => {
     filter: brightness(1.1);
   }
 
-  /* Button focus states for accessibility */
+  
   .btn-primary:focus,
   .btn-secondary:focus,
   .btn-link:focus {
@@ -816,18 +816,18 @@ watch(currentProject, () => {
     outline-offset: 2px;
   }
 
-  /* Card focus states */
+  
   .epic-card:focus-within {
     outline: 2px solid #58a6ff;
     outline-offset: 2px;
   }
 
-  /* Improved contrast for better readability */
+  
   .epic-header {
     border-bottom: 1px solid #30363d !important;
   }
 
-  /* Type count badges enhancement */
+  
   .type-count {
     transition: all 0.2s ease;
   }
@@ -837,7 +837,7 @@ watch(currentProject, () => {
     transform: scale(1.05);
   }
 
-  /* Subtle gradient backgrounds */
+  
   .epic-card {
     background: linear-gradient(135deg, #161b22 0%, #0d1117 100%) !important;
   }
@@ -854,7 +854,7 @@ watch(currentProject, () => {
     background: linear-gradient(135deg, #0d1117 0%, #161b22 100%) !important;
   }
 
-  /* Enhanced scrollbar styling */
+  
   .epics-view::-webkit-scrollbar {
     width: 8px;
   }

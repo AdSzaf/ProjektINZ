@@ -40,6 +40,6 @@ body {
   justify-content: center;
 
   min-height: 100vh;
-  background-color: white; /* Ensure white background */
+  background-color: white; 
 }
 </style>

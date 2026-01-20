@@ -277,7 +277,7 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="project-creation">
-    <!-- Header -->
+    
     <div class="creation-header">
       <button class="back-btn" @click="goBack">
         ← Back
@@ -295,7 +295,7 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <!-- Project Type Selection -->
+    
     <div v-if="currentStep === 'type-selection'" class="type-selection">
       <div class="type-cards">
         <div 
@@ -332,7 +332,7 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <!-- Kanban Project Setup -->
+    
     <div v-if="currentStep === 'kanban-setup'" class="project-setup kanban-setup">
       <div class="setup-container">
         <div class="setup-main">
@@ -424,7 +424,7 @@ onBeforeUnmount(() => {
               </div>
             </div>
 
-            <!-- GitHub Integration (Optional) -->
+            
             <div class="github-integration">
               <h3>🔗 GitHub Integration (Optional)</h3>
               <p class="section-description">Connect a GitHub repository to track commits</p>
@@ -453,7 +453,7 @@ onBeforeUnmount(() => {
               </div>
             </div>
 
-            <!-- Kanban Specific Settings -->
+            
             <div class="kanban-settings">
               <h3>Kanban Configuration</h3>
               
@@ -582,7 +582,7 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <!-- Scrum Project Setup -->
+    
     <div v-if="currentStep === 'scrum-setup'" class="project-setup scrum-setup">
       <div class="setup-container">
         <div class="setup-main">
@@ -674,7 +674,7 @@ onBeforeUnmount(() => {
               </div>
             </div>
 
-            <!-- GitHub Integration (Optional) -->
+            
             <div class="github-integration">
               <h3>🔗 GitHub Integration (Optional)</h3>
               <p class="section-description">Connect a GitHub repository to track commits</p>
@@ -703,7 +703,7 @@ onBeforeUnmount(() => {
               </div>
             </div>
 
-            <!-- Scrum Specific Settings -->
+            
             <div class="scrum-settings">
               <h3>Scrum Configuration</h3>
               
@@ -872,7 +872,7 @@ onBeforeUnmount(() => {
   color: white;
 }
 
-/* Type Selection */
+
 .type-selection {
   max-width: 800px;
   margin: 0 auto;
@@ -943,7 +943,7 @@ onBeforeUnmount(() => {
   font-weight: bold;
 }
 
-/* Project Setup */
+
 .setup-container {
   display: grid;
   grid-template-columns: 2fr 1fr;
@@ -1023,7 +1023,7 @@ onBeforeUnmount(() => {
   gap: 1rem;
 }
 
-/* Kanban Settings */
+
 .kanban-settings, .scrum-settings {
   margin-top: 2rem;
   padding-top: 2rem;
@@ -1065,7 +1065,7 @@ onBeforeUnmount(() => {
   margin-top: 0.25rem;
 }
 
-/* Sprint Info */
+
 .sprint-info {
   margin-top: 1.5rem;
 }
@@ -1089,7 +1089,7 @@ onBeforeUnmount(() => {
   font-size: 0.9rem;
 }
 
-/* Sidebar */
+
 .sidebar-section {
   margin-bottom: 2rem;
 }
@@ -1225,7 +1225,7 @@ onBeforeUnmount(() => {
   background: #fee;
 }
 
-/* Form Actions */
+
 .form-actions {
   display: flex;
   justify-content: space-between;
@@ -1303,7 +1303,7 @@ onBeforeUnmount(() => {
   transform: translateY(-50%) rotate(180deg);
 }
 
-/* Main dropdown container */
+
 .dropdown.lead-dropdown {
   position: absolute;
   top: calc(100% + 0.25rem);
@@ -1330,7 +1330,7 @@ onBeforeUnmount(() => {
   }
 }
 
-/* Search input within dropdown */
+
 .lead-dropdown .dropdown-search {
   width: 100%;
   padding: 0.75rem;
@@ -1352,7 +1352,7 @@ onBeforeUnmount(() => {
   color: var(--text-muted, #999);
 }
 
-/* Dropdown items container */
+
 .dropdown-items {
   max-height: 240px;
   overflow-y: auto;
@@ -1377,7 +1377,7 @@ onBeforeUnmount(() => {
   background: var(--scrollbar-thumb-hover, #999);
 }
 
-/* Individual dropdown items */
+
 .dropdown-item {
   display: flex;
   align-items: center;
@@ -1400,7 +1400,7 @@ onBeforeUnmount(() => {
   border-bottom: none;
 }
 
-/* User avatar in dropdown */
+
 .dropdown-item .user-avatar {
   width: 36px;
   height: 36px;
@@ -1416,7 +1416,7 @@ onBeforeUnmount(() => {
   border: 2px solid var(--avatar-border, transparent);
 }
 
-/* User info in dropdown */
+
 .dropdown-item .user-info {
   flex: 1;
   min-width: 0;
@@ -1435,7 +1435,7 @@ onBeforeUnmount(() => {
   opacity: 0.9;
 }
 
-/* No results state */
+
 .dropdown-no-results {
   padding: 1.5rem 1rem;
   text-align: center;
@@ -1451,7 +1451,7 @@ onBeforeUnmount(() => {
   opacity: 0.5;
 }
 
-/* Loading state */
+
 .dropdown-loading {
   padding: 1.5rem 1rem;
   text-align: center;
@@ -1476,7 +1476,7 @@ onBeforeUnmount(() => {
   }
 }
 
-/* Selected state indicator */
+
 .dropdown-item.selected {
   background: var(--selected-bg, #e8f4fd);
   border-left: 3px solid var(--primary-color, #0066cc);
@@ -1504,7 +1504,7 @@ onBeforeUnmount(() => {
   margin-bottom: 1.5rem;
 }
 
-/* Dark mode support */
+
 @media (prefers-color-scheme: dark) {
   .dropdown.lead-dropdown {
     --dropdown-bg: #2d3748;
@@ -1537,7 +1537,7 @@ onBeforeUnmount(() => {
   }
 }
 
-/* High contrast mode support */
+
 @media (prefers-contrast: high) {
   .dropdown.lead-dropdown {
     border-width: 3px;
@@ -1553,14 +1553,14 @@ onBeforeUnmount(() => {
   }
 }
 
-/* Focus management for accessibility */
+
 .dropdown-item:focus {
   outline: 2px solid var(--primary-color, #0066cc);
   outline-offset: -2px;
   background: var(--item-hover-bg, #f8fbff);
 }
 
-/* Reduced motion support */
+
 @media (prefers-reduced-motion: reduce) {
   .dropdown.lead-dropdown {
     animation: none;
@@ -1575,7 +1575,7 @@ onBeforeUnmount(() => {
   }
 }
 
-/* Responsive */
+
 @media (max-width: 768px) {
   .type-cards {
     grid-template-columns: 1fr;

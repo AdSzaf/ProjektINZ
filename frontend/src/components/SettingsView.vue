@@ -143,7 +143,7 @@ onMounted(fetchProfile)
     </div>
 
     <div class="settings-container">
-      <!-- Profile Settings -->
+      
       <div class="settings-section">
         <h2>Profile Information</h2>
         <div class="settings-card">
@@ -195,7 +195,7 @@ onMounted(fetchProfile)
         </div>
       </div>
 
-      <!-- Notification Settings -->
+      
       <div class="settings-section">
         <h2>Notifications</h2>
         <div class="settings-card">
@@ -241,7 +241,7 @@ onMounted(fetchProfile)
         </div>
       </div>
 
-      <!-- Display Preferences -->
+      
       <div class="settings-section">
         <h2>Display Preferences</h2>
         <div class="settings-card">
@@ -290,7 +290,7 @@ onMounted(fetchProfile)
         </div>
       </div>
 
-      <!-- Security Settings -->
+      
       <div class="settings-section">
         <h2>Security</h2>
         <div class="settings-card">
@@ -342,7 +342,7 @@ onMounted(fetchProfile)
         </div>
       </div>
 
-      <!-- Account Actions -->
+      
       <div class="settings-section">
         <h2>Account Actions</h2>
         <div class="settings-card">
@@ -364,7 +364,7 @@ onMounted(fetchProfile)
       </div>
     </div>
 
-    <!-- Delete Confirmation Modal -->
+    
     <div v-if="showDeleteConfirm" class="modal-overlay" @click="showDeleteConfirm = false">
       <div class="modal" @click.stop>
         <h3>Delete Account</h3>
@@ -376,7 +376,7 @@ onMounted(fetchProfile)
       </div>
     </div>
 
-    <!-- Success Toast -->
+    
     <div v-if="showSuccessToast" class="toast success-toast">
       ✅ {{ successMessage }}
     </div>
@@ -542,7 +542,7 @@ onMounted(fetchProfile)
   font-size: 1.1rem;
 }
 
-/* Modal */
+
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -582,7 +582,7 @@ onMounted(fetchProfile)
   justify-content: flex-end;
 }
 
-/* Toast */
+
 .toast {
   position: fixed;
   top: 80px;
@@ -607,7 +607,7 @@ onMounted(fetchProfile)
   }
 }
 
-/* Responsive */
+
 @media (max-width: 768px) {
   .settings-page {
     margin: 0;
@@ -623,16 +623,16 @@ onMounted(fetchProfile)
   }
 }
 
-/* Add this to your existing <style scoped> section */
+
 
 @media (prefers-color-scheme: dark) {
-  /* Settings Page */
+  
   .settings-page {
     background: #0d1117;
     color: #c9d1d9;
   }
 
-  /* Header */
+  
   .settings-header h1 {
     color: #f0f6fc !important;
   }
@@ -641,12 +641,12 @@ onMounted(fetchProfile)
     color: #8b949e !important;
   }
 
-  /* Section Headers */
+  
   .settings-section h2 {
     color: #f0f6fc !important;
   }
 
-  /* Settings Cards */
+  
   .settings-card {
     background: #161b22 !important;
     border-color: #30363d !important;
@@ -660,7 +660,7 @@ onMounted(fetchProfile)
     transform: translateY(-2px);
   }
 
-  /* Form Elements */
+  
   .form-group label {
     color: #f0f6fc !important;
   }
@@ -683,7 +683,7 @@ onMounted(fetchProfile)
     border-color: #484f58 !important;
   }
 
-  /* Checkbox Groups */
+  
   .checkbox-group input[type="checkbox"] {
     accent-color: #1f6feb;
   }
@@ -696,17 +696,17 @@ onMounted(fetchProfile)
     color: #f0f6fc !important;
   }
 
-  /* Help Text */
+  
   .help-text {
     color: #8b949e !important;
   }
 
-  /* Form Actions */
+  
   .form-actions {
     border-color: #30363d !important;
   }
 
-  /* Buttons */
+  
   .btn-primary {
     background: #238636 !important;
     color: #ffffff !important;
@@ -745,7 +745,7 @@ onMounted(fetchProfile)
     box-shadow: 0 4px 8px rgba(218, 54, 51, 0.3);
   }
 
-  /* Danger Zone */
+  
   .danger-zone {
     background: #2d1b20 !important;
     border-color: #da3633 !important;
@@ -759,7 +759,7 @@ onMounted(fetchProfile)
     color: #c9d1d9 !important;
   }
 
-  /* Modal */
+  
   .modal-overlay {
     background: rgba(1, 4, 9, 0.8) !important;
     backdrop-filter: blur(4px);
@@ -779,7 +779,7 @@ onMounted(fetchProfile)
     color: #8b949e !important;
   }
 
-  /* Toast */
+  
   .toast {
     background: #238636 !important;
     color: #ffffff !important;
@@ -803,7 +803,7 @@ onMounted(fetchProfile)
     border-color: #58a6ff;
   }
 
-  /* Enhanced interactions */
+  
   .form-group input,
   .form-group select {
     transition: all 0.2s ease;
@@ -814,7 +814,7 @@ onMounted(fetchProfile)
     transform: scale(1.01);
   }
 
-  /* Button focus states for accessibility */
+  
   .btn-primary:focus,
   .btn-secondary:focus,
   .btn-danger:focus {
@@ -828,12 +828,12 @@ onMounted(fetchProfile)
     transform: translateY(0);
   }
 
-  /* Improved visual hierarchy */
+  
   .settings-card {
     background: linear-gradient(135deg, #161b22 0%, #0d1117 100%) !important;
   }
 
-  /* Form group enhancements */
+  
   .form-group {
     transition: all 0.2s ease;
   }
@@ -842,13 +842,13 @@ onMounted(fetchProfile)
     color: #58a6ff !important;
   }
 
-  /* Input placeholder styling */
+  
   .form-group input::placeholder,
   .form-group select::placeholder {
     color: #6e7681 !important;
   }
 
-  /* Custom scrollbar for settings page */
+  
   .settings-page::-webkit-scrollbar {
     width: 8px;
   }
@@ -866,7 +866,7 @@ onMounted(fetchProfile)
     background: #6e7681;
   }
 
-  /* Modal animations enhancement */
+  
   .modal {
     animation: modalFadeIn 0.3s ease;
   }
@@ -882,7 +882,7 @@ onMounted(fetchProfile)
     }
   }
 
-  /* Toast variants for different types */
+  
   .toast {
     animation: slideInRight 0.3s ease;
   }
@@ -898,12 +898,12 @@ onMounted(fetchProfile)
     }
   }
 
-  /* Settings section spacing improvements */
+  
   .settings-container {
     gap: 2.5rem;
   }
 
-  /* Form validation states */
+  
   .form-group input.error {
     border-color: #da3633 !important;
     box-shadow: 0 0 0 2px rgba(218, 54, 51, 0.3) !important;
@@ -914,7 +914,7 @@ onMounted(fetchProfile)
     box-shadow: 0 0 0 2px rgba(35, 134, 54, 0.3) !important;
   }
 
-  /* Improved danger zone styling */
+  
   .danger-zone {
     position: relative;
     overflow: hidden;
@@ -936,7 +936,7 @@ onMounted(fetchProfile)
     100% { left: 100%; }
   }
 
-  /* Card hover state improvements */
+  
   .settings-card {
     position: relative;
   }

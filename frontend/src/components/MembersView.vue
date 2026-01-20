@@ -285,7 +285,7 @@ watch(currentProject, (newVal) => {
     <button class="btn btn-primary" @click="$router.push('/create-project')">+ Create Project</button>
   </div>
   <div v-else class="team-members-container">
-    <!-- Team Members Header -->
+    
     <div class="team-header">
       <div class="header-content">
         <h1>Team Members</h1>
@@ -297,7 +297,7 @@ watch(currentProject, (newVal) => {
       </button>
     </div>
 
-    <!-- Team Stats -->
+    
     <div class="team-stats">
       <div class="stat-card">
         <div class="stat-icon">👥</div>
@@ -332,7 +332,7 @@ watch(currentProject, (newVal) => {
       </div>
     </div>
 
-    <!-- Filters and Controls -->
+    
     <div class="team-controls">
       <div class="search-filters">
         <div class="search-box">
@@ -376,7 +376,7 @@ watch(currentProject, (newVal) => {
       </div>
     </div>
 
-    <!-- Team Members Grid/List -->
+    
     <div class="members-container" :class="{ 'list-view': viewMode === 'list' }">
       <div 
         v-for="member in filteredMembers" 
@@ -446,7 +446,7 @@ watch(currentProject, (newVal) => {
           </div>
         </div>
         
-        <!-- List view additional info -->
+        
         <div v-if="viewMode === 'list'" class="member-list-details">
           <div class="list-stats">
             <span class="list-stat">{{ member.assignedIssues }} Issues</span>
@@ -461,7 +461,7 @@ watch(currentProject, (newVal) => {
       </div>
     </div>
 
-    <!-- Member Details Modal -->
+    
     <div v-if="showMemberDetails" class="modal-overlay" @click="closeModals">
       <div class="modal-content member-modal">
         <div class="modal-header">
@@ -583,7 +583,7 @@ watch(currentProject, (newVal) => {
       </div>
     </div>
 
-    <!-- Invite Member Modal -->
+    
     <div v-if="showInviteModal" class="modal-overlay" @click="closeModals">
       <div class="modal-content invite-modal">
         <div class="modal-header">
@@ -638,7 +638,7 @@ watch(currentProject, (newVal) => {
     </div>
   </div>
 
-  <!-- Status Modal -->
+  
   <div v-if="showStatusModal" class="modal-overlay" @click="closeModals">
     <div class="modal-content invite-modal" @click.stop>
       <div class="modal-header">
@@ -1051,7 +1051,7 @@ watch(currentProject, (newVal) => {
   color: #666;
 }
 
-/* Modal Styles */
+
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -1329,7 +1329,7 @@ watch(currentProject, (newVal) => {
   white-space: nowrap;
 }
 
-/* Invite Form Styles */
+
 .invite-form {
   padding: 1.5rem;
   display: flex;
@@ -1407,7 +1407,7 @@ watch(currentProject, (newVal) => {
   cursor: not-allowed;
 }
 
-/* Alerts */
+
 .alert {
   padding: 0.75rem 1rem;
   border-radius: 6px;
@@ -1426,7 +1426,7 @@ watch(currentProject, (newVal) => {
   color: #087f5b;
 }
 
-/* Responsive Design */
+
 @media (max-width: 1024px) {
   .member-stats-grid {
     grid-template-columns: 1fr;
@@ -1515,7 +1515,7 @@ watch(currentProject, (newVal) => {
 }
 
 @media (prefers-color-scheme: dark) {
-  /* Main container and background elements */
+  
   .team-members-container,
   .team-header,
   .team-stats,
@@ -1542,7 +1542,7 @@ watch(currentProject, (newVal) => {
     border-color: #333 !important;
   }
 
-  /* Headers and text elements */
+  
   .header-content h1,
   .team-description,
   .stat-number,
@@ -1573,12 +1573,12 @@ watch(currentProject, (newVal) => {
     color: #f3f3f3 !important;
   }
 
-  /* Profile name in modal */
+  
   .profile-right h3 {
     color: #f3f3f3 !important;
   }
 
-  /* Input elements and form controls */
+  
   .search-input,
   .filter-select,
   .form-input,
@@ -1603,7 +1603,7 @@ watch(currentProject, (newVal) => {
     color: #aaa !important;
   }
 
-  /* Buttons */
+  
   .invite-btn,
   .send-btn {
     background: #0056b3 !important;
@@ -1650,7 +1650,7 @@ watch(currentProject, (newVal) => {
     background: #2a2d2e !important;
   }
 
-  /* Special colored elements */
+  
   .member-role,
   .profile-role,
   .contact-email,
@@ -1662,7 +1662,7 @@ watch(currentProject, (newVal) => {
     color: #4ea1ff !important;
   }
 
-  /* Card hover effects */
+  
   .member-card:hover {
     background: #232526 !important;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3) !important;
@@ -1672,7 +1672,7 @@ watch(currentProject, (newVal) => {
     background: #232526 !important;
   }
 
-  /* Skill tags and badges */
+  
   .skill-tag {
     background: #232526 !important;
     color: #f3f3f3 !important;
@@ -1691,25 +1691,25 @@ watch(currentProject, (newVal) => {
     border-color: #444 !important;
   }
 
-  /* Progress bars and workload elements */
+  
   .workload-bar {
     background: #232526 !important;
   }
 
 
-  /* Status indicators and avatars */
+  
   .member-avatar,
   .large-avatar {
     background: #0056b3 !important;
     color: #fff !important;
   }
 
-  /* Modal overlay */
+  
   .modal-overlay {
     background: rgba(0, 0, 0, 0.7) !important;
   }
 
-  /* Border separators */
+  
   .member-list-details {
     border-top-color: #333 !important;
   }
@@ -1718,18 +1718,18 @@ watch(currentProject, (newVal) => {
     border-bottom-color: #333 !important;
   }
 
-  /* Icon backgrounds */
+  
   .stat-icon {
     background: #232526 !important;
     color: #f3f3f3 !important;
   }
 
-  /* Search icon */
+  
   .search-icon {
     color: #aaa !important;
   }
 
-  /* Social links */
+  
   .social-link {
     color: #4ea1ff !important;
     border-color: #4ea1ff !important;
@@ -1740,14 +1740,14 @@ watch(currentProject, (newVal) => {
     color: #fff !important;
   }
 
-  /* Disabled states */
+  
   .send-btn:disabled {
     background: #444 !important;
     border-color: #444 !important;
     color: #888 !important;
   }
 
-  /* Card sections with different backgrounds */
+  
   .stats-card,
   .skills-card,
   .recent-activity-card {
@@ -1759,12 +1759,12 @@ watch(currentProject, (newVal) => {
     border-color: #444 !important;
   }
 
-  /* List view specific elements */
+  
   .list-stats .list-stat {
     color: #aaa !important;
   }
 
-  /* Empty states and secondary text */
+  
   .team-description,
   .member-location,
   .activity-time,
@@ -1772,7 +1772,7 @@ watch(currentProject, (newVal) => {
     color: #aaa !important;
   }
 
-  /* Member stats in grid view */
+  
   .member-stats .stat-item .stat-number {
     color: #4ea1ff !important;
   }
@@ -1781,7 +1781,7 @@ watch(currentProject, (newVal) => {
     color: #aaa !important;
   }
 
-  /* Workload percentage colors - preserve original logic but ensure visibility */
+  
   .workload-percentage[style*="color: #dc3545"] {
     color: #ff6b6b !important;
   }
@@ -1798,7 +1798,7 @@ watch(currentProject, (newVal) => {
     color: #51cf66 !important;
   }
 
-  /* Stat value colors - preserve workload color logic */
+  
   .stat-value[style*="color: #dc3545"] {
     color: #ff6b6b !important;
   }

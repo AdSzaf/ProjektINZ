@@ -281,7 +281,6 @@ watch(() => props.issue, (newIssue) => {
 <template>
   <div v-if="showModal" class="modal-overlay" @click="closeModal">
     <div class="issue-modal" @click.stop>
-      <!-- Modal Header -->
         <div class="modal-header">
           <div>
             <h2>{{ mode === 'edit' ? 'Edit Issue' : 'Create Issue' }}</h2>
@@ -294,10 +293,10 @@ watch(() => props.issue, (newIssue) => {
           <button class="close-btn" @click="closeModal">×</button>
         </div>
 
-      <!-- Modal Body -->
+      
       <div class="modal-body">
         <form @submit.prevent="saveIssue">
-          <!-- Issue Type Selection -->
+          
           <div class="form-group">
             <label class="form-label required">Issue Type</label>
             <div class="issue-type-grid">
@@ -317,7 +316,7 @@ watch(() => props.issue, (newIssue) => {
             <div v-if="errors.issue_type" class="error-message">{{ errors.issue_type }}</div>
           </div>
 
-          <!-- Title -->
+          
           <div class="form-group">
             <label class="form-label required">Title</label>
             <input
@@ -331,7 +330,7 @@ watch(() => props.issue, (newIssue) => {
             <div v-if="errors.title" class="error-message">{{ errors.title }}</div>
           </div>
 
-          <!-- Description -->
+          
           <div class="form-group">
             <label class="form-label">Description</label>
             <textarea
@@ -342,11 +341,11 @@ watch(() => props.issue, (newIssue) => {
             ></textarea>
           </div>
 
-          <!-- Tags Section -->
+          
           <div class="form-group">
             <label class="form-label">Tags</label>
             
-            <!-- Selected Tags -->
+            
             <div v-if="selectedTags.length > 0" class="selected-tags">
               <div 
                 v-for="tag in selectedTags" 
@@ -365,7 +364,7 @@ watch(() => props.issue, (newIssue) => {
               </div>
             </div>
 
-            <!-- Tag Selector -->
+            
             <div class="tag-selector">
               <button
                 type="button"
@@ -375,9 +374,9 @@ watch(() => props.issue, (newIssue) => {
                 + Add Tag
               </button>
 
-              <!-- Tag Dropdown -->
+              
               <div v-if="showTagDropdown" class="tag-dropdown">
-                <!-- Existing Tags -->
+                
                 <div v-if="filteredTags.length > 0" class="tag-section">
                   <div class="tag-section-title">Select existing tag</div>
                   <div class="tag-options">
@@ -395,7 +394,7 @@ watch(() => props.issue, (newIssue) => {
                   </div>
                 </div>
 
-                <!-- Create New Tag -->
+                
                 <div class="tag-section">
                   <div class="tag-section-title">Create new tag</div>
                   <div v-if="!showNewTagInput" class="create-tag-prompt">
@@ -437,7 +436,7 @@ watch(() => props.issue, (newIssue) => {
             </div>
           </div>
 
-          <!-- Row: Epic and Sprint -->
+          
           <div class="form-row">
             <div class="form-group">
               <label class="form-label">Epic</label>
@@ -461,7 +460,7 @@ watch(() => props.issue, (newIssue) => {
             </div>
           </div>
 
-          <!-- Row: Assignee and Priority -->
+          
           <div class="form-row">
             <div class="form-group">
               <label class="form-label">Assignee</label>
@@ -497,7 +496,7 @@ watch(() => props.issue, (newIssue) => {
             </div>
           </div>
 
-          <!-- Row: Story Points and Time Estimates -->
+          
           <div class="form-row">
             <div class="form-group">
               <label class="form-label">Story Points</label>
@@ -526,7 +525,7 @@ watch(() => props.issue, (newIssue) => {
             </div>
           </div>
 
-          <!-- Remaining Estimate -->
+          
           <div class="form-group">
             <label class="form-label">Remaining Estimate (hours)</label>
             <input
@@ -541,7 +540,7 @@ watch(() => props.issue, (newIssue) => {
         </form>
       </div>
 
-      <!-- Modal Footer -->
+      
       <div class="modal-footer">
         <button type="button" class="btn-secondary" @click="closeModal">Cancel</button>
         <button 
@@ -631,7 +630,7 @@ watch(() => props.issue, (newIssue) => {
   border-top: 1px solid #e1e5e9;
 }
 
-/* Form Styles */
+
 .form-group {
   margin-bottom: 1.5rem;
 }
@@ -689,7 +688,7 @@ watch(() => props.issue, (newIssue) => {
   margin-top: 0.25rem;
 }
 
-/* Issue Type Selection */
+
 .issue-type-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
@@ -737,7 +736,7 @@ watch(() => props.issue, (newIssue) => {
   color: #333;
 }
 
-/* Tag Styles */
+
 .selected-tags {
   display: flex;
   flex-wrap: wrap;
@@ -923,7 +922,7 @@ watch(() => props.issue, (newIssue) => {
   background: #5a6268;
 }
 
-/* Preview Elements */
+
 .assignee-preview {
   display: flex;
   align-items: center;
@@ -958,7 +957,7 @@ watch(() => props.issue, (newIssue) => {
   font-size: 0.75rem;
 }
 
-/* Responsive */
+
 @media (max-width: 768px) {
   .modal-overlay {
     padding: 1rem;

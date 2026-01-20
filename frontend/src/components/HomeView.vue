@@ -165,7 +165,7 @@ onUnmounted(() => {
 
 <template>
   <div class="home-view">
-    <!-- Header with controls -->
+    
     <div class="dashboard-header">
       <div class="header-content">
         <div>
@@ -197,7 +197,7 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <!-- Customization Panel -->
+    
     <div v-if="showCustomization" class="customization-panel">
       <h3>Dashboard Customization</h3>
       <div class="customization-grid">
@@ -263,15 +263,15 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <!-- Error Message -->
+    
     <div v-if="error" class="error-message">
       <p>{{ error }}</p>
       <button @click="refreshData" class="retry-btn">Retry</button>
     </div>
 
-    <!-- Dashboard Cards -->
+    
     <div v-if="selectedProject && !loading" class="dashboard-grid">
-      <!-- Sprint Progress Card -->
+      
       <div v-if="customizationSettings.showSprintProgress" class="dashboard-card">
         <div class="card-header">
           <h3>{{ dashboardData.activeSprintName }} Progress</h3>
@@ -288,7 +288,7 @@ onUnmounted(() => {
         </div>
       </div>
 
-      <!-- Quick Stats -->
+      
       <div v-if="customizationSettings.showQuickStats" class="dashboard-card stats-card">
         <div class="card-header">
           <h3>Quick Stats</h3>
@@ -318,7 +318,7 @@ onUnmounted(() => {
         </div>
       </div>
 
-      <!-- Recent Activity -->
+      
       <div v-if="customizationSettings.showRecentActivity" class="dashboard-card activity-card">
         <div class="card-header">
           <h3>Recent Activity</h3>
@@ -343,7 +343,7 @@ onUnmounted(() => {
         </div>
       </div>
 
-      <!-- Upcoming Deadlines -->
+      
       <div v-if="customizationSettings.showUpcomingDeadlines && dashboardData.upcomingDeadlines.length > 0" class="dashboard-card deadlines-card">
         <div class="card-header">
           <h3>Upcoming Deadlines</h3>
@@ -373,13 +373,13 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <!-- Loading State -->
+    
     <div v-if="loading" class="loading-state">
       <div class="loading-spinner"></div>
       <p>Loading dashboard data...</p>
     </div>
 
-    <!-- No Projects Message -->
+    
     <div v-if="!selectedProject && !loading" class="no-projects-message">
       <p>You have no projects yet.</p>
       <button class="create-btn" @click="$router.push('/create-project')">
@@ -457,7 +457,7 @@ onUnmounted(() => {
   to { transform: rotate(360deg); }
 }
 
-/* Customization Panel */
+
 .customization-panel {
   background: white;
   padding: 1.5rem;
@@ -507,7 +507,7 @@ onUnmounted(() => {
   background: white;
 }
 
-/* Error Message */
+
 .error-message {
   background: #f8d7da;
   color: #721c24;
@@ -528,7 +528,7 @@ onUnmounted(() => {
   cursor: pointer;
 }
 
-/* Loading State */
+
 .loading-state {
   display: flex;
   flex-direction: column;
@@ -701,7 +701,7 @@ onUnmounted(() => {
   padding: 2rem;
 }
 
-/* Deadlines Card */
+
 .deadlines-card {
   grid-column: span 2;
 }
@@ -815,7 +815,7 @@ onUnmounted(() => {
   cursor: pointer;
 }
 
-/* Responsive */
+
 @media (max-width: 768px) {
   .dashboard-grid {
     grid-template-columns: 1fr;
@@ -854,7 +854,7 @@ onUnmounted(() => {
   }
 }
 
-/* Dark Mode Support */
+
 @media (prefers-color-scheme: dark) {
   .home-view {
     background: #0d1117;
@@ -967,7 +967,7 @@ onUnmounted(() => {
   }
 }
 
-/* Theme-specific styles */
+
 [data-theme="dark"] {
   .home-view {
     background: #0d1117;

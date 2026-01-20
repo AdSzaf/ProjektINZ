@@ -435,7 +435,7 @@ watch(currentProject, () => {
     </div>
 
     <div class="backlog-content">
-      <!-- Sprint Planning Section -->
+      
       <div class="sprint-planning" v-if="plannableSprints.length > 0">
         <h3>Sprint Planning</h3>
         <div 
@@ -546,7 +546,7 @@ watch(currentProject, () => {
             </div>
           </div>
           
-          <!-- Drop zone indicator -->
+          
           <div v-if="isSprintDragTarget(sprint.id)" class="drop-zone-indicator">
             <div class="drop-zone-content">
               <span class="drop-icon">⬇️</span>
@@ -556,7 +556,7 @@ watch(currentProject, () => {
         </div>
       </div>
 
-      <!-- Product Backlog -->
+      
       <div 
         class="product-backlog"
         :class="{ 
@@ -659,7 +659,7 @@ watch(currentProject, () => {
           </div>
         </div>
 
-        <!-- Issue Details Modal -->
+        
         <div v-if="showIssueModal" class="modal-overlay" @click="closeIssueModal">
           <div class="issue-modal" @click.stop>
             <div class="issue-modal-header">
@@ -1092,7 +1092,7 @@ watch(currentProject, () => {
 .sprint-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start; /* Changed from center to flex-start */
+  align-items: flex-start; 
   padding: 1rem;
   border-bottom: 1px solid #e1e5e9;
   background: #f8f9fa;
@@ -1101,13 +1101,13 @@ watch(currentProject, () => {
 
 .sprint-info {
   display: flex;
-  flex-direction: column; /* Changed to column layout */
-  gap: 0.5rem; /* Reduced gap for tighter spacing */
-  flex: 1; /* Take available space */
-  min-width: 0; /* Allow shrinking */
+  flex-direction: column; 
+  gap: 0.5rem; 
+  flex: 1; 
+  min-width: 0; 
 }
 
-/* If you can't modify template, use this instead */
+
 .sprint-info {
   display: flex;
   flex-direction: column;
@@ -1116,13 +1116,13 @@ watch(currentProject, () => {
   min-width: 0;
 }
 
-/* Create a virtual row by styling direct children */
+
 .sprint-info > span:not(.progress-text) {
   display: inline-block;
   margin-right: 1rem;
 }
 
-/* Force progress bar to be on its own line */
+
 .sprint-info > .sprint-progress-bar {
   display: block;
   width: 100%;
@@ -1131,7 +1131,7 @@ watch(currentProject, () => {
 .sprint-name {
   font-weight: bold;
   color: #333;
-  white-space: nowrap; /* Prevent text wrapping */
+  white-space: nowrap; 
 }
 
 .sprint-dates {
@@ -1150,8 +1150,8 @@ watch(currentProject, () => {
 .sprint-status {
   font-size: 0.85rem;
   font-weight: bold;
-  padding: 0.2rem 0.5rem; /* Add padding for better visual separation */
-  border-radius: 3px; /* Add border radius */
+  padding: 0.2rem 0.5rem; 
+  border-radius: 3px; 
   white-space: nowrap;
 }
 
@@ -1176,10 +1176,10 @@ watch(currentProject, () => {
   white-space: nowrap;
 }
 
-/* Progress bar should be full width and separate */
+
 .sprint-progress-bar {
-  width: 100%; /* Full width */
-  margin-top: 0.5rem; /* Space from metadata row */
+  width: 100%; 
+  margin-top: 0.5rem; 
 }
 
 .progress-bar {
@@ -1211,11 +1211,11 @@ watch(currentProject, () => {
 .sprint-actions {
   display: flex;
   gap: 0.5rem;
-  align-items: flex-start; /* Align to top */
-  flex-shrink: 0; /* Don't shrink */
+  align-items: flex-start; 
+  flex-shrink: 0; 
 }
 
-/* Modals */
+
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -1272,7 +1272,7 @@ watch(currentProject, () => {
   color: white;
 }
 
-/* Issue Modal */
+
 .issue-modal {
   background: white;
   border-radius: 8px;

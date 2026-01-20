@@ -13,7 +13,7 @@ const selectedProject = computed(() => projectStore.selectedProject)
 
 const searchQuery = ref('')
 const searchResults = ref([])
-const searchType = ref('') // 'issue' or 'user'
+const searchType = ref('')
 const showRecommendations = ref(false)
 const showIssueModal = ref(false)
 const showUserModal = ref(false)
@@ -47,7 +47,7 @@ const fetchCurrentUser = async () => {
       premium_until: res.data.premium_until
     }
   } catch (e) {
-    // Token invalid/expired, force logout
+    // Token invalid/expired force logout
     localStorage.removeItem('token')
     router.push('/login')
   }
@@ -517,16 +517,13 @@ watch(searchQuery, async (newQuery) => {
 
 <template>
   <div class="dashboard-layout" @click="closeDropdowns">
-    <!-- Top Navigation Bar -->
     <header class="top-nav">
       <div class="nav-left">
-        <!-- Logo -->
         <div class="logo">
           <span class="logo-icon">🎯</span>
           <span class="logo-text">TaskFlow</span>
         </div>
 
-        <!-- Project Selector -->
         <div class="project-selector" @click.stop>
           <button 
             type="button"
@@ -547,7 +544,6 @@ watch(searchQuery, async (newQuery) => {
           </div>
         </div>
 
-        <!-- Quick Create Button -->
         <div class="quick-create" @click.stop>
           <button class="create-btn" @click="router.push('/create-project')">
             + Create Project
@@ -556,7 +552,6 @@ watch(searchQuery, async (newQuery) => {
       </div>
 
       <div class="nav-center">
-        <!-- Search Bar -->
         <div class="search-bar" ref="searchBarRef" style="position:relative;">
           <input 
             type="text" 
@@ -565,7 +560,6 @@ watch(searchQuery, async (newQuery) => {
             @focus="showRecommendations = searchResults.length > 0"
           />
           <button class="search-btn" @click="showRecommendations = searchResults.length > 0">🔍</button>
-          <!-- Recommendations Dropdown -->
           <div v-if="showRecommendations" class="search-dropdown">
             <div 
               v-for="item in searchResults.slice(0, 8)" 
@@ -585,7 +579,6 @@ watch(searchQuery, async (newQuery) => {
             <div v-if="searchResults.length === 0" class="search-no-results">No results found.</div>
           </div>
         </div>
-        <!-- Issue Modal -->
         <div v-if="showIssueModal && selectedResult" class="modal-overlay" @click.self="closeModals">
           <div class="modal-content">
             <h4>{{ selectedResult.key }}: {{ selectedResult.title }}</h4>
@@ -596,7 +589,6 @@ watch(searchQuery, async (newQuery) => {
             <button @click="closeModals">Close</button>
           </div>
         </div>
-        <!-- User Modal -->
         <div v-if="showUserModal && selectedResult" class="modal-overlay" @click.self="closeModals">
           <div class="modal-content">
             <h4>{{ selectedResult.first_name }} {{ selectedResult.last_name }}</h4>
@@ -608,19 +600,15 @@ watch(searchQuery, async (newQuery) => {
       </div>
 
       <div class="nav-right">
-        <!-- Notifications -->
-          <!-- Buy Premium Button with icon support -->
         <button @click="buyPremium" class="create-btn">
           <span class="btn-icon">💳</span>
           <span class="btn-text">Buy Premium</span>
         </button>
 
-        <!-- Premium Status - text version -->
         <span v-if="currentUser.is_premium" class="premium-status">
           Premium until {{ formatPremiumDate(currentUser.premium_until) }}
         </span>
 
-        <!-- Premium Status - icon version (shows on smaller screens) -->
         <span 
           v-if="currentUser.is_premium" 
           class="premium-icon" 
@@ -628,12 +616,6 @@ watch(searchQuery, async (newQuery) => {
         >
           ✨
         </span>
-        <button class="notification-btn">
-          🔔
-          <span v-if="notifications > 0" class="notification-badge">{{ notifications }}</span>
-        </button>
-
-        <!-- Compact overflow menu for small screens -->
         <div class="compact-menu" @click.stop>
           <button
             type="button"
@@ -660,7 +642,6 @@ watch(searchQuery, async (newQuery) => {
           </div>
         </div>
 
-        <!-- User Menu -->
         <div class="user-menu" @click.stop>
           <button 
             class="user-btn"
@@ -687,7 +668,6 @@ watch(searchQuery, async (newQuery) => {
     </header>
 
     <div class="main-layout">
-      <!-- Sidebar -->
       <nav class="sidebar">
         <div class="sidebar-content">
           <div class="menu-items">
@@ -703,7 +683,6 @@ watch(searchQuery, async (newQuery) => {
             </router-link>
           </div>
           
-          <!-- AI Assistant Button at the bottom -->
           <div class="sidebar-bottom">
             <button class="ai-assistant-btn" @click="openAIModal">
               <span class="menu-icon">🤖</span>
@@ -713,13 +692,12 @@ watch(searchQuery, async (newQuery) => {
         </div>
       </nav>
 
-      <!-- Main Content -->
       <main class="main-content">
         <router-view />
       </main>
     </div>
 
-    <!-- AI Assistant Modal -->
+    
     <div v-if="showAIModal" class="modal-overlay" @click.self="closeAIModal">
       <div class="ai-modal-content">
         <div class="ai-modal-header">
@@ -732,7 +710,6 @@ watch(searchQuery, async (newQuery) => {
           </div>
         </div>
         
-        <!-- Quick Actions -->
         <div v-if="aiConversation.length <= 1" class="ai-quick-actions">
           <h4>Quick Actions:</h4>
           <div class="quick-action-buttons">
@@ -748,7 +725,6 @@ watch(searchQuery, async (newQuery) => {
           </div>
         </div>
         
-        <!-- Conversation Area -->
         <div class="ai-conversation" id="ai-conversation">
           <div 
             v-for="(msg, index) in aiConversation" 
@@ -768,7 +744,7 @@ watch(searchQuery, async (newQuery) => {
             </div>
           </div>
           
-          <!-- Loading indicator -->
+          
           <div v-if="isAILoading" class="message assistant">
             <div class="message-content">
               <div class="message-text">
@@ -782,7 +758,6 @@ watch(searchQuery, async (newQuery) => {
           </div>
         </div>
         
-        <!-- Input Area -->
         <div class="ai-input-area">
           <div class="input-with-suggestions">
             <textarea 
@@ -830,7 +805,6 @@ watch(searchQuery, async (newQuery) => {
   overflow: hidden;
 }
 
-/* Top Navigation */
 .top-nav {
   display: flex;
   justify-content: space-between;
@@ -857,7 +831,7 @@ watch(searchQuery, async (newQuery) => {
 .nav-left {
   flex: 0 1 auto;
   min-width: 0;
-  overflow: visible; /* allow dropdowns to extend outside the left container */
+  overflow: visible; 
 }
 
 .nav-right {
@@ -900,7 +874,7 @@ watch(searchQuery, async (newQuery) => {
   position: relative;
   flex: 0 1 auto;
   min-width: 0;
-  overflow: visible; /* ensure child absolute dropdown is visible */
+  overflow: visible; 
 }
 
 .project-btn {
@@ -994,7 +968,7 @@ watch(searchQuery, async (newQuery) => {
   flex-shrink: 0;
 }
 
-/* Compact search - icon only */
+
 .search-bar.compact {
   width: auto;
   max-width: none;
@@ -1021,7 +995,7 @@ watch(searchQuery, async (newQuery) => {
   background: #f8f9fa;
 }
 
-/* Search expanded overlay for mobile */
+
 .search-overlay {
   display: none;
   position: fixed;
@@ -1117,18 +1091,16 @@ watch(searchQuery, async (newQuery) => {
   flex-shrink: 0;
 }
 
-/* Dropdowns */
 .dropdown {
   position: absolute;
   background: white;
   border: 1px solid #ddd;
   border-radius: 4px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  z-index: 1200; /* higher to avoid being under other elements */
+  z-index: 1200; 
   min-width: 200px;
 }
 
-/* Compact overflow menu styles */
 .compact-menu-btn {
   display: none;
   background: none;
@@ -1175,14 +1147,14 @@ watch(searchQuery, async (newQuery) => {
 }
 
 @media (max-width: 1032px) {
-  /* Show compact menu earlier and center it in the top bar */
+  
   .compact-menu-btn { display: inline-flex; align-items: center; }
   .nav-center { display: none; }
-  /* hide duplicated create/premium buttons to rely on compact menu */
+  
   .nav-right > .create-btn { display: none; }
   .premium-status { display: none; }
 
-  /* Center compact menu button */
+  
   .compact-menu {
     position: absolute;
     left: 50%;
@@ -1197,7 +1169,6 @@ watch(searchQuery, async (newQuery) => {
   }
 }
 
-/* Keep previous smaller-screen adjustments for very small devices */
 @media (max-width: 767px) {
   .compact-menu-btn { display: inline-flex; align-items: center; }
 }
@@ -1241,7 +1212,6 @@ watch(searchQuery, async (newQuery) => {
   color: #666;
 }
 
-/* Main Layout */
 .main-layout {
   display: flex;
   flex: 1 1 0;
@@ -1250,7 +1220,6 @@ watch(searchQuery, async (newQuery) => {
   overflow: hidden;
 }
 
-/* Sidebar */
 .sidebar {
   width: 250px;
   background: white;
@@ -1331,7 +1300,6 @@ watch(searchQuery, async (newQuery) => {
   transform: translateY(0);
 }
 
-/* Main Content */
 .main-content {
   flex: 1 1 0;
   min-width: 0;
@@ -1356,7 +1324,6 @@ watch(searchQuery, async (newQuery) => {
   margin: 0;
 }
 
-/* Dashboard Grid */
 .dashboard-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1375,7 +1342,6 @@ watch(searchQuery, async (newQuery) => {
   color: #333;
 }
 
-/* Progress Bar */
 .progress-container {
   margin-top: 1rem;
 }
@@ -1400,7 +1366,6 @@ watch(searchQuery, async (newQuery) => {
   color: #666;
 }
 
-/* Stats Grid */
 .stats-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1422,7 +1387,6 @@ watch(searchQuery, async (newQuery) => {
   color: #666;
 }
 
-/* Activity Card */
 .activity-card {
   grid-column: span 2;
 }
@@ -1527,7 +1491,6 @@ watch(searchQuery, async (newQuery) => {
   color: #888;
 }
 
-/* AI Assistant Modal Styles */
 .ai-modal-content {
   background: white;
   border-radius: 16px;
@@ -1603,7 +1566,6 @@ watch(searchQuery, async (newQuery) => {
   transform: translateY(0);
 }
 
-/* Quick Actions Section */
 .ai-quick-actions {
   padding: 1.5rem 2rem;
   background: linear-gradient(to bottom, #f8f9fa, #ffffff);
@@ -1652,7 +1614,6 @@ watch(searchQuery, async (newQuery) => {
   transform: none;
 }
 
-/* Conversation Area */
 .ai-conversation {
   flex: 1;
   overflow-y: auto;
@@ -1759,7 +1720,6 @@ watch(searchQuery, async (newQuery) => {
   color: #0066cc;
 }
 
-/* Typing Indicator */
 .typing-indicator {
   display: flex;
   gap: 4px;
@@ -1793,7 +1753,6 @@ watch(searchQuery, async (newQuery) => {
   }
 }
 
-/* Input Area */
 .ai-input-area {
   padding: 1.5rem 2rem;
   border-top: 1px solid #e9ecef;
@@ -1894,9 +1853,6 @@ watch(searchQuery, async (newQuery) => {
   box-shadow: none;
 }
 
-/* ==================== RESPONSIVE BREAKPOINTS ==================== */
-
-/* Smooth transitions between breakpoints */
 @media (max-width: 1400px) {
   .nav-center {
     max-width: 350px;
@@ -1911,7 +1867,6 @@ watch(searchQuery, async (newQuery) => {
   }
 }
 
-/* Tablet - Large (1024px - 1199px) */
 @media (max-width: 1199px) {
   .nav-center {
     max-width: 280px;
@@ -1956,21 +1911,20 @@ watch(searchQuery, async (newQuery) => {
   }
 }
 
-/* Tablet - Medium (768px - 1023px) */
 @media (max-width: 1023px) {
-  /* Center search area is slightly smaller on tablets */
+  
   .nav-center {
     max-width: 250px;
     margin: 0 0.5rem;
     flex: 1 1 250px;
   }
 
-  /* Slightly narrower sidebar */
+  
   .sidebar {
     width: 200px;
   }
 
-  /* Reduce main content padding to gain space */
+  
   .main-content {
     padding: 1rem;
     margin-right: 0.5rem;
@@ -2020,7 +1974,7 @@ watch(searchQuery, async (newQuery) => {
     gap: 0.5rem;
   }
 
-  /* Hide premium status text on smaller screens */
+  
   .nav-right > span {
     font-size: 0.85rem;
     max-width: 150px;
@@ -2042,7 +1996,6 @@ watch(searchQuery, async (newQuery) => {
 
 
 
-/* Mobile - Large (600px - 767px) */
 @media (max-width: 767px) {
   .top-nav {
     padding: 0 0.5rem;
@@ -2092,9 +2045,9 @@ watch(searchQuery, async (newQuery) => {
     font-size: 0.7rem;
   }
 
-  /* All buttons become icon-only */
+  
   .create-btn {
-    display: none; /* Hide create button completely on mobile */
+    display: none; 
   }
 
   .notification-btn {
@@ -2185,7 +2138,7 @@ watch(searchQuery, async (newQuery) => {
     align-self: flex-start;
   }
 
-  /* AI Modal Responsive */
+  
   .ai-modal-content {
     width: 95vw;
     max-height: 90vh;
@@ -2235,7 +2188,7 @@ watch(searchQuery, async (newQuery) => {
   }
 
   .ai-input {
-    font-size: 16px; /* Prevents iOS zoom */
+    font-size: 16px; 
     padding: 0.85rem 1rem;
   }
 
@@ -2268,7 +2221,6 @@ watch(searchQuery, async (newQuery) => {
   }
 }
 
-/* Mobile - Medium (480px - 599px) */
 @media (max-width: 599px) {
   .top-nav {
     height: 52px;
@@ -2356,7 +2308,6 @@ watch(searchQuery, async (newQuery) => {
   }
 }
 
-/* Mobile - Small (0px - 479px) */
 @media (max-width: 479px) {
   .top-nav {
     height: 50px;
@@ -2391,7 +2342,7 @@ watch(searchQuery, async (newQuery) => {
   }
 
   .nav-right > span {
-    display: none; /* Hide premium status text */
+    display: none; 
   }
 
   .user-avatar {
@@ -2486,7 +2437,7 @@ watch(searchQuery, async (newQuery) => {
     padding: 0.65rem 0.85rem;
   }
 
-  /* AI Modal for very small screens */
+  
   .ai-modal-content {
     width: 100vw;
     height: 100vh;
@@ -2547,7 +2498,7 @@ watch(searchQuery, async (newQuery) => {
 
   .ai-input {
     padding: 0.75rem 0.85rem;
-    font-size: 16px; /* Prevents zoom on iOS */
+    font-size: 16px;
   }
 
   .send-btn {
@@ -2566,7 +2517,6 @@ watch(searchQuery, async (newQuery) => {
   }
 }
 
-/* Landscape orientation for phones */
 @media (max-height: 500px) and (orientation: landscape) {
   .sidebar {
     width: 56px;
@@ -2606,7 +2556,6 @@ watch(searchQuery, async (newQuery) => {
   }
 }
 
-/* Dark Mode Styles */
 @media (prefers-color-scheme: dark) {
   .dashboard-layout {
     background-color: #181a1b !important;
@@ -2958,7 +2907,6 @@ watch(searchQuery, async (newQuery) => {
   }
 }
 
-/* Print Styles */
 @media print {
   .top-nav,
   .sidebar,

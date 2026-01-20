@@ -155,9 +155,9 @@ watch(() => props.sprint, (newSprint) => {
   z-index: 1000; overflow-y: auto; padding: 2rem;
 }
 .modal-content {
-  background: white; border-radius: 8px; max-width: 600px; width: 100%; /* <-- was 400px */
+  background: white; border-radius: 8px; max-width: 600px; width: 100%; 
   box-shadow: 0 4px 20px rgba(0,0,0,0.15); overflow: hidden;
-  padding: 2rem; /* Add more padding for better spacing */
+  padding: 2rem; 
 }
 .modal-header {
   display: flex; justify-content: space-between; align-items: center;

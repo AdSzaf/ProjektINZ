@@ -471,12 +471,12 @@ watch(velocityData, (newVal) => {
       <button class="btn btn-primary" @click="$router.push('/create-project')">+ Create Project</button>
     </div>
     <div v-else class="reports-container">
-      <!-- Reports Header -->
+      
       <div class="reports-header">
         <h1>Reports & Analytics</h1>
         <p class="reports-description">Track progress, analyze team performance, and monitor project health</p>
         
-        <!-- Report Controls -->
+        
         <div class="report-controls">
           <div class="control-group">
             <label>Time Frame:</label>
@@ -498,7 +498,7 @@ watch(velocityData, (newVal) => {
         </div>
       </div>
 
-      <!-- Sprint Overview -->
+      
       <div class="sprint-overview" v-if="sprintInfo">
         <div class="overview-card">
           <h3>{{ sprintInfo?.name }} Overview</h3>
@@ -529,9 +529,9 @@ watch(velocityData, (newVal) => {
         </div>
       </div>
 
-      <!-- Charts Section -->
+      
       <div class="charts-grid">
-        <!-- Burndown Chart -->
+        
         <div class="chart-card" v-show="selectedReport === 'burndown'">
           <div class="chart-header">
             <h3>📉 Burndown Chart</h3>
@@ -551,7 +551,7 @@ watch(velocityData, (newVal) => {
           </div>
         </div>
 
-        <!-- Velocity Chart -->
+        
         <div class="chart-card" v-show="selectedReport === 'velocity'">
           <div class="chart-header">
             <h3>🚀 Velocity Chart</h3>
@@ -571,7 +571,7 @@ watch(velocityData, (newVal) => {
           </div>
         </div>
 
-        <!-- Issue Breakdown -->
+        
         <div class="chart-card breakdown-card" v-show="selectedReport === 'cumulative'">
           <h3>📊 Issue Breakdown</h3>
           <div class="breakdown-grid">
@@ -599,7 +599,7 @@ watch(velocityData, (newVal) => {
           </div>
         </div>
 
-        <!-- Team Performance -->
+        
         <div class="chart-card team-card" v-show="selectedReport === 'time-tracking'">
           <h3>⏱️ Team Performance</h3>
           <div class="team-performance">
@@ -647,7 +647,7 @@ watch(velocityData, (newVal) => {
         </div>
       </div>
 
-      <!-- Quick Stats -->
+      
       <div class="quick-stats">
         <div class="stat-card">
           <div class="stat-icon">🎯</div>
@@ -1064,7 +1064,7 @@ watch(velocityData, (newVal) => {
 #velocity-canvas {
   width: 100%;
   height: 400px;
-  border: 1px solid #ddd; /* Optional: for debugging */
+  border: 1px solid #ddd; 
 }
 
 .worklogs-table {

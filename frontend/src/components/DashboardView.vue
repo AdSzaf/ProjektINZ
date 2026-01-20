@@ -454,7 +454,7 @@ watch(currentProject, () => {
       </button>
   </div>
   <div v-else class="dashboard-container">
-    <!-- Header -->
+    
     <div class="dashboard-header">
       <div class="header-left">
         <h1>Project Board</h1>
@@ -520,7 +520,7 @@ watch(currentProject, () => {
       </button>
     </div>
 
-    <!-- Kanban Board -->
+    
     <div class="kanban-board">
       <div 
         v-for="column in columns" 
@@ -529,7 +529,7 @@ watch(currentProject, () => {
         @dragover="onDragOver"
         @drop="onDrop($event, column.category)"
       >
-        <!-- Column Header -->
+        
         <div class="column-header" :style="{ borderTopColor: column.color }">
           <div class="column-info">
             <h3 class="column-title">{{ column.name }}</h3>
@@ -547,7 +547,7 @@ watch(currentProject, () => {
           </button>
         </div>
 
-        <!-- Issues/Cards -->
+        
         <div class="issues-container">
           <div
             v-for="issue in getIssuesByStatus(column.category)"
@@ -557,16 +557,16 @@ watch(currentProject, () => {
             @dragstart="onDragStart($event, issue)"
             @click="openIssueDetails(issue)"
           >
-            <!-- Issue Header -->
+            
             <div class="issue-header">
               <span class="issue-id">{{ issue.key }}</span>
               <span class="issue-type">{{ getTypeIconById(issue.issue_type) }}</span>
             </div>
 
-            <!-- Issue Title -->
+            
             <h4 class="issue-title">{{ issue.title }}</h4>
             
-            <!-- Add tags display before issue-footer -->
+            
             <div v-if="issue.tags && issue.tags.length > 0" class="issue-tags">
               <div 
                 v-for="tag in issue.tags.slice(0, 2)" 
@@ -581,7 +581,7 @@ watch(currentProject, () => {
               </div>
             </div>
 
-            <!-- Issue Footer -->
+            
             <div class="issue-footer">
               <div class="issue-meta">
                 <span 
@@ -599,7 +599,7 @@ watch(currentProject, () => {
             </div>
           </div>
 
-          <!-- Add Issue Button -->
+          
           <button class="add-issue-btn" @click="showAddIssueModal = true">
             + Add Issue
           </button>
@@ -607,7 +607,7 @@ watch(currentProject, () => {
       </div>
     </div>
 
-    <!-- Add Column Modal -->
+    
     <div v-if="showAddColumn" class="modal-overlay" @click="showAddColumn = false">
       <div class="modal-content" @click.stop>
         <h3>Add New Column</h3>
@@ -625,7 +625,7 @@ watch(currentProject, () => {
       </div>
     </div>
 
-    <!-- Issue Details Modal -->
+    
     <div v-if="showIssueModal" class="modal-overlay" @click="closeIssueModal">
       <div class="issue-modal" @click.stop>
         <div class="issue-modal-header">
@@ -672,7 +672,7 @@ watch(currentProject, () => {
       </div>
     </div>
 
-    <!-- Log Time Modal -->
+    
     <div v-if="showLogTimeModal" class="modal-overlay" @click="showLogTimeModal = false">
       <div class="modal-content" @click.stop>
         <h3>Log Work</h3>
@@ -685,7 +685,7 @@ watch(currentProject, () => {
       </div>
     </div>
 
-    <!-- Delete Column Confirmation Modal -->
+    
     <div v-if="showDeleteColumnModal" class="modal-overlay" @click="cancelDeleteColumn">
       <div class="modal-content" @click.stop>
         <h3>Delete Column</h3>
@@ -770,7 +770,7 @@ watch(currentProject, () => {
 </template>
 
 <style scoped>
-/* ==================== BASE STYLES ==================== */
+
 .dashboard-container {
   padding: 2rem;
   min-height: 100vh;
@@ -832,13 +832,13 @@ watch(currentProject, () => {
   background: #0056b3;
 }
 
-/* Kanban Board */
+
 .kanban-board {
   display: flex;
   gap: 1.5rem;
   flex-wrap: wrap;
   align-content: flex-start;
-  /* keep page from growing vertically; allow columns to wrap into rows */
+  
   height: calc(100vh - 260px);
   overflow-x: hidden;
   padding-bottom: 1rem;
@@ -854,7 +854,7 @@ watch(currentProject, () => {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
-  /* keep column height bounded so the overall page doesn't overflow */
+  
   max-height: calc(100vh - 340px);
 }
 
@@ -907,7 +907,7 @@ watch(currentProject, () => {
   background: #f8d7da;
 }
 
-/* Issues Container */
+
 .issues-container {
   flex: 1 1 auto;
   padding: 1rem;
@@ -915,7 +915,7 @@ watch(currentProject, () => {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  /* limit visible area inside column so the page height remains stable */
+  
   max-height: calc(100% - 120px);
 }
 
@@ -1013,7 +1013,7 @@ watch(currentProject, () => {
   color: #0066cc;
 }
 
-/* Modals */
+
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -1070,7 +1070,7 @@ watch(currentProject, () => {
   color: white;
 }
 
-/* Issue Modal */
+
 .issue-modal {
   background: white;
   border-radius: 8px;
@@ -1324,7 +1324,7 @@ watch(currentProject, () => {
   border-color: #218838;
 }
 
-/* Log Time Modal Content */
+
 .modal-content input[type="text"],
 .modal-content input[type="number"] {
   width: 100%;
@@ -1506,26 +1506,26 @@ watch(currentProject, () => {
   color: #959da5;
 }
 
-/* ==================== RESPONSIVE BREAKPOINTS ==================== */
 
-/* Large Desktop (1400px+) */
+
+
 @media (min-width: 1400px) {
   .kanban-board { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
 }
 
-/* Desktop (1200px - 1399px) */
+
 @media (min-width: 1200px) and (max-width: 1399px) {
   .kanban-board { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
 }
 
-/* Tablet Large (1024px - 1199px) */
+
 @media (min-width: 1024px) and (max-width: 1199px) {
   .dashboard-container { padding:1.5rem }
   .kanban-board { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:1.25rem }
   .column-title { font-size:0.95rem }
 }
 
-/* Tablet Medium (900px - 1023px) */
+
 @media (min-width: 900px) and (max-width: 1023px) {
   .dashboard-header h1 { font-size:1.5rem }
   .kanban-board { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:1rem }
@@ -1533,7 +1533,7 @@ watch(currentProject, () => {
   .add-column-btn { padding:0.5rem 1rem; font-size:0.9rem }
 }
 
-/* Tablet Small (768px - 899px) */
+
 @media (min-width: 768px) and (max-width: 899px) {
   .dashboard-container { padding:1rem }
   .dashboard-header { gap:0.75rem }
@@ -1547,7 +1547,7 @@ watch(currentProject, () => {
   .github-activity-section { padding:1rem }
 }
 
-/* Mobile Large (640px - 767px) */
+
 @media (min-width: 640px) and (max-width: 767px) {
   .dashboard-container { padding:0.75rem }
   .dashboard-header { flex-direction:column; align-items:stretch }
@@ -1577,7 +1577,7 @@ watch(currentProject, () => {
   .github-activity-section { padding:0.75rem }
 }
 
-/* Mobile Medium (480px - 639px) */
+
 @media (min-width: 480px) and (max-width: 639px) {
   .dashboard-container { padding:0.5rem }
   .dashboard-header { margin-bottom:1rem }
@@ -1597,7 +1597,7 @@ watch(currentProject, () => {
   .btn-edit, .btn-logtime { padding:0.4rem 0.6rem; font-size:0.85rem }
 }
 
-/* Mobile Small (0px - 479px) */
+
 @media (max-width: 479px) {
   .dashboard-container { padding:0.5rem }
   .dashboard-header h1 { font-size:1rem }
