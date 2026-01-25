@@ -18,6 +18,7 @@ const showRecommendations = ref(false)
 const showIssueModal = ref(false)
 const showUserModal = ref(false)
 const selectedResult = ref(null)
+const userCache = ref({})
 const searchBarRef = ref(null)
 
 // User and project data
@@ -468,6 +469,15 @@ const closeModals = () => {
   selectedResult.value = null
 }
 
+const getAssigneeName = (assigneeId) => {
+  if (!assigneeId) return 'Unassigned'
+  const user = userCache.value[assigneeId]
+  if (user) {
+    return `${user.first_name} ${user.last_name}`.trim() || user.email
+  }
+  return 'Unknown'
+}
+
 onMounted(() => {
   document.addEventListener('click', closeDropdowns)
   fetchCurrentUser()
@@ -495,6 +505,10 @@ watch(searchQuery, async (newQuery) => {
     axios.get(`/api/projects/${selectedProject.value.id}/issues/`),
     axios.get(`/api/projects/${selectedProject.value.id}/users/`)
   ])
+  // Populate user cache
+  usersRes.data.forEach(user => {
+    userCache.value[user.id] = user
+  })
   // Filter issues
   const issues = issuesRes.data.filter(issue =>
     (issue.title && issue.title.toLowerCase().includes(query)) ||
@@ -584,7 +598,7 @@ watch(searchQuery, async (newQuery) => {
             <h4>{{ selectedResult.key }}: {{ selectedResult.title }}</h4>
             <p>{{ selectedResult.description }}</p>
             <p><strong>Status:</strong> {{ selectedResult.status }}</p>
-            <p><strong>Assignee:</strong> {{ selectedResult.assignee }}</p>
+            <p><strong>Assignee:</strong> {{ getAssigneeName(selectedResult.assignee) }}</p>
             <p><strong>Story Points:</strong> {{ selectedResult.story_points }}</p>
             <button @click="closeModals">Close</button>
           </div>
