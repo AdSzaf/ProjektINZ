@@ -63,67 +63,7 @@ const activeFiltersCount = computed(() => {
 const filteredIssues = computed(() => {
   let filtered = [...totalIssues.value]
 
-  // Sanitize multi-selects: ignore empty ("All ...") values
-   const selectedStatuses = Array.isArray(filters.value.status) 
-    ? filters.value.status.filter(v => v && v !== "") 
-    : []
-  const selectedTypes = Array.isArray(filters.value.type) 
-    ? filters.value.type.filter(v => v && v !== "") 
-    : []
-  const selectedAssignees = Array.isArray(filters.value.assignee) 
-    ? filters.value.assignee.filter(v => v && v !== "") 
-    : []
-  const selectedPriorities = Array.isArray(filters.value.priority) 
-    ? filters.value.priority.filter(v => v && v !== "") 
-    : []
-  const selectedTags = Array.isArray(filters.value.tags) 
-    ? filters.value.tags.filter(v => v && v !== "") 
-    : []
-
-  // Search filter
-  if (filters.value.search) {
-    const search = filters.value.search.toLowerCase()
-    filtered = filtered.filter(issue => 
-      issue.title.toLowerCase().includes(search) ||
-      issue.key.toLowerCase().includes(search) ||
-      (issue.description && issue.description.toLowerCase().includes(search))
-    )
-  }
-
-  // Status filter
-  if (selectedStatuses.length) {
-    filtered = filtered.filter(issue => selectedStatuses.includes(issue.status))
-  }
-
-  // Type filter
-  if (selectedTypes.length) {
-    filtered = filtered.filter(issue => selectedTypes.includes(issue.type))
-  }
-
-  // Assignee filter
-  if (selectedAssignees.length) {
-    filtered = filtered.filter(issue => {
-      if (selectedAssignees.includes('unassigned')) {
-        return !issue.assignee || selectedAssignees.includes(issue.assignee?.id)
-      }
-      return issue.assignee && selectedAssignees.includes(issue.assignee.id)
-    })
-  }
-
-  // Priority filter
-  if (selectedPriorities.length) {
-    filtered = filtered.filter(issue => selectedPriorities.includes(issue.priority))
-  }
-
-  // Tag filter
-  if (selectedTags.length) {
-    filtered = filtered.filter(issue => {
-      const issueTagIds = (issue.tags || []).map(tag => tag.id)
-      return selectedTags.some(selectedTagId => issueTagIds.includes(selectedTagId))
-    })
-  }
-
-  // Sort
+  // Sort (filters are now handled server-side)
   filtered.sort((a, b) => {
     let aVal = a[sortField.value]
     let bVal = b[sortField.value]
@@ -465,7 +405,23 @@ const fetchIssues = async () => {
   if (!currentProject.value?.id) return
   const token = localStorage.getItem('token')
   axios.defaults.headers.common['Authorization'] = `Token ${token}`
-  const res = await axios.get(`/api/projects/${currentProject.value.id}/issues/`)
+
+  // Build query params from filters
+  const params = {}
+  if (filters.value.search) params.search = filters.value.search
+  const filteredStatus = filters.value.status.filter(s => s && s !== '')
+  if (filteredStatus.length) params.status = filteredStatus.join(',')
+  const filteredType = filters.value.type.filter(t => t && t !== '')
+  if (filteredType.length) params.type = filteredType.join(',')
+  const filteredAssignee = filters.value.assignee.filter(a => a && a !== 'all')
+  if (filteredAssignee.length) params.assignee = filteredAssignee.join(',')
+  const filteredPriority = filters.value.priority.filter(p => p && p !== '')
+  if (filteredPriority.length) params.priority = filteredPriority.join(',')
+  const filteredTags = filters.value.tags.filter(t => t)
+  if (filteredTags.length) params.tags = filteredTags.join(',')
+  if (filters.value.dateRange) params.dateRange = filters.value.dateRange
+
+  const res = await axios.get(`/api/projects/${currentProject.value.id}/issues/`, { params })
   totalIssues.value = res.data.map(transformIssue)
 }
 
@@ -482,6 +438,11 @@ watch(currentProject, async () => {
   await fetchIssues()
   await fetchTags()
 })
+
+// Watch filters to refetch issues when they change
+watch(filters, async () => {
+  await fetchIssues()
+}, { deep: true })
 
 </script>
 
@@ -946,8 +907,8 @@ watch(currentProject, async () => {
     </div>
   </div>
   <AddIssueView
-    :showModal="showAddIssueModal"
-    @close="showAddIssueModal = false"
+    :showModal="showCreateModal"
+    @close="showCreateModal = false"
     @save="onIssueCreated"
   />
 

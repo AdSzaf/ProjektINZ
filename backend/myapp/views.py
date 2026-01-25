@@ -420,8 +420,75 @@ def project_issues(request, project_id):
         return Response({'detail': 'Forbidden'}, status=status.HTTP_403_FORBIDDEN)
 
     issues = Issue.objects.filter(project=project)
+
+    # Apply filters from query params
+    search = request.GET.get('search', '').strip()
+    if search:
+        issues = issues.filter(
+            Q(title__icontains=search) | Q(key__icontains=search)
+        )
+
+    status_filters = [s for s in request.GET.getlist('status') if s]
+    if status_filters:
+        issues = issues.filter(status__in=status_filters)
+
+    type_filters = request.GET.getlist('type')
+    if type_filters:
+        type_ids = []
+        for t in type_filters:
+            if t:
+                try:
+                    from uuid import UUID
+                    UUID(t)  # validate as UUID
+                    type_ids.append(t)
+                except ValueError:
+                    # Try as name
+                    try:
+                        it = IssueType.objects.get(name=t)
+                        type_ids.append(str(it.id))
+                    except IssueType.DoesNotExist:
+                        pass
+        if type_ids:
+            issues = issues.filter(issue_type_id__in=type_ids)
+
+    assignee_filters = [a for a in request.GET.getlist('assignee') if a]
+    if assignee_filters:
+        # Handle special values
+        special = []
+        user_ids = []
+        for a in assignee_filters:
+            if a == 'unassigned':
+                special.append('unassigned')
+            elif a == 'assigned_me':
+                user_ids.append(str(request.user.id))
+            elif a and a != 'all':
+                user_ids.append(a)
+        if special and 'unassigned' in special:
+            issues = issues.filter(assignee__isnull=True)
+        elif user_ids:
+            issues = issues.filter(assignee_id__in=user_ids)
+
+    priority_filters = [p for p in request.GET.getlist('priority') if p]
+    if priority_filters:
+        issues = issues.filter(priority__in=priority_filters)
+
+    tags_filter = [t for t in request.GET.getlist('tags') if t]
+    if tags_filter:
+        issues = issues.filter(tags__id__in=tags_filter).distinct()
+
+    # Date range filter (assuming dateRange is 'YYYY-MM-DD to YYYY-MM-DD')
+    date_range = request.GET.get('dateRange', '').strip()
+    if date_range:
+        try:
+            start_date, end_date = date_range.split(' to ')
+            start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+            end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+            issues = issues.filter(created_at__date__range=(start_date, end_date))
+        except ValueError:
+            pass  # Ignore invalid date range
+
     serializer = IssueSerializer(issues, many=True)
-    print("ISSUES SENT TO FRONTEND:", serializer.data)
+    print("ISSUES SENT TO FRONTEND:", len(serializer.data), "issues")
     return Response(serializer.data)
 
 @api_view(['PATCH'])
