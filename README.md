@@ -44,6 +44,7 @@ CREATE DATABASE inz_project;
 ```
 
 #### 2. Backend
+```bash
 cd backend
 python -m venv venv
 source venv/bin/activate  # On Windows use: venv\Scripts\activate
@@ -54,19 +55,20 @@ pip install -r requirements.txt
 
 python manage.py migrate
 python manage.py runserver
-
+```
 The backend will be available at http://localhost:8000
 
 #### 3. Frontend
-
+```bash
 cd frontend
 yarn install
 yarn dev
 # or: yarn start
-
+```
 The frontend will be available at http://localhost:5173.
 
 ### Option 2: Running with Docker
+```bash
 # Build and start containers
 docker-compose up --build
 
@@ -75,7 +77,7 @@ docker-compose exec backend python manage.py migrate
 
 # Stop and clean up containers (including volumes)
 docker-compose down -v
-
+```
 
 ## Note
 *This is a legacy university engineering thesis project developed under tight constraints. While it demonstrates a standard three-tier architecture (Vue + Django + PostgreSQL) and external API integrations, I am well aware of its design flaws, technical debt, and limitations. It is published as-is for educational and portfolio purposes, rather than production use.*
