@@ -41,6 +41,7 @@ Create a PostgreSQL database:
 ```bash
 psql -U postgres
 CREATE DATABASE inz_project;
+```
 
 #### 2. Backend
 cd backend
